@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ข้อมูลสมาชิก — ระบบแอดมิน</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="dashboard.html">แดชบอร์ด</a>
+      <a href="members.html" class="active">ข้อมูลสมาชิก</a>
+      <a href="applications.html">คำขอสมัครสมาชิก</a>
+      <a href="licenses.html">ทะเบียน / ใบอนุญาต</a>
+      <a href="welfare.html">สวัสดิการสมาชิก</a>
+      <a href="payments.html">การชำระเงิน</a>
+      <a href="reports.html">รายงาน</a>
+      <a href="#" onclick="Auth.clear(); location.href='../index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header>
+      <h1>ข้อมูลสมาชิก</h1>
+    </header>
+
+    <div class="panel">
+      <input type="text" id="q" placeholder="ค้นหาจากเลขบัตรประชาชน ชื่อ นามสกุล หรือเลขใบอนุญาต" oninput="search()">
+      <table>
+        <thead>
+          <tr><th>ชื่อ-นามสกุล</th><th>ประเภท</th><th>สถานะ</th><th>เลขใบอนุญาต</th><th>จังหวัดที่ปฏิบัติงาน</th></tr>
+        </thead>
+        <tbody id="rows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+Auth.requireRole(['admin_super', 'admin_staff'], '../index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+let all = [];
+
+function statusBadge(status) {
+  const cls = status === 'ปกติ' ? 'ok' : (status === 'พักใช้' || status === 'เพิกถอน' ? 'warn' : 'pending');
+  return `<span class="badge ${cls}">${status || '-'}</span>`;
+}
+
+function render(rows) {
+  const tbody = document.getElementById('rows');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่พบข้อมูลสมาชิก</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(m => `
+    <tr>
+      <td>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</td>
+      <td>${m.member_type || '-'}</td>
+      <td>${statusBadge(m.member_status)}</td>
+      <td>${m.license_no || '-'}</td>
+      <td>${m.work_province || '-'}</td>
+    </tr>
+  `).join('');
+}
+
+function search() {
+  const q = document.getElementById('q').value.toLowerCase();
+  render(all.filter(m =>
+    !q ||
+    String(m.national_id||'').includes(q) ||
+    String(m.first_name_th||'').toLowerCase().includes(q) ||
+    String(m.last_name_th||'').toLowerCase().includes(q) ||
+    String(m.license_no||'').includes(q)
+  ));
+}
+
+async function load() {
+  try {
+    all = await apiCall('listMembers');
+    render(all);
+  } catch (err) {
+    document.getElementById('rows').innerHTML = `<tr><td colspan="5" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+load();
+</script>
+</body>
+</html>

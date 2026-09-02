@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สวัสดิการสมาชิก — ระบบแอดมิน</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="dashboard.html">แดชบอร์ด</a>
+      <a href="members.html">ข้อมูลสมาชิก</a>
+      <a href="applications.html">คำขอสมัครสมาชิก</a>
+      <a href="licenses.html" class="LICNAV">ทะเบียน / ใบอนุญาต</a>
+      <a href="welfare.html" class="active">สวัสดิการสมาชิก</a>
+      <a href="payments.html" class="PAYNAV">การชำระเงิน</a>
+      <a href="reports.html" class="REPNAV">รายงาน</a>
+      <a href="#" onclick="Auth.clear(); location.href='../index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>สวัสดิการสมาชิก</h1></header>
+    <div class="module-stub">
+      <p>โมดูลนี้มีโครง Google Sheet และ API endpoint (<code>listWelfare</code>) พร้อมใช้งานแล้วใน <code>apps-script/Code.gs</code>
+      แต่ยังไม่ได้ต่อ UI เต็มรูปแบบ — ดูรายละเอียดที่ต้องพัฒนาต่อใน <code>docs/ROADMAP.md</code> (อ้างอิง TOR ข้อ 7)</p>
+    </div>
+  </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+Auth.requireRole(['admin_super', 'admin_staff'], '../index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+</script>
+</body>
+</html>
