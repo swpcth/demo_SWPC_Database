@@ -35,9 +35,22 @@ async function load() {
   const el = document.getElementById('content');
   try {
     const m = await apiCall('getMyProfile');
+    if (m.profile_kind === 'organization') {
+      el.innerHTML = `
+        <div class="panel">
+          <h2>${m.org_name_th || ''}</h2>
+          <p>เลขทะเบียนสมาชิกวิสามัญ: <b>${m.reg_no || 'ยังไม่ออกเลข'}</b></p>
+          <p>ประเภทองค์กร: ${m.org_type || '-'} &nbsp;•&nbsp; สถานะ: <span class="badge ${m.status==='ปกติ'?'ok':'pending'}">${m.status || '-'}</span></p>
+          <p>ผู้แทนองค์กร: ${m.rep_prefix || ''} ${m.rep_name || ''} (${m.rep_position || '-'})</p>
+          <p>ติดต่อผู้แทน: ${m.rep_email || '-'} &nbsp;•&nbsp; ${m.rep_phone || '-'}</p>
+        </div>
+      `;
+      return;
+    }
     el.innerHTML = `
       <div class="panel">
         <h2>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
+        <p>เลขสมาชิก: <b>${m.member_no || 'ยังไม่ออกเลข'}</b></p>
         <p>ประเภทสมาชิก: ${m.member_type || '-'} &nbsp;•&nbsp; สถานะ: <span class="badge ${m.member_status==='ปกติ'?'ok':'pending'}">${m.member_status || '-'}</span></p>
         <p>เลขใบอนุญาต: ${m.license_no || 'ยังไม่มี'}</p>
         <p>อีเมล: ${m.email || '-'} &nbsp;•&nbsp; โทรศัพท์: ${m.phone || '-'}</p>
@@ -53,8 +66,8 @@ async function load() {
       </div>
     `;
   } catch (err) {
-    el.innerHTML = `<div class="panel"><p>ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ — คุณอาจยังไม่ได้ยื่นใบสมัคร หรือใบสมัครยังไม่ได้รับอนุมัติ</p>
-      <a class="btn" style="width:auto; display:inline-block" href="member-apply.html">ยื่นใบสมัครสมาชิก</a></div>`;
+    el.innerHTML = `<div class="panel"><p>ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ — คุณอาจยังไม่ได้ยื่นใบสมัคร หรือใบสมัครยังไม่ได้รับอนุมัติและชำระเงิน</p>
+      <a class="btn" style="width:auto; display:inline-block" href="member-apply.html">ไปที่หน้าสมัครสมาชิก</a></div>`;
   }
 }
 

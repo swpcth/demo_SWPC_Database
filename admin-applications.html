@@ -29,12 +29,34 @@
 
     <div class="panel">
       <h2>รอตรวจสอบ / รออนุมัติ</h2>
+      <div class="type-tabs">
+        <button class="tab-chip active" data-type="" onclick="filterType('')">ทั้งหมด</button>
+        <button class="tab-chip" data-type="สามัญ" onclick="filterType('สามัญ')">สามัญ</button>
+        <button class="tab-chip" data-type="สมทบ" onclick="filterType('สมทบ')">สมทบ</button>
+        <button class="tab-chip" data-type="วิสามัญ" onclick="filterType('วิสามัญ')">วิสามัญ</button>
+      </div>
       <table>
-        <thead><tr><th>เลขที่คำขอ</th><th>ประเภท</th><th>วันที่ยื่น</th><th>สถานะ</th><th></th></tr></thead>
-        <tbody id="rows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+        <thead><tr><th>เลขที่คำขอ</th><th>ประเภท</th><th>ชื่อผู้สมัคร</th><th>ค่าธรรมเนียม</th><th>วันที่ยื่น</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="7" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>ตรวจสอบการชำระเงิน (คำขอที่รอสลิปตรวจสอบ)</h2>
+      <table>
+        <thead><tr><th>เลขที่คำขอ</th><th>ประเภท</th><th>จำนวนเงิน</th><th>สลิป</th><th></th></tr></thead>
+        <tbody id="payRows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
   </main>
+</div>
+
+<!-- รายละเอียดใบสมัคร -->
+<div id="detailOverlay" class="overlay" style="display:none" onclick="if(event.target===this) closeDetail()">
+  <div class="overlay-card">
+    <button class="overlay-close" onclick="closeDetail()">✕</button>
+    <div id="detailBody"></div>
+  </div>
 </div>
 
 <script src="api.js"></script>
@@ -42,30 +64,69 @@
 Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
 
-async function load() {
-  try {
-    const rows = (await apiCall('listApplications')).filter(a => a.status === 'รอตรวจสอบ' || a.status === 'รออนุมัติ');
-    const tbody = document.getElementById('rows');
-    if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีคำขอค้างดำเนินการ</td></tr>';
-      return;
-    }
-    tbody.innerHTML = rows.map(a => `
-      <tr>
-        <td>${a.application_id}</td>
-        <td>${a.applicant_type}</td>
-        <td>${new Date(a.submitted_at).toLocaleDateString('th-TH')}</td>
-        <td><span class="badge pending">${a.status}</span></td>
-        <td>
+let allApps = [];
+let typeFilter = '';
+
+function filterType(t) {
+  typeFilter = t;
+  document.querySelectorAll('.tab-chip').forEach(b => b.classList.toggle('active', b.dataset.type === t));
+  renderApps();
+}
+
+function applicantName(app) {
+  const d = JSON.parse(app.ref_data_json || '{}');
+  if (app.applicant_type === 'วิสามัญ') return d.org_name_th || '-';
+  return [d.prefix_th, d.first_name_th, d.last_name_th].filter(Boolean).join(' ') || '-';
+}
+
+function renderApps() {
+  const tbody = document.getElementById('rows');
+  const rows = allApps.filter(a => !typeFilter || a.applicant_type === typeFilter);
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่มีคำขอในหมวดนี้</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(a => `
+    <tr>
+      <td>${a.application_id}</td>
+      <td>${a.applicant_type}</td>
+      <td>${applicantName(a)}</td>
+      <td>${a.fee_amount || 0} บาท</td>
+      <td>${new Date(a.submitted_at).toLocaleDateString('th-TH')}</td>
+      <td><span class="badge pending">${a.status}</span></td>
+      <td>
+        <button class="btn small secondary" onclick="viewDetail('${a.application_id}')">ดูรายละเอียด</button>
+        ${a.status === 'รอตรวจสอบ' ? `
           <button class="btn small" onclick="review('${a.application_id}','approve')">อนุมัติ</button>
           <button class="btn small secondary" onclick="review('${a.application_id}','reject')">ไม่อนุมัติ</button>
-        </td>
-      </tr>
-    `).join('');
-  } catch (err) {
-    document.getElementById('rows').innerHTML = `<tr><td colspan="5" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
-  }
+        ` : ''}
+      </td>
+    </tr>
+  `).join('');
 }
+
+function viewDetail(applicationId) {
+  const a = allApps.find(x => x.application_id === applicationId);
+  if (!a) return;
+  const d = JSON.parse(a.ref_data_json || '{}');
+  const docs = JSON.parse(a.documents_json || '[]');
+  let fieldsHtml = Object.entries(d).map(([k, v]) => v ? `<p><b>${k}:</b> ${v}</p>` : '').join('');
+  let docsHtml = docs.length
+    ? docs.map(doc => `<p><a href="${doc.url}" target="_blank">${doc.doc_type || doc.name}</a></p>`).join('')
+    : '<p class="empty-state">ไม่มีเอกสารแนบ</p>';
+  document.getElementById('detailBody').innerHTML = `
+    <h2>ใบสมัคร ${a.application_id} — สมาชิก${a.applicant_type}</h2>
+    <p><span class="badge pending">${a.status}</span> ${a.fee_amount ? '• ค่าธรรมเนียม ' + a.fee_amount + ' บาท' : ''}</p>
+    <h3>ข้อมูลที่กรอก</h3>
+    ${fieldsHtml || '<p class="empty-state">ไม่มีข้อมูล</p>'}
+    <h3>เอกสารแนบ</h3>
+    ${docsHtml}
+    ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn)"><b>เหตุผลไม่อนุมัติ:</b> ' + a.reject_reason + '</p>' : ''}
+  `;
+  document.getElementById('detailOverlay').style.display = 'flex';
+}
+
+function closeDetail() { document.getElementById('detailOverlay').style.display = 'none'; }
 
 async function review(applicationId, decision) {
   let reason = '';
@@ -75,13 +136,66 @@ async function review(applicationId, decision) {
   }
   try {
     await apiCall('reviewApplication', { application_id: applicationId, decision, reason });
-    load();
+    loadAll();
   } catch (err) {
     alert('ดำเนินการไม่สำเร็จ: ' + err.message);
   }
 }
 
-load();
+async function loadApps() {
+  try {
+    allApps = (await apiCall('listApplications')).filter(a => a.status === 'รอตรวจสอบ' || a.status === 'รออนุมัติ' || a.status === 'รอชำระเงิน');
+    renderApps();
+  } catch (err) {
+    document.getElementById('rows').innerHTML = `<tr><td colspan="7" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+async function loadPayments() {
+  const tbody = document.getElementById('payRows');
+  try {
+    const payments = (await apiCall('listPayments')).filter(p => p.ref_type === 'application' && p.status === 'รอตรวจสอบ');
+    if (!payments.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีรายการรอตรวจสอบสลิป</td></tr>';
+      return;
+    }
+    // ต้องดึง applicant_type จากใบสมัครที่เกี่ยวข้อง
+    const allAppsForPay = await apiCall('listApplications');
+    tbody.innerHTML = payments.map(pm => {
+      const app = allAppsForPay.find(a => a.application_id === pm.ref_id);
+      return `
+        <tr>
+          <td>${pm.ref_id}</td>
+          <td>${app ? app.applicant_type : '-'}</td>
+          <td>${pm.amount} บาท</td>
+          <td>${pm.slip_url ? `<a href="${pm.slip_url}" target="_blank">ดูสลิป</a>` : '-'}</td>
+          <td>
+            <button class="btn small" onclick="verifyPayment('${pm.payment_id}','approve')">ยืนยันชำระเงิน</button>
+            <button class="btn small secondary" onclick="verifyPayment('${pm.payment_id}','reject')">ปฏิเสธ</button>
+          </td>
+        </tr>`;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+async function verifyPayment(paymentId, decision) {
+  if (decision === 'approve' && !confirm('ยืนยันว่าตรวจสอบสลิปถูกต้อง และต้องการออกเลขสมาชิกให้ผู้สมัครรายนี้?')) return;
+  try {
+    const res = await apiCall('verifyApplicationPayment', { payment_id: paymentId, decision });
+    if (decision === 'approve') alert('ยืนยันการชำระเงินสำเร็จ ออกเลขสมาชิก/ทะเบียนเรียบร้อย');
+    loadAll();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+function loadAll() {
+  loadApps();
+  loadPayments();
+}
+loadAll();
 </script>
 </body>
 </html>

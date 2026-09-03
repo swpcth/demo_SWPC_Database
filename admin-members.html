@@ -29,13 +29,28 @@
       <h1>ข้อมูลสมาชิก</h1>
     </header>
 
-    <div class="panel">
-      <input type="text" id="q" placeholder="ค้นหาจากเลขบัตรประชาชน ชื่อ นามสกุล หรือเลขใบอนุญาต" oninput="search()">
+    <div class="type-tabs">
+      <button class="tab-chip active" data-tab="individual" onclick="switchTab('individual')">สมาชิกบุคคล (สามัญ/สมทบ)</button>
+      <button class="tab-chip" data-tab="org" onclick="switchTab('org')">สมาชิกวิสามัญ (องค์กร)</button>
+    </div>
+
+    <div class="panel" id="panel-individual">
+      <input type="text" id="q" placeholder="ค้นหาจากเลขสมาชิก เลขบัตรประชาชน ชื่อ นามสกุล หรือเลขใบอนุญาต" oninput="search()">
       <table>
         <thead>
-          <tr><th>ชื่อ-นามสกุล</th><th>ประเภท</th><th>สถานะ</th><th>เลขใบอนุญาต</th><th>จังหวัดที่ปฏิบัติงาน</th></tr>
+          <tr><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>ประเภท</th><th>สถานะ</th><th>เลขใบอนุญาต</th><th>จังหวัดที่ปฏิบัติงาน</th></tr>
         </thead>
-        <tbody id="rows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+        <tbody id="rows"><tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel" id="panel-org" style="display:none">
+      <input type="text" id="qOrg" placeholder="ค้นหาจากชื่อองค์กร เลขทะเบียน หรือชื่อผู้แทน" oninput="searchOrg()">
+      <table>
+        <thead>
+          <tr><th>เลขทะเบียน</th><th>ชื่อองค์กร</th><th>ประเภทองค์กร</th><th>ผู้แทนองค์กร</th><th>สถานะ</th></tr>
+        </thead>
+        <tbody id="orgRows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
   </main>
@@ -47,6 +62,13 @@ Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
 
 let all = [];
+let allOrgs = [];
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-chip').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('panel-individual').style.display = tab === 'individual' ? 'block' : 'none';
+  document.getElementById('panel-org').style.display = tab === 'org' ? 'block' : 'none';
+}
 
 function statusBadge(status) {
   const cls = status === 'ปกติ' ? 'ok' : (status === 'พักใช้' || status === 'เพิกถอน' ? 'warn' : 'pending');
@@ -56,11 +78,12 @@ function statusBadge(status) {
 function render(rows) {
   const tbody = document.getElementById('rows');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่พบข้อมูลสมาชิก</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่พบข้อมูลสมาชิก</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(m => `
     <tr>
+      <td>${m.member_no || '-'}</td>
       <td>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</td>
       <td>${m.member_type || '-'}</td>
       <td>${statusBadge(m.member_status)}</td>
@@ -70,14 +93,42 @@ function render(rows) {
   `).join('');
 }
 
+function renderOrg(rows) {
+  const tbody = document.getElementById('orgRows');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่พบข้อมูลสมาชิกวิสามัญ</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(o => `
+    <tr>
+      <td>${o.reg_no || '-'}</td>
+      <td>${o.org_name_th || '-'}</td>
+      <td>${o.org_type || '-'}</td>
+      <td>${o.rep_name || '-'}</td>
+      <td>${statusBadge(o.status)}</td>
+    </tr>
+  `).join('');
+}
+
 function search() {
   const q = document.getElementById('q').value.toLowerCase();
   render(all.filter(m =>
     !q ||
     String(m.national_id||'').includes(q) ||
+    String(m.member_no||'').toLowerCase().includes(q) ||
     String(m.first_name_th||'').toLowerCase().includes(q) ||
     String(m.last_name_th||'').toLowerCase().includes(q) ||
     String(m.license_no||'').includes(q)
+  ));
+}
+
+function searchOrg() {
+  const q = document.getElementById('qOrg').value.toLowerCase();
+  renderOrg(allOrgs.filter(o =>
+    !q ||
+    String(o.org_name_th||'').toLowerCase().includes(q) ||
+    String(o.reg_no||'').toLowerCase().includes(q) ||
+    String(o.rep_name||'').toLowerCase().includes(q)
   ));
 }
 
@@ -86,7 +137,13 @@ async function load() {
     all = await apiCall('listMembers');
     render(all);
   } catch (err) {
-    document.getElementById('rows').innerHTML = `<tr><td colspan="5" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+    document.getElementById('rows').innerHTML = `<tr><td colspan="6" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+  try {
+    allOrgs = await apiCall('listMembersOrg');
+    renderOrg(allOrgs);
+  } catch (err) {
+    document.getElementById('orgRows').innerHTML = `<tr><td colspan="5" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
   }
 }
 load();

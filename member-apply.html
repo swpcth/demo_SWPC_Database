@@ -20,39 +20,189 @@
   </aside>
 
   <main class="main">
-    <header><h1>ใบสมัครสมาชิก</h1></header>
+    <header><h1>สมัครสมาชิก</h1></header>
 
-    <div id="error" class="error-box"></div>
+    <!-- สถานะคำขอของฉัน -->
+    <div class="panel">
+      <h2>สถานะคำขอของฉัน</h2>
+      <div id="myApps"><p class="empty-state">กำลังโหลด...</p></div>
+    </div>
 
-    <form class="panel" onsubmit="return submitApp(event)">
-      <label>ประเภทสมาชิกที่สมัคร</label>
-      <select id="applicant_type">
-        <option value="สามัญ">สมาชิกสามัญ</option>
-        <option value="สมทบ">สมาชิกสมทบ</option>
-      </select>
+    <!-- แบบฟอร์มสมัครใหม่ -->
+    <div class="panel">
+      <h2>ยื่นใบสมัครใหม่</h2>
+      <div id="typePicker">
+        <label>เลือกประเภทที่ต้องการสมัคร</label>
+        <div class="type-choice">
+          <button type="button" class="type-btn" data-type="สามัญ" onclick="pickType('สามัญ')">สมาชิกสามัญ</button>
+          <button type="button" class="type-btn" data-type="สมทบ" onclick="pickType('สมทบ')">สมาชิกสมทบ</button>
+          <button type="button" class="type-btn" data-type="วิสามัญ" onclick="pickType('วิสามัญ')">สมาชิกวิสามัญ (องค์กร)</button>
+        </div>
+      </div>
 
-      <label>คำนำหน้า (ไทย)</label>
-      <input type="text" id="prefix_th" required>
-      <label>ชื่อ (ไทย)</label>
-      <input type="text" id="first_name_th" required>
-      <label>นามสกุล (ไทย)</label>
-      <input type="text" id="last_name_th" required>
-      <label>เลขประจำตัวประชาชน</label>
-      <input type="text" id="national_id" pattern="[0-9]{13}" required>
-      <label>วันเดือนปีเกิด</label>
-      <input type="date" id="dob" required>
-      <label>เบอร์โทรศัพท์</label>
-      <input type="tel" id="phone" required>
-      <label>อีเมล</label>
-      <input type="email" id="email" required>
+      <div id="error" class="error-box"></div>
 
-      <p style="color:var(--muted); font-size:13px; margin-top:-8px">
-        หมายเหตุ: scaffold นี้ยังไม่รวมระบบอัปโหลดเอกสาร (TOR ข้อ 1.1 (6)) — ต่อยอดได้โดยเพิ่ม field
-        <code>documents</code> ที่อัปโหลดไป Google Drive แล้วส่ง URL มาพร้อมฟอร์มนี้
-      </p>
+      <!-- ฟอร์มบุคคล: สามัญ / สมทบ -->
+      <form id="form-individual" style="display:none" onsubmit="return submitIndividual(event)">
+        <p class="form-type-tag" id="individualTypeTag"></p>
 
-      <button class="btn" type="submit">ส่งใบสมัคร</button>
-    </form>
+        <fieldset>
+          <legend>1) ข้อมูลส่วนบุคคล</legend>
+          <div class="grid-2">
+            <div><label>เลขประจำตัวประชาชน *</label><input type="text" id="i_national_id" pattern="[0-9]{13}" required></div>
+            <div><label>วันเดือนปีเกิด *</label><input type="date" id="i_dob" required oninput="updateAge()"></div>
+            <div><label>คำนำหน้า (ไทย) *</label><input type="text" id="i_prefix_th" required></div>
+            <div><label>คำนำหน้า (อังกฤษ)</label><input type="text" id="i_prefix_en"></div>
+            <div><label>ชื่อ (ไทย) *</label><input type="text" id="i_first_name_th" required></div>
+            <div><label>นามสกุล (ไทย) *</label><input type="text" id="i_last_name_th" required></div>
+            <div><label>ชื่อ (อังกฤษ)</label><input type="text" id="i_first_name_en"></div>
+            <div><label>นามสกุล (อังกฤษ)</label><input type="text" id="i_last_name_en"></div>
+            <div><label>อายุ (คำนวณอัตโนมัติ)</label><input type="text" id="i_age" disabled></div>
+            <div><label>ศาสนา</label><input type="text" id="i_religion"></div>
+            <div><label>เชื้อชาติ</label><input type="text" id="i_ethnicity"></div>
+            <div><label>สัญชาติ</label><input type="text" id="i_nationality" value="ไทย"></div>
+            <div><label>เบอร์โทรศัพท์ *</label><input type="tel" id="i_phone" required></div>
+            <div><label>อีเมล *</label><input type="email" id="i_email" required></div>
+            <div><label>Line ID</label><input type="text" id="i_line_id"></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>2) ข้อมูลการศึกษา</legend>
+          <div id="eduRows"></div>
+          <button type="button" class="btn small secondary" onclick="addEduRow()">+ เพิ่มรายการการศึกษา</button>
+        </fieldset>
+
+        <fieldset>
+          <legend>3) ข้อมูลการทำงาน</legend>
+          <div class="grid-2">
+            <div><label>สถานะการทำงาน</label><input type="text" id="i_work_status"></div>
+            <div><label>ตำแหน่ง</label><input type="text" id="i_position"></div>
+            <div><label>หน่วยงาน</label><input type="text" id="i_agency"></div>
+            <div><label>สังกัด</label><input type="text" id="i_affiliation"></div>
+            <div><label>จังหวัดที่ปฏิบัติงาน</label><input type="text" id="i_work_province"></div>
+            <div><label>ความเชี่ยวชาญด้านสังคมสงเคราะห์</label><input type="text" id="i_expertise"></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>4) ข้อมูลสถานที่ทำงาน</legend>
+          <div class="grid-2">
+            <div><label>ชื่อหน่วยงาน</label><input type="text" id="i_workplace_name"></div>
+            <div><label>บ้านเลขที่</label><input type="text" id="i_wp_house_no"></div>
+            <div><label>อาคาร</label><input type="text" id="i_wp_building"></div>
+            <div><label>ชั้น</label><input type="text" id="i_wp_floor"></div>
+            <div><label>หมู่</label><input type="text" id="i_wp_moo"></div>
+            <div><label>ซอย</label><input type="text" id="i_wp_soi"></div>
+            <div><label>ถนน</label><input type="text" id="i_wp_road"></div>
+            <div><label>แขวง/ตำบล</label><input type="text" id="i_wp_subdistrict"></div>
+            <div><label>เขต/อำเภอ</label><input type="text" id="i_wp_district"></div>
+            <div><label>จังหวัด</label><input type="text" id="i_wp_province"></div>
+            <div><label>รหัสไปรษณีย์</label><input type="text" id="i_wp_zipcode"></div>
+            <div><label>อีเมลหน่วยงาน</label><input type="email" id="i_wp_email"></div>
+            <div><label>เบอร์โทรศัพท์หน่วยงาน</label><input type="tel" id="i_wp_phone"></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>5) เอกสารแนบ (PDF, JPG, JPEG, PNG)</legend>
+          <div class="doc-row"><label>สำเนาบัตรประชาชน</label><input type="file" id="doc_national_id" accept=".pdf,.jpg,.jpeg,.png"></div>
+          <div class="doc-row"><label>รูปถ่ายสมาชิก</label><input type="file" id="doc_photo" accept=".jpg,.jpeg,.png"></div>
+          <div class="doc-row"><label>วุฒิการศึกษา</label><input type="file" id="doc_education" accept=".pdf,.jpg,.jpeg,.png"></div>
+          <div class="doc-row"><label>ใบรับรองแพทย์</label><input type="file" id="doc_medical" accept=".pdf,.jpg,.jpeg,.png"></div>
+          <div class="doc-row"><label>เอกสารอื่นๆ (ถ้ามี)</label><input type="file" id="doc_other" accept=".pdf,.jpg,.jpeg,.png"></div>
+        </fieldset>
+
+        <button class="btn" type="submit" id="submitIndividualBtn">ส่งใบสมัคร</button>
+        <button type="button" class="btn secondary" onclick="cancelForm()">ยกเลิก</button>
+      </form>
+
+      <!-- ฟอร์มองค์กร: วิสามัญ (Multi-step) -->
+      <div id="form-org" style="display:none">
+        <div class="stepper-track">
+          <span class="step-dot active" data-step="1">1</span>
+          <span class="step-dot" data-step="2">2</span>
+          <span class="step-dot" data-step="3">3</span>
+          <span class="step-dot" data-step="4">4</span>
+          <span class="step-dot" data-step="5">5</span>
+        </div>
+
+        <div class="org-step" data-step="1">
+          <fieldset>
+            <legend>1) ข้อมูลองค์กร</legend>
+            <div class="grid-2">
+              <div><label>ชื่อองค์กร (ไทย) *</label><input type="text" id="o_org_name_th" required></div>
+              <div><label>ชื่อองค์กร (อังกฤษ)</label><input type="text" id="o_org_name_en"></div>
+              <div><label>ประเภทองค์กร *</label><input type="text" id="o_org_type" required placeholder="เช่น มูลนิธิ, สมาคม, บริษัท"></div>
+              <div><label>เลขทะเบียนนิติบุคคล (ถ้ามี)</label><input type="text" id="o_juristic_no"></div>
+              <div><label>เลขประจำตัวผู้เสียภาษี (ถ้ามี)</label><input type="text" id="o_tax_id"></div>
+              <div><label>วันที่ก่อตั้ง</label><input type="date" id="o_founded_date"></div>
+            </div>
+            <label>วัตถุประสงค์ขององค์กร</label>
+            <textarea id="o_purpose" rows="3"></textarea>
+          </fieldset>
+        </div>
+
+        <div class="org-step" data-step="2" style="display:none">
+          <fieldset>
+            <legend>2) ข้อมูลผู้แทนองค์กร</legend>
+            <div class="grid-2">
+              <div><label>คำนำหน้า *</label><input type="text" id="o_rep_prefix" required></div>
+              <div><label>ชื่อ-นามสกุล *</label><input type="text" id="o_rep_name" required></div>
+              <div><label>ตำแหน่ง *</label><input type="text" id="o_rep_position" required></div>
+              <div><label>เลขประจำตัวประชาชน *</label><input type="text" id="o_rep_national_id" pattern="[0-9]{13}" required></div>
+              <div><label>เบอร์โทรศัพท์ *</label><input type="tel" id="o_rep_phone" required></div>
+              <div><label>อีเมล *</label><input type="email" id="o_rep_email" required></div>
+              <div><label>Line ID (ถ้ามี)</label><input type="text" id="o_rep_line_id"></div>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="org-step" data-step="3" style="display:none">
+          <fieldset>
+            <legend>3) ที่ตั้งองค์กร</legend>
+            <div class="grid-2">
+              <div><label>บ้านเลขที่</label><input type="text" id="o_addr_house_no"></div>
+              <div><label>อาคาร</label><input type="text" id="o_addr_building"></div>
+              <div><label>ชั้น</label><input type="text" id="o_addr_floor"></div>
+              <div><label>หมู่</label><input type="text" id="o_addr_moo"></div>
+              <div><label>ซอย</label><input type="text" id="o_addr_soi"></div>
+              <div><label>ถนน</label><input type="text" id="o_addr_road"></div>
+              <div><label>แขวง/ตำบล</label><input type="text" id="o_addr_subdistrict"></div>
+              <div><label>เขต/อำเภอ</label><input type="text" id="o_addr_district"></div>
+              <div><label>จังหวัด</label><input type="text" id="o_addr_province"></div>
+              <div><label>รหัสไปรษณีย์</label><input type="text" id="o_addr_zipcode"></div>
+              <div><label>โทรศัพท์สำนักงาน</label><input type="tel" id="o_office_phone"></div>
+              <div><label>เว็บไซต์ (ถ้ามี)</label><input type="text" id="o_website"></div>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="org-step" data-step="4" style="display:none">
+          <fieldset>
+            <legend>4) แนบเอกสารประกอบ (PDF, JPG, JPEG, PNG)</legend>
+            <div class="doc-row"><label>หนังสือรับรองนิติบุคคล</label><input type="file" id="odoc_juristic" accept=".pdf,.jpg,.jpeg,.png"></div>
+            <div class="doc-row"><label>หนังสือแต่งตั้งผู้แทนองค์กร (ถ้ามี)</label><input type="file" id="odoc_appoint" accept=".pdf,.jpg,.jpeg,.png"></div>
+            <div class="doc-row"><label>หนังสือรับรองการจดทะเบียน</label><input type="file" id="odoc_registration" accept=".pdf,.jpg,.jpeg,.png"></div>
+            <div class="doc-row"><label>เอกสารอื่นๆ (ถ้ามี)</label><input type="file" id="odoc_other" accept=".pdf,.jpg,.jpeg,.png"></div>
+          </fieldset>
+        </div>
+
+        <div class="org-step" data-step="5" style="display:none">
+          <fieldset>
+            <legend>5) ตรวจสอบและยืนยันข้อมูลก่อนส่งคำขอ</legend>
+            <div id="orgReview" class="review-box"></div>
+          </fieldset>
+        </div>
+
+        <div class="stepper-nav">
+          <button type="button" class="btn secondary" id="orgBackBtn" onclick="orgStep(-1)" style="display:none">ย้อนกลับ</button>
+          <button type="button" class="btn" id="orgNextBtn" onclick="orgStep(1)">ถัดไป</button>
+          <button type="button" class="btn" id="orgSubmitBtn" style="display:none" onclick="submitOrg()">ยืนยันส่งคำขอ</button>
+          <button type="button" class="btn secondary" onclick="cancelForm()">ยกเลิก</button>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -61,32 +211,278 @@
 Auth.requireRole(['member'], 'index.html');
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
 
-async function submitApp(e) {
+let currentType = null;
+let eduCount = 0;
+let orgStepNum = 1;
+
+function pickType(type) {
+  currentType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  document.getElementById('typePicker').style.display = 'none';
+  if (type === 'วิสามัญ') {
+    document.getElementById('form-individual').style.display = 'none';
+    document.getElementById('form-org').style.display = 'block';
+  } else {
+    document.getElementById('form-org').style.display = 'none';
+    document.getElementById('form-individual').style.display = 'block';
+    document.getElementById('individualTypeTag').textContent = 'กำลังสมัคร: สมาชิก' + type;
+    if (eduCount === 0) addEduRow();
+  }
+}
+
+function cancelForm() {
+  currentType = null;
+  document.getElementById('form-individual').style.display = 'none';
+  document.getElementById('form-org').style.display = 'none';
+  document.getElementById('typePicker').style.display = 'block';
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+}
+
+function updateAge() {
+  const dob = document.getElementById('i_dob').value;
+  if (!dob) { document.getElementById('i_age').value = ''; return; }
+  const d = new Date(dob), now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  document.getElementById('i_age').value = age + ' ปี';
+}
+
+function addEduRow() {
+  eduCount++;
+  const id = eduCount;
+  const div = document.createElement('div');
+  div.className = 'edu-row';
+  div.id = 'edu' + id;
+  div.innerHTML = `
+    <div class="grid-2">
+      <div><label>ระดับการศึกษา</label><input type="text" class="edu-level"></div>
+      <div><label>ปีที่สำเร็จการศึกษา</label><input type="text" class="edu-year"></div>
+      <div><label>วุฒิการศึกษา</label><input type="text" class="edu-degree"></div>
+      <div><label>สาขาวิชา</label><input type="text" class="edu-major"></div>
+      <div><label>สถาบันการศึกษา</label><input type="text" class="edu-institute"></div>
+    </div>
+    <button type="button" class="btn small secondary" onclick="document.getElementById('edu${id}').remove()">ลบรายการนี้</button>
+    <hr>`;
+  document.getElementById('eduRows').appendChild(div);
+}
+
+function collectEducation() {
+  return Array.from(document.querySelectorAll('#eduRows .edu-row')).map(row => ({
+    level: row.querySelector('.edu-level').value,
+    year: row.querySelector('.edu-year').value,
+    degree: row.querySelector('.edu-degree').value,
+    major: row.querySelector('.edu-major').value,
+    institute: row.querySelector('.edu-institute').value
+  })).filter(e => e.level || e.degree || e.institute);
+}
+
+async function collectDocuments(map) {
+  const docs = [];
+  for (const [inputId, docType] of Object.entries(map)) {
+    const input = document.getElementById(inputId);
+    if (input && input.files && input.files[0]) {
+      const uploaded = await uploadDocument(input.files[0], docType);
+      docs.push(uploaded);
+    }
+  }
+  return docs;
+}
+
+function showError(msg) {
+  const box = document.getElementById('error');
+  box.textContent = msg;
+  box.style.display = 'block';
+  box.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function submitIndividual(e) {
   e.preventDefault();
-  const errBox = document.getElementById('error');
-  errBox.style.display = 'none';
+  const btn = document.getElementById('submitIndividualBtn');
+  btn.disabled = true; btn.textContent = 'กำลังส่ง...';
   try {
-    await apiCall('submitApplication', {
-      applicant_type: document.getElementById('applicant_type').value,
-      data: {
-        username: Auth.getUsername(),
-        prefix_th: document.getElementById('prefix_th').value,
-        first_name_th: document.getElementById('first_name_th').value,
-        last_name_th: document.getElementById('last_name_th').value,
-        national_id: document.getElementById('national_id').value,
-        dob: document.getElementById('dob').value,
-        phone: document.getElementById('phone').value,
-        email: document.getElementById('email').value
-      }
+    const documents = await collectDocuments({
+      doc_national_id: 'บัตรประชาชน', doc_photo: 'รูปถ่าย', doc_education: 'วุฒิการศึกษา',
+      doc_medical: 'ใบรับรองแพทย์', doc_other: 'เอกสารอื่นๆ'
     });
-    alert('ส่งใบสมัครสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบและอนุมัติ');
-    window.location.href = 'dashboard.html';
+    const data = {
+      national_id: document.getElementById('i_national_id').value,
+      dob: document.getElementById('i_dob').value,
+      prefix_th: document.getElementById('i_prefix_th').value,
+      prefix_en: document.getElementById('i_prefix_en').value,
+      first_name_th: document.getElementById('i_first_name_th').value,
+      last_name_th: document.getElementById('i_last_name_th').value,
+      first_name_en: document.getElementById('i_first_name_en').value,
+      last_name_en: document.getElementById('i_last_name_en').value,
+      religion: document.getElementById('i_religion').value,
+      ethnicity: document.getElementById('i_ethnicity').value,
+      nationality: document.getElementById('i_nationality').value,
+      phone: document.getElementById('i_phone').value,
+      email: document.getElementById('i_email').value,
+      line_id: document.getElementById('i_line_id').value,
+      education_json: JSON.stringify(collectEducation()),
+      work_status: document.getElementById('i_work_status').value,
+      position: document.getElementById('i_position').value,
+      agency: document.getElementById('i_agency').value,
+      affiliation: document.getElementById('i_affiliation').value,
+      work_province: document.getElementById('i_work_province').value,
+      expertise: document.getElementById('i_expertise').value,
+      workplace_name: document.getElementById('i_workplace_name').value,
+      workplace_house_no: document.getElementById('i_wp_house_no').value,
+      workplace_building: document.getElementById('i_wp_building').value,
+      workplace_floor: document.getElementById('i_wp_floor').value,
+      workplace_moo: document.getElementById('i_wp_moo').value,
+      workplace_soi: document.getElementById('i_wp_soi').value,
+      workplace_road: document.getElementById('i_wp_road').value,
+      workplace_subdistrict: document.getElementById('i_wp_subdistrict').value,
+      workplace_district: document.getElementById('i_wp_district').value,
+      workplace_province: document.getElementById('i_wp_province').value,
+      workplace_zipcode: document.getElementById('i_wp_zipcode').value,
+      workplace_email: document.getElementById('i_wp_email').value,
+      workplace_phone: document.getElementById('i_wp_phone').value
+    };
+    const res = await apiCall('submitApplication', { applicant_type: currentType, data, documents });
+    alert('ส่งใบสมัครสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ (จะแจ้งผลทางอีเมล)');
+    window.location.reload();
   } catch (err) {
-    errBox.textContent = err.message;
-    errBox.style.display = 'block';
+    showError(err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'ส่งใบสมัคร';
   }
   return false;
 }
+
+function orgFieldMap() {
+  return {
+    org_name_th: 'o_org_name_th', org_name_en: 'o_org_name_en', org_type: 'o_org_type',
+    juristic_no: 'o_juristic_no', tax_id: 'o_tax_id', founded_date: 'o_founded_date', purpose: 'o_purpose',
+    rep_prefix: 'o_rep_prefix', rep_name: 'o_rep_name', rep_position: 'o_rep_position',
+    rep_national_id: 'o_rep_national_id', rep_phone: 'o_rep_phone', rep_email: 'o_rep_email', rep_line_id: 'o_rep_line_id',
+    addr_house_no: 'o_addr_house_no', addr_building: 'o_addr_building', addr_floor: 'o_addr_floor',
+    addr_moo: 'o_addr_moo', addr_soi: 'o_addr_soi', addr_road: 'o_addr_road',
+    addr_subdistrict: 'o_addr_subdistrict', addr_district: 'o_addr_district',
+    addr_province: 'o_addr_province', addr_zipcode: 'o_addr_zipcode',
+    office_phone: 'o_office_phone', website: 'o_website'
+  };
+}
+
+function collectOrgData() {
+  const map = orgFieldMap();
+  const data = {};
+  Object.keys(map).forEach(k => { data[k] = document.getElementById(map[k]).value; });
+  return data;
+}
+
+function orgStep(delta) {
+  if (delta > 0 && !validateOrgStep(orgStepNum)) return;
+  document.querySelector('.org-step[data-step="' + orgStepNum + '"]').style.display = 'none';
+  document.querySelector('.step-dot[data-step="' + orgStepNum + '"]').classList.remove('active');
+  orgStepNum += delta;
+  document.querySelector('.org-step[data-step="' + orgStepNum + '"]').style.display = 'block';
+  document.querySelector('.step-dot[data-step="' + orgStepNum + '"]').classList.add('active');
+  document.getElementById('orgBackBtn').style.display = orgStepNum > 1 ? 'inline-block' : 'none';
+  document.getElementById('orgNextBtn').style.display = orgStepNum < 5 ? 'inline-block' : 'none';
+  document.getElementById('orgSubmitBtn').style.display = orgStepNum === 5 ? 'inline-block' : 'none';
+  if (orgStepNum === 5) renderOrgReview();
+}
+
+function validateOrgStep(step) {
+  const required = {
+    1: ['o_org_name_th', 'o_org_type'],
+    2: ['o_rep_prefix', 'o_rep_name', 'o_rep_position', 'o_rep_national_id', 'o_rep_phone', 'o_rep_email'],
+    3: [], 4: []
+  }[step] || [];
+  for (const id of required) {
+    if (!document.getElementById(id).value) {
+      showError('กรุณากรอกข้อมูลที่จำเป็น (มีเครื่องหมาย *) ให้ครบก่อนไปขั้นตอนถัดไป');
+      document.getElementById(id).focus();
+      return false;
+    }
+  }
+  document.getElementById('error').style.display = 'none';
+  return true;
+}
+
+function renderOrgReview() {
+  const d = collectOrgData();
+  document.getElementById('orgReview').innerHTML = `
+    <p><b>ชื่อองค์กร:</b> ${d.org_name_th} ${d.org_name_en ? '(' + d.org_name_en + ')' : ''}</p>
+    <p><b>ประเภทองค์กร:</b> ${d.org_type}</p>
+    <p><b>ผู้แทนองค์กร:</b> ${d.rep_prefix} ${d.rep_name} — ${d.rep_position}</p>
+    <p><b>ติดต่อผู้แทน:</b> ${d.rep_phone} / ${d.rep_email}</p>
+    <p><b>ที่ตั้ง:</b> ${[d.addr_house_no, d.addr_building, d.addr_moo, d.addr_soi, d.addr_road, d.addr_subdistrict, d.addr_district, d.addr_province, d.addr_zipcode].filter(Boolean).join(' ')}</p>
+    <p style="color:var(--muted); font-size:13px">ตรวจสอบข้อมูลด้านบนให้ถูกต้องก่อนกด "ยืนยันส่งคำขอ" — หากต้องแก้ไข กด "ย้อนกลับ" ได้</p>
+  `;
+}
+
+async function submitOrg() {
+  const btn = document.getElementById('orgSubmitBtn');
+  btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+  try {
+    const documents = await collectDocuments({
+      odoc_juristic: 'หนังสือรับรองนิติบุคคล', odoc_appoint: 'หนังสือแต่งตั้งผู้แทนองค์กร',
+      odoc_registration: 'หนังสือรับรองการจดทะเบียน', odoc_other: 'เอกสารอื่นๆ'
+    });
+    const res = await apiCall('submitApplication', { applicant_type: 'วิสามัญ', data: collectOrgData(), documents });
+    alert('ส่งคำขอสมัครสมาชิกวิสามัญสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ (จะแจ้งผลทางอีเมล)');
+    window.location.reload();
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'ยืนยันส่งคำขอ';
+  }
+}
+
+function statusBadgeClass(status) {
+  if (status === 'เป็นสมาชิกแล้ว') return 'ok';
+  if (status === 'ไม่อนุมัติ') return 'warn';
+  return 'pending';
+}
+
+async function loadMyApplications() {
+  const el = document.getElementById('myApps');
+  try {
+    const apps = await apiCall('myApplications');
+    if (!apps.length) { el.innerHTML = '<p class="empty-state">ยังไม่เคยยื่นใบสมัคร</p>'; return; }
+    el.innerHTML = apps.map(a => `
+      <div class="app-status-card">
+        <div>
+          <b>สมาชิก${a.applicant_type}</b> — เลขที่คำขอ ${a.application_id}<br>
+          <span style="color:var(--muted); font-size:13px">ยื่นเมื่อ ${new Date(a.submitted_at).toLocaleDateString('th-TH')}</span>
+        </div>
+        <span class="badge ${statusBadgeClass(a.status)}">${a.status}</span>
+        ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn); font-size:13px">เหตุผล: ' + a.reject_reason + '</p>' : ''}
+        ${a.status === 'รอชำระเงิน' ? renderPaySlipForm(a) : ''}
+      </div>
+    `).join('');
+  } catch (err) {
+    el.innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+
+function renderPaySlipForm(a) {
+  return `
+    <div class="pay-box">
+      <p>ค่าธรรมเนียม: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี [ระบุเลขบัญชีสภาฯ] แล้วแนบสลิปด้านล่าง</p>
+      <input type="file" id="slip_${a.application_id}" accept=".pdf,.jpg,.jpeg,.png">
+      <button type="button" class="btn small" onclick="submitSlip('${a.application_id}')">แนบสลิปการโอนเงิน</button>
+    </div>`;
+}
+
+async function submitSlip(applicationId) {
+  const input = document.getElementById('slip_' + applicationId);
+  if (!input.files[0]) { alert('กรุณาเลือกไฟล์สลิปก่อน'); return; }
+  try {
+    const uploaded = await uploadDocument(input.files[0], 'สลิปการโอนเงิน');
+    await apiCall('submitPaymentSlip', { application_id: applicationId, slip_url: uploaded.url, method: 'โอนเงิน' });
+    alert('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ');
+    loadMyApplications();
+  } catch (err) {
+    alert('แนบสลิปไม่สำเร็จ: ' + err.message);
+  }
+}
+
+loadMyApplications();
 </script>
 </body>
 </html>

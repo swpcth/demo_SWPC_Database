@@ -55,7 +55,8 @@ async function load() {
     const s = await apiCall('dashboardSummary');
     document.getElementById('stats').innerHTML = `
       <div class="stat-card"><div class="num">${s.totalMembers}</div><div class="label">สมาชิกทั้งหมด</div></div>
-      <div class="stat-card"><div class="num">${s.pendingApplications}</div><div class="label">คำขอรอดำเนินการ</div></div>
+      <div class="stat-card"><div class="num">${s.pendingApplications}</div><div class="label">คำขอรอตรวจสอบ</div></div>
+      <div class="stat-card"><div class="num">${s.awaitingPayment}</div><div class="label">รอชำระเงิน</div></div>
     `;
     const typeRows = Object.entries(s.byType).map(([k,v]) => `<tr><td>${k || '(ไม่ระบุ)'}</td><td>${v}</td></tr>`).join('');
     document.querySelector('#tbl-type tbody').innerHTML = typeRows || '<tr><td class="empty-state">ยังไม่มีข้อมูล</td></tr>';
