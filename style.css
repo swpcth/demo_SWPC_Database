@@ -338,3 +338,77 @@ th { color: var(--muted); font-weight: 500; font-size: 13px; }
   color: var(--muted);
   font-size: 14px;
 }
+
+/* ---------- Portal separation (member vs admin login) ---------- */
+
+.portal-tag {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--navy);
+  font-weight: 600;
+  margin: 0 0 18px;
+}
+
+.admin-auth-shell .auth-side { background: var(--navy-deep); }
+.admin-auth-shell .portal-tag.admin-tag { color: var(--red); }
+
+.portal-switch {
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 22px;
+}
+
+.portal-switch a { color: var(--navy); font-weight: 600; }
+
+.or-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 16px 0;
+}
+.or-divider::before, .or-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--line);
+}
+.or-divider span { padding: 0 12px; }
+
+.thaid-btn {
+  background: #fff;
+  color: var(--navy-deep);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.thaid-btn:hover { background: #f2f0e8; }
+
+/* ---------- ThaID auth callback screen ---------- */
+
+.callback-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.callback-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เข้าสู่ระบบเจ้าหน้าที่ — สภาวิชาชีพสังคมสงเคราะห์</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="auth-shell admin-auth-shell">
+  <div class="auth-side">
+    <div class="mark"><img src="logo.png" alt="ตราสภาวิชาชีพสังคมสงเคราะห์" class="logo-mark"> สภาวิชาชีพสังคมสงเคราะห์</div>
+    <h1>ระบบสำหรับเจ้าหน้าที่</h1>
+    <div class="modules">
+      จัดการข้อมูลสมาชิก · ตรวจสอบคำขอสมัคร · ทะเบียนใบอนุญาต · สวัสดิการ · การชำระเงิน · รายงาน
+    </div>
+  </div>
+
+  <div class="auth-main">
+    <div class="auth-card">
+      <p class="portal-tag admin-tag">พื้นที่สำหรับเจ้าหน้าที่สภาวิชาชีพฯ เท่านั้น</p>
+
+      <div id="error" class="error-box"></div>
+
+      <form id="form-login" onsubmit="return doLogin(event)">
+        <h2>เข้าสู่ระบบเจ้าหน้าที่</h2>
+        <p class="sub">ใช้บัญชีที่ผู้ดูแลระบบออกให้เท่านั้น</p>
+        <label for="l-username">ชื่อผู้ใช้งาน</label>
+        <input type="text" id="l-username" required>
+        <label for="l-password">รหัสผ่าน</label>
+        <input type="password" id="l-password" required>
+        <button class="btn" type="submit">เข้าสู่ระบบ</button>
+
+        <div class="or-divider"><span>หรือ</span></div>
+        <button type="button" class="btn thaid-btn" onclick="loginWithThaid()">เข้าสู่ระบบด้วย ThaID</button>
+      </form>
+
+      <p class="portal-switch">เป็นสมาชิกสภาวิชาชีพฯ? <a href="index.html">เข้าสู่ระบบที่นี่</a></p>
+    </div>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+function showError(msg) {
+  const box = document.getElementById('error');
+  box.textContent = msg;
+  box.style.display = 'block';
+}
+
+function loginWithThaid() {
+  window.location.href = API_BASE_URL + '?action=thaidRedirect&role=admin';
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  try {
+    const data = await apiCall('login', {
+      username: document.getElementById('l-username').value.trim(),
+      password: document.getElementById('l-password').value
+    });
+    if (!data.role.startsWith('admin')) {
+      showError('บัญชีนี้เป็นบัญชีสมาชิก กรุณาเข้าสู่ระบบที่หน้าสำหรับสมาชิก (ลิงก์ด้านล่าง)');
+      return false;
+    }
+    Auth.setSession(data);
+    window.location.href = 'admin-dashboard.html';
+  } catch (err) {
+    showError(err.message);
+  }
+  return false;
+}
+
+const hashParams = new URLSearchParams(location.hash.slice(1));
+if (hashParams.get('error')) {
+  showError(hashParams.get('error'));
+  history.replaceState(null, '', location.pathname);
+}
+
+if (Auth.isLoggedIn() && Auth.getRole().startsWith('admin')) {
+  window.location.href = 'admin-dashboard.html';
+}
+</script>
+</body>
+</html>

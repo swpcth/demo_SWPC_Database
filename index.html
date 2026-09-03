@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>เข้าสู่ระบบ — สภาวิชาชีพสังคมสงเคราะห์</title>
+<title>เข้าสู่ระบบสมาชิก — สภาวิชาชีพสังคมสงเคราะห์</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -20,6 +20,7 @@
 
   <div class="auth-main">
     <div class="auth-card">
+      <p class="portal-tag">พื้นที่สำหรับสมาชิกและบุคคลทั่วไป</p>
       <div class="tabs">
         <button id="tab-login" class="active" onclick="showTab('login')">เข้าสู่ระบบ</button>
         <button id="tab-register" onclick="showTab('register')">สมัครใช้งานบัญชี</button>
@@ -30,12 +31,17 @@
       <!-- LOGIN -->
       <form id="form-login" onsubmit="return doLogin(event)">
         <h2>เข้าสู่ระบบ</h2>
-        <p class="sub">สำหรับสมาชิกและเจ้าหน้าที่</p>
+        <p class="sub">สำหรับสมาชิกสภาวิชาชีพฯ</p>
         <label for="l-username">ชื่อผู้ใช้งาน</label>
         <input type="text" id="l-username" required>
         <label for="l-password">รหัสผ่าน</label>
         <input type="password" id="l-password" required>
         <button class="btn" type="submit">เข้าสู่ระบบ</button>
+
+        <div class="or-divider"><span>หรือ</span></div>
+        <button type="button" class="btn thaid-btn" onclick="loginWithThaid()">
+          <img src="logo.png" style="display:none">เข้าสู่ระบบด้วย ThaID
+        </button>
       </form>
 
       <!-- REGISTER -->
@@ -47,7 +53,12 @@
         <label for="r-password">ตั้งรหัสผ่าน</label>
         <input type="password" id="r-password" required minlength="8">
         <button class="btn" type="submit">สร้างบัญชี</button>
+
+        <div class="or-divider"><span>หรือ</span></div>
+        <button type="button" class="btn thaid-btn" onclick="loginWithThaid()">เข้าสู่ระบบด้วย ThaID</button>
       </form>
+
+      <p class="portal-switch">เจ้าหน้าที่สภาวิชาชีพฯ? <a href="admin-login.html">เข้าสู่ระบบที่นี่</a></p>
     </div>
   </div>
 </div>
@@ -68,6 +79,10 @@ function showError(msg) {
   box.style.display = 'block';
 }
 
+function loginWithThaid() {
+  window.location.href = API_BASE_URL + '?action=thaidRedirect&role=member';
+}
+
 async function doLogin(e) {
   e.preventDefault();
   try {
@@ -75,8 +90,12 @@ async function doLogin(e) {
       username: document.getElementById('l-username').value.trim(),
       password: document.getElementById('l-password').value
     });
+    if (data.role.startsWith('admin')) {
+      showError('บัญชีนี้เป็นบัญชีเจ้าหน้าที่ กรุณาเข้าสู่ระบบที่หน้าสำหรับเจ้าหน้าที่ (ลิงก์ด้านล่าง)');
+      return false;
+    }
     Auth.setSession(data);
-    window.location.href = data.role.startsWith('admin') ? 'admin-dashboard.html' : 'member-dashboard.html';
+    window.location.href = 'member-dashboard.html';
   } catch (err) {
     showError(err.message);
   }
@@ -98,8 +117,15 @@ async function doRegister(e) {
   return false;
 }
 
-if (Auth.isLoggedIn()) {
-  window.location.href = Auth.getRole().startsWith('admin') ? 'admin-dashboard.html' : 'member-dashboard.html';
+// error ที่ redirect กลับมาจาก ThaID (ผ่าน auth-callback.html)
+const hashParams = new URLSearchParams(location.hash.slice(1));
+if (hashParams.get('error')) {
+  showError(hashParams.get('error'));
+  history.replaceState(null, '', location.pathname);
+}
+
+if (Auth.isLoggedIn() && !Auth.getRole().startsWith('admin')) {
+  window.location.href = 'member-dashboard.html';
 }
 </script>
 </body>

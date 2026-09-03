@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>กำลังเข้าสู่ระบบ...</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="callback-shell">
+  <img src="logo.png" alt="" class="callback-logo">
+  <p>กำลังเข้าสู่ระบบ...</p>
+</div>
+<script src="api.js"></script>
+<script>
+const params = new URLSearchParams(location.hash.slice(1));
+const token = params.get('token');
+const role = params.get('role');
+const username = params.get('username');
+const error = params.get('error');
+
+if (error) {
+  const back = (location.hash.includes('admin') || role === 'admin') ? 'admin-login.html' : 'index.html';
+  window.location.replace(back + '#error=' + encodeURIComponent(error));
+} else if (token && role) {
+  Auth.setSession({ token, role, username });
+  window.location.replace(role.startsWith('admin') ? 'admin-dashboard.html' : 'member-dashboard.html');
+} else {
+  window.location.replace('index.html');
+}
+</script>
+</body>
+</html>

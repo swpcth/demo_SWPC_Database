@@ -19,7 +19,7 @@
       <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
       <a href="admin-payments.html">การชำระเงิน</a>
       <a href="admin-reports.html">รายงาน</a>
-      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
   </aside>
@@ -35,7 +35,7 @@
 
 <script src="api.js"></script>
 <script>
-Auth.requireRole(["admin_super", "admin_staff"], "index.html");
+Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
 </script>
 </body>
