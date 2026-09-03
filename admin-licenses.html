@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ทะเบียน ใบอนุญาต — ระบบแอดมิน</title>
+<title>ทะเบียนสมาชิก — ระบบแอดมิน</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -25,18 +25,228 @@
   </aside>
 
   <main class="main">
-    <header><h1>ทะเบียน / ใบอนุญาต</h1></header>
-    <div class="module-stub">
-      <p>โมดูลนี้มีโครง Google Sheet และ API endpoint (<code>listLicenses</code>) พร้อมใช้งานแล้วใน <code>apps-script/Code.gs</code>
-      แต่ยังไม่ได้ต่อ UI เต็มรูปแบบ — ดูรายละเอียดที่ต้องพัฒนาต่อใน <code>docs/ROADMAP.md</code> (อ้างอิง TOR ข้อ 3-4)</p>
+    <header>
+      <h1>ทะเบียนสมาชิก</h1>
+      <button class="btn small secondary" onclick="runCheckNow()">ตรวจสอบวันหมดอายุตอนนี้</button>
+    </header>
+
+    <div class="stat-grid" id="regStats"></div>
+
+    <div class="panel">
+      <div class="list-toolbar">
+        <input type="text" id="q" placeholder="ค้นหาจากเลขสมาชิก ชื่อ นามสกุล หรือเลขใบอนุญาต" oninput="renderRegistry()">
+        <select id="f_licstatus" onchange="renderRegistry()">
+          <option value="">สถานะใบอนุญาตทั้งหมด</option>
+          <option value="ปกติ">ปกติ</option>
+          <option value="ใกล้หมดอายุ">ใกล้หมดอายุ</option>
+          <option value="หมดอายุ">หมดอายุ</option>
+          <option value="อยู่ระหว่างต่ออายุ">อยู่ระหว่างต่ออายุ</option>
+          <option value="พักใช้">พักใช้</option>
+          <option value="เพิกถอน">เพิกถอน</option>
+        </select>
+      </div>
+      <p class="count-line" id="countLine">ทั้งหมด 0 รายการ</p>
+      <table>
+        <thead>
+          <tr><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>ประเภท</th><th>วันที่สมัคร</th><th>วันหมดอายุสมาชิก</th><th>เลขใบอนุญาต</th><th>สถานะใบอนุญาต</th><th></th></tr>
+        </thead>
+        <tbody id="rows"><tr><td colspan="8" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>ประวัติการแจ้งเตือน (TOR ข้อ 3.3)</h2>
+      <div class="list-toolbar">
+        <button class="btn small secondary" onclick="exportNotifCsv()">ส่งออกรายการแจ้งเตือน (CSV)</button>
+      </div>
+      <table>
+        <thead><tr><th>วันที่ส่ง</th><th>ประเภทการแจ้งเตือน</th><th>ส่งถึง</th><th>หัวข้อ</th><th>สถานะ</th></tr></thead>
+        <tbody id="notifRows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
     </div>
   </main>
+</div>
+
+<div id="detailOverlay" class="overlay" style="display:none" onclick="if(event.target===this) closeDetail()">
+  <div class="overlay-card">
+    <button class="overlay-close" onclick="closeDetail()">✕</button>
+    <div id="detailBody"></div>
+  </div>
 </div>
 
 <script src="api.js"></script>
 <script>
 Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+let registry = [];
+let notifications = [];
+
+function licBadgeClass(status) {
+  if (status === 'ปกติ') return 'ok';
+  if (status === 'ใกล้หมดอายุ') return 'pending';
+  return 'warn'; // หมดอายุ / พักใช้ / เพิกถอน / อยู่ระหว่างต่ออายุ
+}
+
+function fmtDate(iso) {
+  return iso ? new Date(iso).toLocaleDateString('th-TH') : '-';
+}
+
+function renderStats() {
+  const counts = {};
+  registry.forEach(r => { counts[r.license_status] = (counts[r.license_status] || 0) + 1; });
+  const labels = ['ปกติ', 'ใกล้หมดอายุ', 'หมดอายุ', 'พักใช้', 'เพิกถอน'];
+  document.getElementById('regStats').innerHTML = labels.map(l => `
+    <div class="stat-card"><div class="num">${counts[l] || 0}</div><div class="label">${l}</div></div>
+  `).join('');
+}
+
+function renderRegistry() {
+  const q = document.getElementById('q').value.toLowerCase();
+  const fStatus = document.getElementById('f_licstatus').value;
+  const rows = registry.filter(r =>
+    (!q || String(r.member_no||'').toLowerCase().includes(q) || String(r.name||'').toLowerCase().includes(q) || String(r.license_no||'').toLowerCase().includes(q)) &&
+    (!fStatus || r.license_status === fStatus)
+  );
+  document.getElementById('countLine').textContent = 'ทั้งหมด ' + rows.length + ' รายการ';
+  const tbody = document.getElementById('rows');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">ไม่พบข้อมูล</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.member_no || '-'}</td>
+      <td>${r.name}</td>
+      <td>${r.member_type}</td>
+      <td>${fmtDate(r.applied_date)}</td>
+      <td>${fmtDate(r.membership_expire_date)} ${r.days_until_expire !== null && r.days_until_expire < 30 ? '<span class="badge ' + (r.days_until_expire < 0 ? 'warn' : 'pending') + '">' + (r.days_until_expire < 0 ? 'เกินกำหนด ' + Math.abs(r.days_until_expire) + ' วัน' : 'อีก ' + r.days_until_expire + ' วัน') + '</span>' : ''}</td>
+      <td>${r.license_no || '-'}</td>
+      <td><span class="badge ${licBadgeClass(r.license_status)}">${r.license_status || '-'}</span></td>
+      <td><button class="btn small secondary" onclick="viewRegistry('${r.member_id}')">ดูทะเบียน</button></td>
+    </tr>
+  `).join('');
+}
+
+async function viewRegistry(memberId) {
+  document.getElementById('detailBody').innerHTML = '<p class="empty-state">กำลังโหลด...</p>';
+  document.getElementById('detailOverlay').style.display = 'flex';
+  try {
+    const data = await apiCall('getMemberRegistry', { member_id: memberId });
+    const m = data.member, lic = data.license;
+    const renewalsHtml = data.renewals.length
+      ? data.renewals.map(r => `<div class="detail-row"><p><b>${fmtDate(r.renewed_at)}</b> — ต่ออายุ ${r.years} ปี (ถึง ${fmtDate(r.new_expire_date)}) โดย ${r.renewed_by}</p>${r.note ? '<p style="color:var(--muted)">' + r.note + '</p>' : ''}</div>`).join('')
+      : '<p class="empty-state">ยังไม่เคยต่ออายุ</p>';
+    const paymentsHtml = data.payments.length
+      ? data.payments.map(p => `<div class="detail-row"><p><b>${p.amount} บาท</b> — ${p.status} ${p.paid_at ? '(' + fmtDate(p.paid_at) + ')' : ''}</p></div>`).join('')
+      : '<p class="empty-state">ไม่มีประวัติการชำระเงิน</p>';
+    const notifHtml = data.notifications.length
+      ? data.notifications.slice(0, 5).map(n => `<div class="detail-row"><p>${fmtDate(n.sent_at)} — ${n.subject}</p></div>`).join('')
+      : '<p class="empty-state">ยังไม่เคยส่งแจ้งเตือน</p>';
+
+    document.getElementById('detailBody').innerHTML = `
+      <h2>ทะเบียนสมาชิก — ${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
+      <p>เลขสมาชิก <b>${m.member_no}</b> • สมาชิก${m.member_type} • <span class="badge ${m.member_status==='ปกติ'?'ok':'warn'}">${m.member_status}</span></p>
+
+      <h3>ข้อมูลทะเบียน (TOR ข้อ 3.1)</h3>
+      <p><b>วันที่สมัคร:</b> ${fmtDate(m.applied_date)}</p>
+      <p><b>วันหมดอายุสมาชิกภาพ:</b> ${fmtDate(m.membership_expire_date)}</p>
+
+      <h3>ข้อมูลใบอนุญาต (TOR ข้อ 3.2)</h3>
+      ${lic ? `
+        <p><b>เลขที่ใบอนุญาต:</b> ${lic.license_no}</p>
+        <p><b>วันที่ออกใบอนุญาต:</b> ${fmtDate(lic.issue_date)}</p>
+        <p><b>วันหมดอายุ:</b> ${fmtDate(lic.expire_date)}</p>
+        <p><b>สถานะ:</b> <span class="badge ${licBadgeClass(lic.status)}">${lic.status}</span></p>
+      ` : '<p class="empty-state">ยังไม่มีใบอนุญาต</p>'}
+
+      <h3>ประวัติการต่ออายุ</h3>
+      ${renewalsHtml}
+
+      <h3>ประวัติการชำระเงิน</h3>
+      ${paymentsHtml}
+
+      <h3>ประวัติการแจ้งเตือนล่าสุด</h3>
+      ${notifHtml}
+
+      <div class="detail-actions">
+        <button class="btn" onclick="renewMembership('${m.member_id}')">ต่ออายุสมาชิกภาพ</button>
+      </div>
+    `;
+  } catch (err) {
+    document.getElementById('detailBody').innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+function closeDetail() { document.getElementById('detailOverlay').style.display = 'none'; }
+
+async function renewMembership(memberId) {
+  const years = prompt('ต่ออายุกี่ปี? (ปล่อยว่างเพื่อใช้ค่ามาตรฐานตามประเภทสมาชิก)', '');
+  try {
+    const res = await apiCall('renewMembership', { member_id: memberId, years: years || undefined });
+    alert('ต่ออายุสำเร็จ วันหมดอายุใหม่: ' + fmtDate(res.new_expire_date));
+    closeDetail();
+    load();
+  } catch (err) {
+    alert('ต่ออายุไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function runCheckNow() {
+  try {
+    const res = await apiCall('runExpiryCheckNow');
+    alert('ตรวจสอบเสร็จสิ้น — ส่งอีเมลแจ้งเตือนไป ' + res.notifications_sent + ' ฉบับ');
+    load();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+function renderNotifications() {
+  const tbody = document.getElementById('notifRows');
+  if (!notifications.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ยังไม่มีประวัติการแจ้งเตือน</td></tr>';
+    return;
+  }
+  tbody.innerHTML = notifications.slice(0, 50).map(n => `
+    <tr>
+      <td>${fmtDate(n.sent_at)}</td>
+      <td>${n.type === 'expired' ? 'หมดอายุแล้ว' : 'ใกล้หมดอายุ'}</td>
+      <td>${n.email_to}</td>
+      <td>${n.subject}</td>
+      <td>${n.status}</td>
+    </tr>
+  `).join('');
+}
+
+function exportNotifCsv() {
+  const headers = ['วันที่ส่ง', 'ประเภท', 'ส่งถึง', 'หัวข้อ', 'สถานะ'];
+  const lines = [headers.join(',')].concat(notifications.map(n => [
+    fmtDate(n.sent_at), n.type, n.email_to, n.subject, n.status
+  ].map(v => '"' + String(v || '').replace(/"/g, '""') + '"').join(',')));
+  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'ประวัติการแจ้งเตือน.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function load() {
+  try {
+    registry = await apiCall('listRegistry');
+    renderStats();
+    renderRegistry();
+  } catch (err) {
+    document.getElementById('rows').innerHTML = `<tr><td colspan="8" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+  try {
+    notifications = await apiCall('listNotifications');
+    renderNotifications();
+  } catch (err) {
+    document.getElementById('notifRows').innerHTML = `<tr><td colspan="5" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+load();
 </script>
 </body>
 </html>

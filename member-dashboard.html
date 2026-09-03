@@ -52,7 +52,8 @@ async function load() {
         <h2>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
         <p>เลขสมาชิก: <b>${m.member_no || 'ยังไม่ออกเลข'}</b></p>
         <p>ประเภทสมาชิก: ${m.member_type || '-'} &nbsp;•&nbsp; สถานะ: <span class="badge ${m.member_status==='ปกติ'?'ok':'pending'}">${m.member_status || '-'}</span></p>
-        <p>เลขใบอนุญาต: ${m.license_no || 'ยังไม่มี'}</p>
+        <p>เลขใบอนุญาต: ${m.license_no || 'ยังไม่มี'} ${m.license_status ? '<span class="badge ' + (m.license_status==='ปกติ'?'ok':(m.license_status==='ใกล้หมดอายุ'?'pending':'warn')) + '">' + m.license_status + '</span>' : ''}</p>
+        <p>วันที่สมัครสมาชิก: ${m.applied_date ? new Date(m.applied_date).toLocaleDateString('th-TH') : '-'} &nbsp;•&nbsp; วันหมดอายุสมาชิกภาพ: ${m.membership_expire_date ? new Date(m.membership_expire_date).toLocaleDateString('th-TH') : '-'}</p>
         <p>อีเมล: ${m.email || '-'} &nbsp;•&nbsp; โทรศัพท์: ${m.phone || '-'}</p>
       </div>
       <div class="panel">

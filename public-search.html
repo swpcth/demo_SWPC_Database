@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ตรวจสอบสมาชิก/ใบอนุญาต — สภาวิชาชีพสังคมสงเคราะห์</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="public-shell">
+  <div class="public-header">
+    <img src="logo.png" alt="ตราสภาฯ" class="logo-mark">
+    <div>
+      <div class="mark-text">สภาวิชาชีพสังคมสงเคราะห์</div>
+      <div class="mark-sub">ระบบตรวจสอบสถานะสมาชิก / ผู้ได้รับใบอนุญาตประกอบวิชาชีพ</div>
+    </div>
+  </div>
+
+  <div class="public-card">
+    <label>ค้นหาจากชื่อ-นามสกุล หรือเลขที่ใบอนุญาต</label>
+    <div class="search-row">
+      <input type="text" id="q" placeholder="เช่น สมชาย หรือ LC2568-00001" onkeydown="if(event.key==='Enter') doSearch()">
+      <button class="btn" style="width:auto" onclick="doSearch()">ค้นหา</button>
+    </div>
+    <div id="results"></div>
+    <p class="disclaimer">ระบบแสดงเฉพาะข้อมูลที่เปิดเผยได้ (ชื่อ-นามสกุล เลขใบอนุญาต สถานะ วันหมดอายุ) ตามข้อกำหนดคุ้มครองข้อมูลส่วนบุคคล</p>
+    <p class="back-link"><a href="index.html">← กลับหน้าหลัก</a></p>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+async function doSearch() {
+  const q = document.getElementById('q').value.trim();
+  const box = document.getElementById('results');
+  if (q.length < 2) { box.innerHTML = '<p class="empty-state">กรุณากรอกคำค้นหาอย่างน้อย 2 ตัวอักษร</p>'; return; }
+  box.innerHTML = '<p class="empty-state">กำลังค้นหา...</p>';
+  try {
+    const results = await apiCall('publicSearchMembers', { q });
+    if (!results.length) { box.innerHTML = '<p class="empty-state">ไม่พบข้อมูลที่ตรงกับคำค้นหา</p>'; return; }
+    box.innerHTML = results.map(r => `
+      <div class="result-card">
+        <div>
+          <b>${r.name}</b> — สมาชิก${r.member_type}<br>
+          <span style="color:var(--muted); font-size:13px">เลขใบอนุญาต: ${r.license_no}</span>
+        </div>
+        <div style="text-align:right">
+          <span class="badge ${r.status==='ปกติ'?'ok':(r.status==='ใกล้หมดอายุ'?'pending':'warn')}">${r.status || '-'}</span><br>
+          ${r.expire_date ? '<span style="font-size:12px; color:var(--muted)">หมดอายุ ' + new Date(r.expire_date).toLocaleDateString('th-TH') + '</span>' : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    box.innerHTML = '<p class="empty-state">ค้นหาไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+</script>
+</body>
+</html>
