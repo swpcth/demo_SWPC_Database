@@ -14,6 +14,7 @@
     <nav>
       <a href="admin-dashboard.html">แดชบอร์ด</a>
       <a href="admin-members.html">ข้อมูลสมาชิก</a>
+      <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
       <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
       <a href="admin-licenses.html" class="active">ทะเบียน / ใบอนุญาต</a>
       <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
@@ -137,6 +138,12 @@ async function viewRegistry(memberId) {
     const renewalsHtml = data.renewals.length
       ? data.renewals.map(r => `<div class="detail-row"><p><b>${fmtDate(r.renewed_at)}</b> — ต่ออายุ ${r.years} ปี (ถึง ${fmtDate(r.new_expire_date)}) โดย ${r.renewed_by}</p>${r.note ? '<p style="color:var(--muted)">' + r.note + '</p>' : ''}</div>`).join('')
       : '<p class="empty-state">ยังไม่เคยต่ออายุ</p>';
+    const typeChangeHtml = (data.typeChangeHistory || []).length
+      ? data.typeChangeHistory.map(t => {
+          const oldV = JSON.parse(t.old_value_json || '{}'), newV = JSON.parse(t.new_value_json || '{}');
+          return `<div class="detail-row"><p><b>${fmtDate(t.created_at)}</b> — เปลี่ยนจาก "${oldV.member_type}" เป็น "${newV.member_type}" โดยเจ้าหน้าที่ ${t.actor_user_id}</p></div>`;
+        }).join('')
+      : '<p class="empty-state">ยังไม่เคยเปลี่ยนประเภท</p>';
     const paymentsHtml = data.payments.length
       ? data.payments.map(p => `<div class="detail-row"><p><b>${p.amount} บาท</b> — ${p.status} ${p.paid_at ? '(' + fmtDate(p.paid_at) + ')' : ''}</p></div>`).join('')
       : '<p class="empty-state">ไม่มีประวัติการชำระเงิน</p>';
@@ -162,6 +169,9 @@ async function viewRegistry(memberId) {
 
       <h3>ประวัติการต่ออายุ</h3>
       ${renewalsHtml}
+
+      <h3>ประวัติการเปลี่ยนประเภทสมาชิก</h3>
+      ${typeChangeHtml}
 
       <h3>ประวัติการชำระเงิน</h3>
       ${paymentsHtml}

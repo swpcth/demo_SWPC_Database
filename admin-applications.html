@@ -14,6 +14,7 @@
     <nav>
       <a href="admin-dashboard.html">แดชบอร์ด</a>
       <a href="admin-members.html">ข้อมูลสมาชิก</a>
+      <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
       <a href="admin-applications.html" class="active">คำขอสมัครสมาชิก</a>
       <a href="admin-licenses.html">ทะเบียน / ใบอนุญาต</a>
       <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
@@ -249,13 +250,14 @@ async function loadApps() {
 async function loadPayments() {
   const tbody = document.getElementById('payRows');
   try {
-    const payments = (await apiCall('listPayments')).filter(p => p.ref_type === 'application' && p.status === 'รอตรวจสอบ');
+    const allAppsForPay = await apiCall('listApplications'); // ไม่รวมคำขอเปลี่ยนประเภท/เปลี่ยนชื่อ (มีหน้าของตัวเองแล้ว)
+    const appIds = allAppsForPay.map(a => a.application_id);
+    const payments = (await apiCall('listPayments'))
+      .filter(p => p.ref_type === 'application' && p.status === 'รอตรวจสอบ' && appIds.indexOf(p.ref_id) !== -1);
     if (!payments.length) {
       tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีรายการรอตรวจสอบสลิป</td></tr>';
       return;
     }
-    // ต้องดึง applicant_type จากใบสมัครที่เกี่ยวข้อง
-    const allAppsForPay = await apiCall('listApplications');
     tbody.innerHTML = payments.map(pm => {
       const app = allAppsForPay.find(a => a.application_id === pm.ref_id);
       return `
