@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ทะเบียน ใบอนุญาต — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+      <a href="admin-members.html">ข้อมูลสมาชิก</a>
+      <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      <a href="admin-licenses.html" class="active">ทะเบียน / ใบอนุญาต</a>
+      <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="admin-payments.html">การชำระเงิน</a>
+      <a href="admin-reports.html">รายงาน</a>
+      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>ทะเบียน / ใบอนุญาต</h1></header>
+    <div class="module-stub">
+      <p>โมดูลนี้มีโครง Google Sheet และ API endpoint (<code>listLicenses</code>) พร้อมใช้งานแล้วใน <code>apps-script/Code.gs</code>
+      แต่ยังไม่ได้ต่อ UI เต็มรูปแบบ — ดูรายละเอียดที่ต้องพัฒนาต่อใน <code>docs/ROADMAP.md</code> (อ้างอิง TOR ข้อ 3-4)</p>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super", "admin_staff"], "index.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+</script>
+</body>
+</html>

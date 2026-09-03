@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>พื้นที่สมาชิก</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
+    <nav>
+      <a href="member-dashboard.html" class="active">ข้อมูลของฉัน</a>
+      <a href="member-apply.html">สมัครสมาชิก</a>
+      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>ข้อมูลของฉัน</h1></header>
+
+    <div id="content">กำลังโหลด...</div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(['member'], 'index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+async function load() {
+  const el = document.getElementById('content');
+  try {
+    const m = await apiCall('getMyProfile');
+    el.innerHTML = `
+      <div class="panel">
+        <h2>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
+        <p>ประเภทสมาชิก: ${m.member_type || '-'} &nbsp;•&nbsp; สถานะ: <span class="badge ${m.member_status==='ปกติ'?'ok':'pending'}">${m.member_status || '-'}</span></p>
+        <p>เลขใบอนุญาต: ${m.license_no || 'ยังไม่มี'}</p>
+        <p>อีเมล: ${m.email || '-'} &nbsp;•&nbsp; โทรศัพท์: ${m.phone || '-'}</p>
+      </div>
+      <div class="panel">
+        <h2>แก้ไขข้อมูลติดต่อ</h2>
+        <p style="color:var(--muted); font-size:13px">การแก้ไขชื่อ-นามสกุลต้องแนบเอกสารและรออนุมัติจากเจ้าหน้าที่</p>
+        <label>อีเมล</label>
+        <input type="email" id="email" value="${m.email || ''}">
+        <label>เบอร์โทรศัพท์</label>
+        <input type="tel" id="phone" value="${m.phone || ''}">
+        <button class="btn" style="width:auto" onclick="saveContact()">บันทึกข้อมูล</button>
+      </div>
+    `;
+  } catch (err) {
+    el.innerHTML = `<div class="panel"><p>ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ — คุณอาจยังไม่ได้ยื่นใบสมัคร หรือใบสมัครยังไม่ได้รับอนุมัติ</p>
+      <a class="btn" style="width:auto; display:inline-block" href="member-apply.html">ยื่นใบสมัครสมาชิก</a></div>`;
+  }
+}
+
+async function saveContact() {
+  try {
+    await apiCall('updateMember', {
+      patch: { email: document.getElementById('email').value, phone: document.getElementById('phone').value }
+    });
+    alert('บันทึกข้อมูลสำเร็จ');
+    load();
+  } catch (err) {
+    alert('บันทึกไม่สำเร็จ: ' + err.message);
+  }
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สมัครสมาชิก</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
+    <nav>
+      <a href="member-dashboard.html">ข้อมูลของฉัน</a>
+      <a href="member-apply.html" class="active">สมัครสมาชิก</a>
+      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>ใบสมัครสมาชิก</h1></header>
+
+    <div id="error" class="error-box"></div>
+
+    <form class="panel" onsubmit="return submitApp(event)">
+      <label>ประเภทสมาชิกที่สมัคร</label>
+      <select id="applicant_type">
+        <option value="สามัญ">สมาชิกสามัญ</option>
+        <option value="สมทบ">สมาชิกสมทบ</option>
+      </select>
+
+      <label>คำนำหน้า (ไทย)</label>
+      <input type="text" id="prefix_th" required>
+      <label>ชื่อ (ไทย)</label>
+      <input type="text" id="first_name_th" required>
+      <label>นามสกุล (ไทย)</label>
+      <input type="text" id="last_name_th" required>
+      <label>เลขประจำตัวประชาชน</label>
+      <input type="text" id="national_id" pattern="[0-9]{13}" required>
+      <label>วันเดือนปีเกิด</label>
+      <input type="date" id="dob" required>
+      <label>เบอร์โทรศัพท์</label>
+      <input type="tel" id="phone" required>
+      <label>อีเมล</label>
+      <input type="email" id="email" required>
+
+      <p style="color:var(--muted); font-size:13px; margin-top:-8px">
+        หมายเหตุ: scaffold นี้ยังไม่รวมระบบอัปโหลดเอกสาร (TOR ข้อ 1.1 (6)) — ต่อยอดได้โดยเพิ่ม field
+        <code>documents</code> ที่อัปโหลดไป Google Drive แล้วส่ง URL มาพร้อมฟอร์มนี้
+      </p>
+
+      <button class="btn" type="submit">ส่งใบสมัคร</button>
+    </form>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(['member'], 'index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+async function submitApp(e) {
+  e.preventDefault();
+  const errBox = document.getElementById('error');
+  errBox.style.display = 'none';
+  try {
+    await apiCall('submitApplication', {
+      applicant_type: document.getElementById('applicant_type').value,
+      data: {
+        username: Auth.getUsername(),
+        prefix_th: document.getElementById('prefix_th').value,
+        first_name_th: document.getElementById('first_name_th').value,
+        last_name_th: document.getElementById('last_name_th').value,
+        national_id: document.getElementById('national_id').value,
+        dob: document.getElementById('dob').value,
+        phone: document.getElementById('phone').value,
+        email: document.getElementById('email').value
+      }
+    });
+    alert('ส่งใบสมัครสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบและอนุมัติ');
+    window.location.href = 'dashboard.html';
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  }
+  return false;
+}
+</script>
+</body>
+</html>
