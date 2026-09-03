@@ -105,23 +105,118 @@ function renderApps() {
   `).join('');
 }
 
+function docItem(docs, docType) {
+  const found = docs.find(d => d.doc_type === docType);
+  if (found) return `<div class="doc-item"><span>${docType}</span><a href="${found.url}" target="_blank">ดูเอกสาร</a></div>`;
+  return `<div class="doc-item missing"><span>${docType}</span><span>ไม่มีเอกสาร</span></div>`;
+}
+
+function eduListHtml(educationJson) {
+  let edu = [];
+  try { edu = JSON.parse(educationJson || '[]'); } catch (e) {}
+  if (!edu.length) return '<p class="empty-state">ไม่มีข้อมูลการศึกษา</p>';
+  return edu.map(e => `
+    <div class="detail-row">
+      <p><b>${e.level || '-'}</b> ${e.degree ? '(' + e.degree + ')' : ''}</p>
+      <p>${[e.major, e.institute, e.year].filter(Boolean).join(' • ')}</p>
+    </div>`).join('');
+}
+
+function fieldRow(label, value) {
+  return value ? `<p><b>${label}:</b> ${value}</p>` : '';
+}
+
+function individualDetailHtml(a, d, docs) {
+  return `
+    <div class="detail-photo">${docs.find(x => x.doc_type === 'รูปถ่าย') ? `<img src="${docs.find(x => x.doc_type === 'รูปถ่าย').url}">` : '👤'}</div>
+    <h3>ข้อมูลส่วนตัว</h3>
+    ${fieldRow('ชื่อ-นามสกุล', [d.prefix_th, d.first_name_th, d.last_name_th].filter(Boolean).join(' '))}
+    ${fieldRow('ชื่อ-นามสกุล (อังกฤษ)', [d.prefix_en, d.first_name_en, d.last_name_en].filter(Boolean).join(' '))}
+    ${fieldRow('เลขบัตรประชาชน', d.national_id)}
+    ${fieldRow('วันเกิด', d.dob)}
+    ${fieldRow('ศาสนา / เชื้อชาติ / สัญชาติ', [d.religion, d.ethnicity, d.nationality].filter(Boolean).join(' / '))}
+    ${fieldRow('เบอร์โทรศัพท์', d.phone)}
+    ${fieldRow('อีเมล', d.email)}
+    ${fieldRow('Line ID', d.line_id)}
+
+    <h3>ข้อมูลการศึกษา</h3>
+    ${eduListHtml(d.education_json)}
+
+    <h3>ข้อมูลการทำงาน</h3>
+    ${fieldRow('สถานะการทำงาน', d.work_status)}
+    ${fieldRow('ตำแหน่ง', d.position)}
+    ${fieldRow('หน่วยงาน', d.agency)}
+    ${fieldRow('สังกัด', d.affiliation)}
+    ${fieldRow('จังหวัดที่ปฏิบัติงาน', d.work_province)}
+    ${fieldRow('ความเชี่ยวชาญ', d.expertise)}
+
+    <h3>ข้อมูลสถานที่ทำงาน</h3>
+    ${fieldRow('ชื่อหน่วยงาน', d.workplace_name)}
+    ${fieldRow('ที่อยู่', [d.workplace_house_no, d.workplace_building, d.workplace_moo, d.workplace_soi, d.workplace_road, d.workplace_subdistrict, d.workplace_district, d.workplace_province, d.workplace_zipcode].filter(Boolean).join(' '))}
+    ${fieldRow('อีเมลหน่วยงาน', d.workplace_email)}
+    ${fieldRow('เบอร์โทรศัพท์หน่วยงาน', d.workplace_phone)}
+
+    <h3>เอกสารที่เกี่ยวข้อง</h3>
+    <div class="doc-grid">
+      ${docItem(docs, 'บัตรประชาชน')}
+      ${docItem(docs, 'รูปถ่าย')}
+      ${docItem(docs, 'วุฒิการศึกษา')}
+      ${docItem(docs, 'ใบรับรองแพทย์')}
+      ${docItem(docs, 'เอกสารอื่นๆ')}
+    </div>
+  `;
+}
+
+function orgDetailHtml(a, d, docs) {
+  return `
+    <h3>ข้อมูลองค์กร</h3>
+    ${fieldRow('ชื่อองค์กร (ไทย)', d.org_name_th)}
+    ${fieldRow('ชื่อองค์กร (อังกฤษ)', d.org_name_en)}
+    ${fieldRow('ประเภทองค์กร', d.org_type)}
+    ${fieldRow('เลขทะเบียนนิติบุคคล', d.juristic_no)}
+    ${fieldRow('เลขประจำตัวผู้เสียภาษี', d.tax_id)}
+    ${fieldRow('วันที่ก่อตั้ง', d.founded_date)}
+    ${fieldRow('วัตถุประสงค์', d.purpose)}
+
+    <h3>ข้อมูลผู้แทนองค์กร</h3>
+    ${fieldRow('ชื่อ-นามสกุล', [d.rep_prefix, d.rep_name].filter(Boolean).join(' '))}
+    ${fieldRow('ตำแหน่ง', d.rep_position)}
+    ${fieldRow('เลขประจำตัวประชาชน', d.rep_national_id)}
+    ${fieldRow('เบอร์โทรศัพท์', d.rep_phone)}
+    ${fieldRow('อีเมล', d.rep_email)}
+    ${fieldRow('Line ID', d.rep_line_id)}
+
+    <h3>ที่ตั้งองค์กร</h3>
+    ${fieldRow('ที่อยู่', [d.addr_house_no, d.addr_building, d.addr_moo, d.addr_soi, d.addr_road, d.addr_subdistrict, d.addr_district, d.addr_province, d.addr_zipcode].filter(Boolean).join(' '))}
+    ${fieldRow('โทรศัพท์สำนักงาน', d.office_phone)}
+    ${fieldRow('เว็บไซต์', d.website)}
+
+    <h3>เอกสารประกอบ</h3>
+    <div class="doc-grid">
+      ${docItem(docs, 'หนังสือรับรองนิติบุคคล')}
+      ${docItem(docs, 'หนังสือแต่งตั้งผู้แทนองค์กร')}
+      ${docItem(docs, 'หนังสือรับรองการจดทะเบียน')}
+      ${docItem(docs, 'เอกสารอื่นๆ')}
+    </div>
+  `;
+}
+
 function viewDetail(applicationId) {
   const a = allApps.find(x => x.application_id === applicationId);
   if (!a) return;
   const d = JSON.parse(a.ref_data_json || '{}');
   const docs = JSON.parse(a.documents_json || '[]');
-  let fieldsHtml = Object.entries(d).map(([k, v]) => v ? `<p><b>${k}:</b> ${v}</p>` : '').join('');
-  let docsHtml = docs.length
-    ? docs.map(doc => `<p><a href="${doc.url}" target="_blank">${doc.doc_type || doc.name}</a></p>`).join('')
-    : '<p class="empty-state">ไม่มีเอกสารแนบ</p>';
+  const body = a.applicant_type === 'วิสามัญ' ? orgDetailHtml(a, d, docs) : individualDetailHtml(a, d, docs);
   document.getElementById('detailBody').innerHTML = `
     <h2>ใบสมัคร ${a.application_id} — สมาชิก${a.applicant_type}</h2>
     <p><span class="badge pending">${a.status}</span> ${a.fee_amount ? '• ค่าธรรมเนียม ' + a.fee_amount + ' บาท' : ''}</p>
-    <h3>ข้อมูลที่กรอก</h3>
-    ${fieldsHtml || '<p class="empty-state">ไม่มีข้อมูล</p>'}
-    <h3>เอกสารแนบ</h3>
-    ${docsHtml}
+    ${body}
     ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn)"><b>เหตุผลไม่อนุมัติ:</b> ' + a.reject_reason + '</p>' : ''}
+    ${a.status === 'รอตรวจสอบ' ? `
+      <div class="detail-actions">
+        <button class="btn" onclick="closeDetail(); review('${a.application_id}','approve')">อนุมัติ</button>
+        <button class="btn secondary" onclick="closeDetail(); review('${a.application_id}','reject')">ปฏิเสธ</button>
+      </div>` : ''}
   `;
   document.getElementById('detailOverlay').style.display = 'flex';
 }

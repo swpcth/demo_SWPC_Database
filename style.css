@@ -602,3 +602,93 @@ fieldset legend {
   cursor: pointer;
   color: var(--muted);
 }
+
+/* ---------- Members list: toolbar, filters, count ---------- */
+
+.list-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.list-toolbar input[type=text] { flex: 1; margin-bottom: 0; }
+.list-toolbar .btn { width: auto; white-space: nowrap; }
+
+.filter-panel {
+  background: #f8f6ee;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.filter-panel select {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  font-family: var(--font-body);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.filter-actions { display: flex; gap: 10px; }
+.filter-actions .btn { width: auto; }
+
+.count-line {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+/* ---------- Structured detail view (member / application) ---------- */
+
+.detail-photo {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: #eef2f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.detail-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+.doc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.doc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.doc-item.missing { color: var(--muted); border-style: dashed; }
+.doc-item a { font-weight: 600; }
+
+.detail-row {
+  border-bottom: 1px solid var(--line);
+  padding: 8px 0;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-row p { margin: 2px 0; font-size: 14px; }
+
+.detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.detail-actions .btn { width: auto; }

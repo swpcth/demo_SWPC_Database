@@ -25,27 +25,63 @@
   </aside>
 
   <main class="main">
-    <header>
-      <h1>ข้อมูลสมาชิก</h1>
-    </header>
+    <header><h1>ข้อมูลสมาชิก</h1></header>
 
     <div class="type-tabs">
-      <button class="tab-chip active" data-tab="individual" onclick="switchTab('individual')">สมาชิกบุคคล (สามัญ/สมทบ)</button>
+      <button class="tab-chip active" data-tab="สามัญ" onclick="switchTab('สามัญ')">สมาชิกสามัญ</button>
+      <button class="tab-chip" data-tab="สมทบ" onclick="switchTab('สมทบ')">สมาชิกสมทบ</button>
       <button class="tab-chip" data-tab="org" onclick="switchTab('org')">สมาชิกวิสามัญ (องค์กร)</button>
     </div>
 
+    <!-- สามัญ / สมทบ -->
     <div class="panel" id="panel-individual">
-      <input type="text" id="q" placeholder="ค้นหาจากเลขสมาชิก เลขบัตรประชาชน ชื่อ นามสกุล หรือเลขใบอนุญาต" oninput="search()">
+      <div class="list-toolbar">
+        <input type="text" id="q" placeholder="ค้นหาจากเลขสมาชิก เลขบัตรประชาชน ชื่อ นามสกุล หรือเลขใบอนุญาต" oninput="renderIndividual()">
+        <button class="btn small secondary" onclick="toggleFilters()">ตัวกรอง</button>
+        <button class="btn small secondary" onclick="exportCsv()">ดาวน์โหลด Excel (CSV)</button>
+      </div>
+
+      <div id="filterPanel" class="filter-panel" style="display:none">
+        <div class="grid-2">
+          <div>
+            <label>สถานะบัตรสมาชิก</label>
+            <select id="f_status"><option value="">ทั้งหมด</option></select>
+          </div>
+          <div>
+            <label>จังหวัดที่ปฏิบัติงาน</label>
+            <select id="f_province"><option value="">ทั้งหมด</option></select>
+          </div>
+          <div>
+            <label>ระดับการศึกษา</label>
+            <select id="f_edulevel"><option value="">ทั้งหมด</option></select>
+          </div>
+          <div>
+            <label>สถาบันการศึกษา</label>
+            <select id="f_institute"><option value="">ทั้งหมด</option></select>
+          </div>
+        </div>
+        <div class="filter-actions">
+          <button class="btn small" onclick="renderIndividual()">ค้นหา</button>
+          <button class="btn small secondary" onclick="resetFilters()">ล้างค่า</button>
+        </div>
+      </div>
+
+      <p class="count-line" id="countLine">รายชื่อสมาชิกทั้งหมด 0 คน</p>
+
       <table>
         <thead>
-          <tr><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>ประเภท</th><th>สถานะ</th><th>เลขใบอนุญาต</th><th>จังหวัดที่ปฏิบัติงาน</th></tr>
+          <tr><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>สถานะ</th><th>เลขใบอนุญาต</th><th>จังหวัดที่ปฏิบัติงาน</th><th></th></tr>
         </thead>
         <tbody id="rows"><tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
 
+    <!-- วิสามัญ -->
     <div class="panel" id="panel-org" style="display:none">
-      <input type="text" id="qOrg" placeholder="ค้นหาจากชื่อองค์กร เลขทะเบียน หรือชื่อผู้แทน" oninput="searchOrg()">
+      <div class="list-toolbar">
+        <input type="text" id="qOrg" placeholder="ค้นหาจากชื่อองค์กร เลขทะเบียน หรือชื่อผู้แทน" oninput="searchOrg()">
+      </div>
+      <p class="count-line" id="countLineOrg">รายชื่อสมาชิกทั้งหมด 0 ราย</p>
       <table>
         <thead>
           <tr><th>เลขทะเบียน</th><th>ชื่อองค์กร</th><th>ประเภทองค์กร</th><th>ผู้แทนองค์กร</th><th>สถานะ</th></tr>
@@ -56,6 +92,13 @@
   </main>
 </div>
 
+<div id="detailOverlay" class="overlay" style="display:none" onclick="if(event.target===this) closeMemberDetail()">
+  <div class="overlay-card">
+    <button class="overlay-close" onclick="closeMemberDetail()">✕</button>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
 <script src="api.js"></script>
 <script>
 Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
@@ -63,11 +106,51 @@ document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + A
 
 let all = [];
 let allOrgs = [];
+let currentTypeTab = 'สามัญ';
 
 function switchTab(tab) {
   document.querySelectorAll('.tab-chip').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  document.getElementById('panel-individual').style.display = tab === 'individual' ? 'block' : 'none';
+  document.getElementById('panel-individual').style.display = tab === 'org' ? 'none' : 'block';
   document.getElementById('panel-org').style.display = tab === 'org' ? 'block' : 'none';
+  if (tab !== 'org') { currentTypeTab = tab; renderIndividual(); }
+}
+
+function toggleFilters() {
+  const el = document.getElementById('filterPanel');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function resetFilters() {
+  document.getElementById('f_status').value = '';
+  document.getElementById('f_province').value = '';
+  document.getElementById('f_edulevel').value = '';
+  document.getElementById('f_institute').value = '';
+  document.getElementById('q').value = '';
+  renderIndividual();
+}
+
+function populateFilterOptions() {
+  const statuses = [...new Set(all.map(m => m.member_status).filter(Boolean))];
+  const provinces = [...new Set(all.map(m => m.work_province).filter(Boolean))];
+  const levels = new Set(), institutes = new Set();
+  all.forEach(m => {
+    try {
+      (JSON.parse(m.education_json || '[]')).forEach(e => {
+        if (e.level) levels.add(e.level);
+        if (e.institute) institutes.add(e.institute);
+      });
+    } catch (e) {}
+  });
+  const fill = (id, values) => {
+    const sel = document.getElementById(id);
+    const current = sel.value;
+    sel.innerHTML = '<option value="">ทั้งหมด</option>' + values.map(v => `<option value="${v}">${v}</option>`).join('');
+    sel.value = current;
+  };
+  fill('f_status', statuses);
+  fill('f_province', provinces);
+  fill('f_edulevel', [...levels]);
+  fill('f_institute', [...institutes]);
 }
 
 function statusBadge(status) {
@@ -75,7 +158,36 @@ function statusBadge(status) {
   return `<span class="badge ${cls}">${status || '-'}</span>`;
 }
 
-function render(rows) {
+function matchesFilters(m) {
+  const q = document.getElementById('q').value.toLowerCase();
+  if (q && !(
+    String(m.national_id||'').includes(q) ||
+    String(m.member_no||'').toLowerCase().includes(q) ||
+    String(m.first_name_th||'').toLowerCase().includes(q) ||
+    String(m.last_name_th||'').toLowerCase().includes(q) ||
+    String(m.license_no||'').includes(q)
+  )) return false;
+
+  const fStatus = document.getElementById('f_status').value;
+  if (fStatus && m.member_status !== fStatus) return false;
+  const fProvince = document.getElementById('f_province').value;
+  if (fProvince && m.work_province !== fProvince) return false;
+
+  const fLevel = document.getElementById('f_edulevel').value;
+  const fInstitute = document.getElementById('f_institute').value;
+  if (fLevel || fInstitute) {
+    let edu = [];
+    try { edu = JSON.parse(m.education_json || '[]'); } catch (e) {}
+    const hasLevel = !fLevel || edu.some(e => e.level === fLevel);
+    const hasInstitute = !fInstitute || edu.some(e => e.institute === fInstitute);
+    if (!hasLevel || !hasInstitute) return false;
+  }
+  return true;
+}
+
+function renderIndividual() {
+  const rows = all.filter(m => m.member_type === currentTypeTab).filter(matchesFilters);
+  document.getElementById('countLine').textContent = 'รายชื่อสมาชิกทั้งหมด ' + rows.length + ' คน';
   const tbody = document.getElementById('rows');
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่พบข้อมูลสมาชิก</td></tr>';
@@ -85,15 +197,16 @@ function render(rows) {
     <tr>
       <td>${m.member_no || '-'}</td>
       <td>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</td>
-      <td>${m.member_type || '-'}</td>
       <td>${statusBadge(m.member_status)}</td>
       <td>${m.license_no || '-'}</td>
       <td>${m.work_province || '-'}</td>
+      <td><button class="btn small secondary" onclick="viewMember('${m.member_id}')">ดูรายละเอียด</button></td>
     </tr>
   `).join('');
 }
 
 function renderOrg(rows) {
+  document.getElementById('countLineOrg').textContent = 'รายชื่อสมาชิกทั้งหมด ' + rows.length + ' ราย';
   const tbody = document.getElementById('orgRows');
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่พบข้อมูลสมาชิกวิสามัญ</td></tr>';
@@ -110,18 +223,6 @@ function renderOrg(rows) {
   `).join('');
 }
 
-function search() {
-  const q = document.getElementById('q').value.toLowerCase();
-  render(all.filter(m =>
-    !q ||
-    String(m.national_id||'').includes(q) ||
-    String(m.member_no||'').toLowerCase().includes(q) ||
-    String(m.first_name_th||'').toLowerCase().includes(q) ||
-    String(m.last_name_th||'').toLowerCase().includes(q) ||
-    String(m.license_no||'').includes(q)
-  ));
-}
-
 function searchOrg() {
   const q = document.getElementById('qOrg').value.toLowerCase();
   renderOrg(allOrgs.filter(o =>
@@ -132,10 +233,56 @@ function searchOrg() {
   ));
 }
 
+function eduSummary(m) {
+  try {
+    const edu = JSON.parse(m.education_json || '[]');
+    return edu.map(e => [e.level, e.degree, e.major, e.institute, e.year].filter(Boolean).join(' / ')).join(' | ');
+  } catch (e) { return ''; }
+}
+
+function viewMember(memberId) {
+  const m = all.find(x => x.member_id === memberId);
+  if (!m) return;
+  document.getElementById('detailBody').innerHTML = `
+    <h2>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
+    <p>${statusBadge(m.member_status)} • เลขสมาชิก ${m.member_no || '-'} • สมาชิก${m.member_type || '-'}</p>
+    <h3>ข้อมูลส่วนตัว</h3>
+    <p><b>เลขบัตรประชาชน:</b> ${m.national_id || '-'}</p>
+    <p><b>วันเกิด:</b> ${m.dob || '-'}</p>
+    <p><b>ศาสนา/เชื้อชาติ/สัญชาติ:</b> ${[m.religion, m.ethnicity, m.nationality].filter(Boolean).join(' / ') || '-'}</p>
+    <p><b>ติดต่อ:</b> ${m.phone || '-'} • ${m.email || '-'}</p>
+    <h3>ข้อมูลการศึกษา</h3>
+    <p>${eduSummary(m) || '-'}</p>
+    <h3>ข้อมูลการทำงาน</h3>
+    <p><b>หน่วยงาน:</b> ${m.agency || '-'} • <b>ตำแหน่ง:</b> ${m.position || '-'}</p>
+    <p><b>จังหวัดที่ปฏิบัติงาน:</b> ${m.work_province || '-'}</p>
+    <h3>ใบอนุญาต</h3>
+    <p><b>เลขใบอนุญาต:</b> ${m.license_no || 'ยังไม่มี'} • <b>สถานะ:</b> ${m.license_status || '-'}</p>
+  `;
+  document.getElementById('detailOverlay').style.display = 'flex';
+}
+function closeMemberDetail() { document.getElementById('detailOverlay').style.display = 'none'; }
+
+function exportCsv() {
+  const rows = all.filter(m => m.member_type === currentTypeTab).filter(matchesFilters);
+  const headers = ['เลขสมาชิก', 'คำนำหน้า', 'ชื่อ', 'นามสกุล', 'เลขบัตรประชาชน', 'สถานะ', 'เลขใบอนุญาต', 'จังหวัดที่ปฏิบัติงาน', 'อีเมล', 'เบอร์โทรศัพท์'];
+  const lines = [headers.join(',')].concat(rows.map(m => [
+    m.member_no, m.prefix_th, m.first_name_th, m.last_name_th, m.national_id,
+    m.member_status, m.license_no, m.work_province, m.email, m.phone
+  ].map(v => '"' + String(v || '').replace(/"/g, '""') + '"').join(',')));
+  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'สมาชิก_' + currentTypeTab + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 async function load() {
   try {
     all = await apiCall('listMembers');
-    render(all);
+    populateFilterOptions();
+    renderIndividual();
   } catch (err) {
     document.getElementById('rows').innerHTML = `<tr><td colspan="6" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
   }
