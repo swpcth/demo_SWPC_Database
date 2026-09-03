@@ -21,34 +21,32 @@
   </aside>
 
   <main class="main">
-    <header><h1>เปลี่ยนประเภทสมาชิก</h1></header>
+    <header><h1>เปลี่ยนสถานภาพสมทบเป็นสามัญ</h1></header>
 
     <div class="panel">
       <h2>สถานะคำขอของฉัน</h2>
       <div id="myRequests"><p class="empty-state">กำลังโหลด...</p></div>
     </div>
 
-    <div class="panel" id="formPanel">
-      <h2>ยื่นคำขอเปลี่ยนประเภทใหม่</h2>
-      <p style="color:var(--muted); font-size:13px">รองรับการเปลี่ยนประเภทระหว่างสมาชิกสามัญและสมาชิกสมทบเท่านั้น
+    <div class="panel" id="formPanel" style="display:none">
+      <h2>ยื่นคำขอเปลี่ยนสถานภาพ</h2>
+      <p style="color:var(--muted); font-size:13px">ระบบรองรับเฉพาะการเปลี่ยนจากสมาชิกสมทบเป็นสมาชิกสามัญเท่านั้น
       ต้องแนบวุฒิการศึกษาและใบรับรองแพทย์ประกอบการพิจารณา</p>
 
       <div id="error" class="error-box"></div>
 
-      <div id="noProfileNotice" style="display:none" class="empty-state">
-        ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ — ต้องเป็นสมาชิกก่อนจึงจะยื่นคำขอเปลี่ยนประเภทได้
-      </div>
-
       <form id="form-typechange" onsubmit="return submitTypeChange(event)">
-        <p>ประเภทปัจจุบัน: <b id="currentType">-</b></p>
-        <label>เปลี่ยนเป็นประเภท</label>
-        <select id="to_type"></select>
+        <p>เปลี่ยนสถานภาพจาก <b>สมทบ</b> เป็น <b>สามัญ</b></p>
 
         <div class="doc-row"><label>วุฒิการศึกษา</label><input type="file" id="doc_education" accept=".pdf,.jpg,.jpeg,.png"></div>
         <div class="doc-row"><label>ใบรับรองแพทย์</label><input type="file" id="doc_medical" accept=".pdf,.jpg,.jpeg,.png"></div>
 
-        <button class="btn" type="submit" id="submitBtn" style="margin-top:16px">ส่งคำขอเปลี่ยนประเภท</button>
+        <button class="btn" type="submit" id="submitBtn" style="margin-top:16px">ส่งคำขอเปลี่ยนสถานภาพ</button>
       </form>
+    </div>
+
+    <div class="panel" id="notEligibleNotice" style="display:none">
+      <p class="empty-state" id="notEligibleText"></p>
     </div>
   </main>
 </div>
@@ -57,8 +55,6 @@
 <script>
 Auth.requireRole(['member'], 'index.html');
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
-
-let myProfile = null;
 
 function statusBadgeClass(status) {
   if (status === 'เปลี่ยนประเภทสำเร็จ') return 'ok';
@@ -69,7 +65,7 @@ function statusBadgeClass(status) {
 function renderPaySlipForm(a) {
   return `
     <div class="pay-box">
-      <p>ค่าธรรมเนียมเปลี่ยนประเภท: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี [ระบุเลขบัญชีสภาฯ] แล้วแนบสลิปด้านล่าง</p>
+      <p>ค่าธรรมเนียมเปลี่ยนสถานภาพ: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี [ระบุเลขบัญชีสภาฯ] แล้วแนบสลิปด้านล่าง</p>
       <input type="file" id="slip_${a.application_id}" accept=".pdf,.jpg,.jpeg,.png">
       <button type="button" class="btn small" onclick="submitSlip('${a.application_id}')">แนบสลิปการโอนเงิน</button>
     </div>`;
@@ -88,11 +84,14 @@ async function submitSlip(applicationId) {
   }
 }
 
+let hasPendingRequest = false;
+
 async function loadMyRequests() {
   const el = document.getElementById('myRequests');
   try {
     const apps = (await apiCall('myApplications')).filter(a => a.applicant_type === 'เปลี่ยนประเภท');
-    if (!apps.length) { el.innerHTML = '<p class="empty-state">ยังไม่เคยยื่นคำขอเปลี่ยนประเภท</p>'; return; }
+    hasPendingRequest = apps.some(a => ['รอตรวจสอบ', 'รอชำระเงิน'].indexOf(a.status) !== -1);
+    if (!apps.length) { el.innerHTML = '<p class="empty-state">ยังไม่เคยยื่นคำขอเปลี่ยนสถานภาพ</p>'; return; }
     el.innerHTML = apps.map(a => {
       const d = JSON.parse(a.ref_data_json || '{}');
       return `
@@ -113,18 +112,29 @@ async function loadMyRequests() {
 
 async function loadProfile() {
   try {
-    myProfile = await apiCall('getMyProfile');
-    if (myProfile.profile_kind === 'organization') {
-      document.getElementById('formPanel').style.display = 'none';
+    const profile = await apiCall('getMyProfile');
+    if (profile.profile_kind === 'organization') {
+      showNotice('เมนูนี้ใช้สำหรับสมาชิกบุคคลเท่านั้น');
       return;
     }
-    document.getElementById('currentType').textContent = myProfile.member_type;
-    const otherType = myProfile.member_type === 'สามัญ' ? 'สมทบ' : 'สามัญ';
-    document.getElementById('to_type').innerHTML = `<option value="${otherType}">${otherType}</option>`;
+    if (profile.member_type !== 'สมทบ') {
+      showNotice('บัญชีนี้เป็นสมาชิก' + profile.member_type + 'อยู่แล้ว — ระบบรองรับเฉพาะการเปลี่ยนจากสมาชิกสมทบเป็นสมาชิกสามัญเท่านั้น จึงไม่มีคำขอให้ยื่นสำหรับบัญชีนี้');
+      return;
+    }
+    if (hasPendingRequest) {
+      showNotice('มีคำขอเปลี่ยนสถานภาพที่ยังไม่เสร็จสิ้นอยู่แล้ว ดูสถานะได้ด้านบน');
+      return;
+    }
+    document.getElementById('formPanel').style.display = 'block';
   } catch (err) {
-    document.getElementById('form-typechange').style.display = 'none';
-    document.getElementById('noProfileNotice').style.display = 'block';
+    showNotice('ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ — ต้องเป็นสมาชิกก่อนจึงจะยื่นคำขอเปลี่ยนสถานภาพได้');
   }
+}
+
+function showNotice(text) {
+  document.getElementById('notEligibleText').textContent = text;
+  document.getElementById('notEligibleNotice').style.display = 'block';
+  document.getElementById('formPanel').style.display = 'none';
 }
 
 async function submitTypeChange(e) {
@@ -140,21 +150,21 @@ async function submitTypeChange(e) {
     if (eduFile) documents.push(await uploadDocument(eduFile, 'วุฒิการศึกษา'));
     if (medFile) documents.push(await uploadDocument(medFile, 'ใบรับรองแพทย์'));
 
-    const res = await apiCall('submitTypeChange', { to_type: document.getElementById('to_type').value, documents });
-    alert('ส่งคำขอเปลี่ยนประเภทสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ');
-    loadAll();
+    const res = await apiCall('submitTypeChange', { documents });
+    alert('ส่งคำขอเปลี่ยนสถานภาพสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ');
+    window.location.reload();
   } catch (err) {
     errBox.textContent = err.message;
     errBox.style.display = 'block';
   } finally {
-    btn.disabled = false; btn.textContent = 'ส่งคำขอเปลี่ยนประเภท';
+    btn.disabled = false; btn.textContent = 'ส่งคำขอเปลี่ยนสถานภาพ';
   }
   return false;
 }
 
-function loadAll() {
-  loadMyRequests();
-  loadProfile();
+async function loadAll() {
+  await loadMyRequests();
+  await loadProfile();
 }
 loadAll();
 </script>

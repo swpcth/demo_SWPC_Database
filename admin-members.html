@@ -201,7 +201,7 @@ function renderIndividual() {
       <td>${statusBadge(m.member_status)}</td>
       <td>${m.license_no || '-'}</td>
       <td>${m.work_province || '-'}</td>
-      <td><button class="btn small secondary" onclick="viewMember('${m.member_id}')">ดูรายละเอียด</button></td>
+      <td><button class="btn small secondary" onclick="viewMember('${m.member_id}')">ดู/แก้ไขข้อมูล</button></td>
     </tr>
   `).join('');
 }
@@ -241,28 +241,264 @@ function eduSummary(m) {
   } catch (e) { return ''; }
 }
 
-function viewMember(memberId) {
-  const m = all.find(x => x.member_id === memberId);
-  if (!m) return;
-  document.getElementById('detailBody').innerHTML = `
-    <h2>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
-    <p>${statusBadge(m.member_status)} • เลขสมาชิก ${m.member_no || '-'} • สมาชิก${m.member_type || '-'}</p>
-    <h3>ข้อมูลส่วนตัว</h3>
-    <p><b>เลขบัตรประชาชน:</b> ${m.national_id || '-'}</p>
-    <p><b>วันเกิด:</b> ${m.dob || '-'}</p>
-    <p><b>ศาสนา/เชื้อชาติ/สัญชาติ:</b> ${[m.religion, m.ethnicity, m.nationality].filter(Boolean).join(' / ') || '-'}</p>
-    <p><b>ติดต่อ:</b> ${m.phone || '-'} • ${m.email || '-'}</p>
-    <h3>ข้อมูลการศึกษา</h3>
-    <p>${eduSummary(m) || '-'}</p>
-    <h3>ข้อมูลการทำงาน</h3>
-    <p><b>หน่วยงาน:</b> ${m.agency || '-'} • <b>ตำแหน่ง:</b> ${m.position || '-'}</p>
-    <p><b>จังหวัดที่ปฏิบัติงาน:</b> ${m.work_province || '-'}</p>
-    <h3>ใบอนุญาต</h3>
-    <p><b>เลขใบอนุญาต:</b> ${m.license_no || 'ยังไม่มี'} • <b>สถานะ:</b> ${m.license_status || '-'}</p>
-  `;
-  document.getElementById('detailOverlay').style.display = 'flex';
+let editEduCount = 0;
+let currentEditPhotoUrl = '';
+
+function fld(id, label, value, type) {
+  type = type || 'text';
+  return `<div><label>${label}</label><input type="${type}" id="${id}" value="${value != null ? value : ''}"></div>`;
 }
+
+function addEditEduRow(edu) {
+  edu = edu || {};
+  editEduCount++;
+  const id = editEduCount;
+  const div = document.createElement('div');
+  div.className = 'edu-row';
+  div.id = 'editEdu' + id;
+  div.innerHTML = `
+    <div class="grid-2">
+      <div><label>ระดับการศึกษา</label><input type="text" class="edu-level" value="${edu.level || ''}"></div>
+      <div><label>ปีที่สำเร็จการศึกษา</label><input type="text" class="edu-year" value="${edu.year || ''}"></div>
+      <div><label>วุฒิการศึกษา</label><input type="text" class="edu-degree" value="${edu.degree || ''}"></div>
+      <div><label>สาขาวิชา</label><input type="text" class="edu-major" value="${edu.major || ''}"></div>
+      <div><label>สถาบันการศึกษา</label><input type="text" class="edu-institute" value="${edu.institute || ''}"></div>
+    </div>
+    <button type="button" class="btn small secondary" onclick="document.getElementById('editEdu${id}').remove()">ลบรายการนี้</button>
+    <hr>`;
+  document.getElementById('editEduRows').appendChild(div);
+}
+
+function collectEditEducation() {
+  return Array.from(document.querySelectorAll('#editEduRows .edu-row')).map(row => ({
+    level: row.querySelector('.edu-level').value,
+    year: row.querySelector('.edu-year').value,
+    degree: row.querySelector('.edu-degree').value,
+    major: row.querySelector('.edu-major').value,
+    institute: row.querySelector('.edu-institute').value
+  })).filter(e => e.level || e.degree || e.institute);
+}
+
+async function viewMember(memberId) {
+  document.getElementById('detailBody').innerHTML = '<p class="empty-state">กำลังโหลด...</p>';
+  document.getElementById('detailOverlay').style.display = 'flex';
+  try {
+    const data = await apiCall('getMemberRegistry', { member_id: memberId });
+    renderEditForm(data);
+  } catch (err) {
+    document.getElementById('detailBody').innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+
+function renderEditForm(data) {
+  const m = data.member, lic = data.license || {};
+  editEduCount = 0;
+  currentEditPhotoUrl = m.photo_url || '';
+  let edu = [];
+  try { edu = JSON.parse(m.education_json || '[]'); } catch (e) {}
+
+  document.getElementById('detailBody').innerHTML = `
+    <h2>แก้ไขข้อมูลสมาชิก — ${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
+    <p>${statusBadge(m.member_status)} • เลขสมาชิก ${m.member_no || '-'} • สมาชิก${m.member_type || '-'}</p>
+
+    <fieldset>
+      <legend>ข้อมูลส่วนตัว</legend>
+      <div class="detail-photo" id="photoPreview">${currentEditPhotoUrl ? `<img src="${currentEditPhotoUrl}">` : '👤'}</div>
+      <div class="doc-row"><label>เปลี่ยนรูปถ่าย</label><input type="file" id="e_photo" accept=".jpg,.jpeg,.png"></div>
+      <div class="grid-2">
+        ${fld('e_national_id', 'เลขประจำตัวประชาชน', m.national_id)}
+        ${fld('e_dob', 'วัน/เดือน/ปีเกิด', m.dob, 'date')}
+        ${fld('e_prefix_th', 'คำนำหน้า (ไทย)', m.prefix_th)}
+        ${fld('e_prefix_en', 'คำนำหน้า (อังกฤษ)', m.prefix_en)}
+        ${fld('e_first_name_th', 'ชื่อ (ไทย)', m.first_name_th)}
+        ${fld('e_last_name_th', 'นามสกุล (ไทย)', m.last_name_th)}
+        ${fld('e_first_name_en', 'ชื่อ (อังกฤษ)', m.first_name_en)}
+        ${fld('e_last_name_en', 'นามสกุล (อังกฤษ)', m.last_name_en)}
+        ${fld('e_religion', 'ศาสนา', m.religion)}
+        ${fld('e_ethnicity', 'เชื้อชาติ', m.ethnicity)}
+        ${fld('e_nationality', 'สัญชาติ', m.nationality)}
+        ${fld('e_phone', 'เบอร์โทรศัพท์', m.phone)}
+        ${fld('e_email', 'อีเมล', m.email, 'email')}
+        ${fld('e_line_id', 'Line ID', m.line_id)}
+        <div><label>สถานะบัตรสมาชิก</label>
+          <select id="e_member_status">
+            ${['ปกติ', 'พักใช้', 'เพิกถอน'].map(s => `<option value="${s}" ${m.member_status === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>ข้อมูลสมาชิก</legend>
+      <div class="grid-2">
+        <div><label>เลขที่สมาชิก</label><input type="text" value="${m.member_no || ''}" disabled></div>
+        ${fld('e_applied_date', 'วันที่ออกบัตร', (m.applied_date || '').slice(0, 10), 'date')}
+        ${fld('e_membership_expire_date', 'วันบัตรหมดอายุ', (m.membership_expire_date || '').slice(0, 10), 'date')}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>ข้อมูลใบอนุญาต</legend>
+      <div class="grid-2">
+        ${fld('e_license_no', 'เลขที่ใบอนุญาต', lic.license_no || m.license_no)}
+        ${fld('e_license_issue_date', 'วันที่ออกใบอนุญาต', (lic.issue_date || '').slice(0, 10), 'date')}
+        ${fld('e_license_expire_date', 'วันที่ใบอนุญาตหมดอายุ', (lic.expire_date || '').slice(0, 10), 'date')}
+        <div><label>สถานะใบอนุญาต</label>
+          <select id="e_license_status">
+            ${['ปกติ', 'ใกล้หมดอายุ', 'หมดอายุ', 'อยู่ระหว่างต่ออายุ', 'พักใช้', 'เพิกถอน'].map(s => `<option value="${s}" ${(lic.status || m.license_status) === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>ข้อมูลการสำเร็จการศึกษา</legend>
+      <div id="editEduRows"></div>
+      <button type="button" class="btn small secondary" onclick="addEditEduRow()">+ เพิ่มรายการการศึกษา</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>ข้อมูลการทำงาน</legend>
+      <div class="grid-2">
+        ${fld('e_work_status', 'สถานะการทำงาน', m.work_status)}
+        ${fld('e_position', 'ตำแหน่งปัจจุบัน', m.position)}
+        ${fld('e_agency', 'ชื่อหน่วยงาน', m.agency)}
+        ${fld('e_affiliation', 'สังกัด', m.affiliation)}
+        ${fld('e_work_province', 'จังหวัดที่ปฏิบัติงาน', m.work_province)}
+        ${fld('e_expertise', 'ความเชี่ยวชาญด้านสังคมสงเคราะห์', m.expertise)}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>ข้อมูลที่อยู่ปัจจุบัน</legend>
+      <div class="grid-2">
+        ${fld('e_cur_house_no', 'บ้านเลขที่', m.addr_current_house_no)}
+        ${fld('e_cur_moo', 'หมู่ที่', m.addr_current_moo)}
+        ${fld('e_cur_building', 'หมู่บ้าน/คอนโด/อาคาร', m.addr_current_building)}
+        ${fld('e_cur_soi', 'ซอย', m.addr_current_soi)}
+        ${fld('e_cur_road', 'ถนน', m.addr_current_road)}
+        ${fld('e_cur_subdistrict', 'แขวง/ตำบล', m.addr_current_subdistrict)}
+        ${fld('e_cur_district', 'เขต/อำเภอ', m.addr_current_district)}
+        ${fld('e_cur_province', 'จังหวัด', m.addr_current_province)}
+        ${fld('e_cur_zipcode', 'รหัสไปรษณีย์', m.addr_current_zipcode)}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>ที่อยู่ตามทะเบียนราษฎร์</legend>
+      <div class="grid-2">
+        ${fld('e_reg_house_no', 'บ้านเลขที่', m.addr_registered_house_no)}
+        ${fld('e_reg_moo', 'หมู่ที่', m.addr_registered_moo)}
+        ${fld('e_reg_building', 'หมู่บ้าน/คอนโด/อาคาร', m.addr_registered_building)}
+        ${fld('e_reg_soi', 'ซอย', m.addr_registered_soi)}
+        ${fld('e_reg_road', 'ถนน', m.addr_registered_road)}
+        ${fld('e_reg_subdistrict', 'แขวง/ตำบล', m.addr_registered_subdistrict)}
+        ${fld('e_reg_district', 'เขต/อำเภอ', m.addr_registered_district)}
+        ${fld('e_reg_province', 'จังหวัด', m.addr_registered_province)}
+        ${fld('e_reg_zipcode', 'รหัสไปรษณีย์', m.addr_registered_zipcode)}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>ที่อยู่สถานที่ทำงาน</legend>
+      <div class="grid-2">
+        ${fld('e_wp_name', 'ชื่อหน่วยงาน', m.workplace_name)}
+        ${fld('e_wp_house_no', 'บ้านเลขที่', m.workplace_house_no)}
+        ${fld('e_wp_building', 'อาคาร', m.workplace_building)}
+        ${fld('e_wp_floor', 'ชั้น', m.workplace_floor)}
+        ${fld('e_wp_moo', 'หมู่ที่', m.workplace_moo)}
+        ${fld('e_wp_soi', 'ซอย', m.workplace_soi)}
+        ${fld('e_wp_road', 'ถนน', m.workplace_road)}
+        ${fld('e_wp_subdistrict', 'แขวง/ตำบล', m.workplace_subdistrict)}
+        ${fld('e_wp_district', 'เขต/อำเภอ', m.workplace_district)}
+        ${fld('e_wp_province', 'จังหวัด', m.workplace_province)}
+        ${fld('e_wp_zipcode', 'รหัสไปรษณีย์', m.workplace_zipcode)}
+        ${fld('e_wp_email', 'อีเมลหน่วยงาน', m.workplace_email, 'email')}
+        ${fld('e_wp_phone', 'เบอร์โทรศัพท์หน่วยงาน', m.workplace_phone)}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>ที่อยู่สำหรับจัดส่งเอกสาร</legend>
+      <label>เลือกใช้ที่อยู่</label>
+      <select id="e_mailing_type">
+        ${['ที่อยู่ปัจจุบัน', 'ที่อยู่ตามทะเบียนราษฎร์', 'ที่อยู่สถานที่ทำงาน'].map(s => `<option value="${s}" ${m.mailing_address_type === s ? 'selected' : ''}>${s}</option>`).join('')}
+      </select>
+      <div class="grid-2">
+        ${fld('e_mail_name', 'ชื่อ-นามสกุลผู้รับ', m.mailing_recipient_name)}
+        ${fld('e_mail_phone', 'เบอร์โทรศัพท์ผู้รับ', m.mailing_recipient_phone)}
+      </div>
+    </fieldset>
+
+    <div id="editError" class="error-box"></div>
+    <div class="detail-actions">
+      <button class="btn" onclick="saveMemberEdit('${m.member_id}')">บันทึก</button>
+      <button class="btn secondary" onclick="closeMemberDetail()">ยกเลิก</button>
+    </div>
+  `;
+  edu.forEach(e => addEditEduRow(e));
+  if (!edu.length) addEditEduRow();
+
+  document.getElementById('e_photo').addEventListener('change', async (ev) => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    try {
+      const uploaded = await uploadDocument(file, 'รูปถ่าย');
+      currentEditPhotoUrl = uploaded.url;
+      document.getElementById('photoPreview').innerHTML = `<img src="${uploaded.url}">`;
+    } catch (err) {
+      alert('อัปโหลดรูปไม่สำเร็จ: ' + err.message);
+    }
+  });
+}
+
+async function saveMemberEdit(memberId) {
+  const errBox = document.getElementById('editError');
+  errBox.style.display = 'none';
+  const v = id => document.getElementById(id).value;
+  try {
+    const memberPatch = {
+      national_id: v('e_national_id'), dob: v('e_dob'), prefix_th: v('e_prefix_th'), prefix_en: v('e_prefix_en'),
+      first_name_th: v('e_first_name_th'), last_name_th: v('e_last_name_th'),
+      first_name_en: v('e_first_name_en'), last_name_en: v('e_last_name_en'),
+      religion: v('e_religion'), ethnicity: v('e_ethnicity'), nationality: v('e_nationality'),
+      phone: v('e_phone'), email: v('e_email'), line_id: v('e_line_id'),
+      member_status: v('e_member_status'), photo_url: currentEditPhotoUrl,
+      applied_date: v('e_applied_date'), membership_expire_date: v('e_membership_expire_date'),
+      education_json: JSON.stringify(collectEditEducation()),
+      work_status: v('e_work_status'), position: v('e_position'), agency: v('e_agency'),
+      affiliation: v('e_affiliation'), work_province: v('e_work_province'), expertise: v('e_expertise'),
+      addr_current_house_no: v('e_cur_house_no'), addr_current_moo: v('e_cur_moo'), addr_current_building: v('e_cur_building'),
+      addr_current_soi: v('e_cur_soi'), addr_current_road: v('e_cur_road'), addr_current_subdistrict: v('e_cur_subdistrict'),
+      addr_current_district: v('e_cur_district'), addr_current_province: v('e_cur_province'), addr_current_zipcode: v('e_cur_zipcode'),
+      addr_registered_house_no: v('e_reg_house_no'), addr_registered_moo: v('e_reg_moo'), addr_registered_building: v('e_reg_building'),
+      addr_registered_soi: v('e_reg_soi'), addr_registered_road: v('e_reg_road'), addr_registered_subdistrict: v('e_reg_subdistrict'),
+      addr_registered_district: v('e_reg_district'), addr_registered_province: v('e_reg_province'), addr_registered_zipcode: v('e_reg_zipcode'),
+      workplace_name: v('e_wp_name'), workplace_house_no: v('e_wp_house_no'), workplace_building: v('e_wp_building'),
+      workplace_floor: v('e_wp_floor'), workplace_moo: v('e_wp_moo'), workplace_soi: v('e_wp_soi'), workplace_road: v('e_wp_road'),
+      workplace_subdistrict: v('e_wp_subdistrict'), workplace_district: v('e_wp_district'), workplace_province: v('e_wp_province'),
+      workplace_zipcode: v('e_wp_zipcode'), workplace_email: v('e_wp_email'), workplace_phone: v('e_wp_phone'),
+      mailing_address_type: v('e_mailing_type'), mailing_recipient_name: v('e_mail_name'), mailing_recipient_phone: v('e_mail_phone')
+    };
+    await apiCall('updateMember', { member_id: memberId, patch: memberPatch });
+    await apiCall('updateLicense', {
+      member_id: memberId,
+      patch: {
+        license_no: v('e_license_no'), issue_date: v('e_license_issue_date'),
+        expire_date: v('e_license_expire_date'), status: v('e_license_status')
+      }
+    });
+    alert('บันทึกข้อมูลสำเร็จ');
+    closeMemberDetail();
+    load();
+  } catch (err) {
+    errBox.textContent = 'บันทึกไม่สำเร็จ: ' + err.message;
+    errBox.style.display = 'block';
+  }
+}
+
 function closeMemberDetail() { document.getElementById('detailOverlay').style.display = 'none'; }
+
 
 function exportCsv() {
   const rows = all.filter(m => m.member_type === currentTypeTab).filter(matchesFilters);
