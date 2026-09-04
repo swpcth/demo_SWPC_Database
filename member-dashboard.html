@@ -13,8 +13,8 @@
     <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
     <nav>
       <a href="member-dashboard.html" class="active">ข้อมูลของฉัน</a>
-      <a href="member-apply.html">สมัครสมาชิก</a>
-      <a href="member-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+      <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
+      <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -32,6 +32,68 @@
 Auth.requireRole(['member'], 'index.html');
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
 
+let editEduCount = 0;
+let currentPhotoUrl = '';
+
+function fld(id, label, value, type) {
+  type = type || 'text';
+  return `<div><label>${label}</label><input type="${type}" id="${id}" value="${value != null ? value : ''}"></div>`;
+}
+
+function addEduRow(edu) {
+  edu = edu || {};
+  editEduCount++;
+  const id = editEduCount;
+  const div = document.createElement('div');
+  div.className = 'edu-row';
+  div.id = 'edu' + id;
+  div.innerHTML = `
+    <div class="grid-2">
+      <div><label>ระดับการศึกษา</label><input type="text" class="edu-level" value="${edu.level || ''}"></div>
+      <div><label>ปีที่สำเร็จการศึกษา</label><input type="text" class="edu-year" value="${edu.year || ''}"></div>
+      <div><label>วุฒิการศึกษา</label><input type="text" class="edu-degree" value="${edu.degree || ''}"></div>
+      <div><label>สาขาวิชา</label><input type="text" class="edu-major" value="${edu.major || ''}"></div>
+      <div><label>สถาบันการศึกษา</label><input type="text" class="edu-institute" value="${edu.institute || ''}"></div>
+    </div>
+    <button type="button" class="btn small secondary" onclick="document.getElementById('edu${id}').remove()">ลบรายการนี้</button>
+    <hr>`;
+  document.getElementById('eduRows').appendChild(div);
+}
+
+function collectEducation() {
+  return Array.from(document.querySelectorAll('#eduRows .edu-row')).map(row => ({
+    level: row.querySelector('.edu-level').value,
+    year: row.querySelector('.edu-year').value,
+    degree: row.querySelector('.edu-degree').value,
+    major: row.querySelector('.edu-major').value,
+    institute: row.querySelector('.edu-institute').value
+  })).filter(e => e.level || e.degree || e.institute);
+}
+
+const CUR_REG_MAP = [
+  ['s_cur_house_no', 's_reg_house_no'], ['s_cur_moo', 's_reg_moo'], ['s_cur_building', 's_reg_building'],
+  ['s_cur_soi', 's_reg_soi'], ['s_cur_road', 's_reg_road'], ['s_cur_subdistrict', 's_reg_subdistrict'],
+  ['s_cur_district', 's_reg_district'], ['s_cur_province', 's_reg_province'], ['s_cur_zipcode', 's_reg_zipcode']
+];
+
+function copyCurrentToRegistered() {
+  const checked = document.getElementById('sameAsRegistered').checked;
+  CUR_REG_MAP.forEach(([curId, regId]) => {
+    const regInput = document.getElementById(regId);
+    if (checked) { regInput.value = document.getElementById(curId).value; regInput.disabled = true; }
+    else { regInput.disabled = false; }
+  });
+}
+
+function updateNavVisibility(profile) {
+  const navApply = document.getElementById('navApply');
+  const navTypeChange = document.getElementById('navTypeChange');
+  if (navApply) navApply.style.display = 'none'; // มีโปรไฟล์แล้ว = เป็นสมาชิกแล้ว ไม่ต้องสมัครซ้ำ
+  if (navTypeChange && (profile.profile_kind === 'organization' || profile.member_type === 'สามัญ')) {
+    navTypeChange.style.display = 'none';
+  }
+}
+
 async function load() {
   const el = document.getElementById('content');
   try {
@@ -44,10 +106,16 @@ async function load() {
           <p>ประเภทองค์กร: ${m.org_type || '-'} &nbsp;•&nbsp; สถานะ: <span class="badge ${m.status==='ปกติ'?'ok':'pending'}">${m.status || '-'}</span></p>
           <p>ผู้แทนองค์กร: ${m.rep_prefix || ''} ${m.rep_name || ''} (${m.rep_position || '-'})</p>
           <p>ติดต่อผู้แทน: ${m.rep_email || '-'} &nbsp;•&nbsp; ${m.rep_phone || '-'}</p>
-        </div>
-      `;
+        </div>`;
+      updateNavVisibility(m);
       return;
     }
+
+    updateNavVisibility(m);
+    currentPhotoUrl = m.photo_url || '';
+    let edu = [];
+    try { edu = JSON.parse(m.education_json || '[]'); } catch (e) {}
+
     el.innerHTML = `
       <div class="panel">
         <h2>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
@@ -55,33 +123,168 @@ async function load() {
         <p>ประเภทสมาชิก: ${m.member_type || '-'} &nbsp;•&nbsp; สถานะ: <span class="badge ${m.member_status==='ปกติ'?'ok':'pending'}">${m.member_status || '-'}</span></p>
         <p>เลขใบอนุญาต: ${m.license_no || 'ยังไม่มี'} ${m.license_status ? '<span class="badge ' + (m.license_status==='ปกติ'?'ok':(m.license_status==='ใกล้หมดอายุ'?'pending':'warn')) + '">' + m.license_status + '</span>' : ''}</p>
         <p>วันที่สมัครสมาชิก: ${m.applied_date ? new Date(m.applied_date).toLocaleDateString('th-TH') : '-'} &nbsp;•&nbsp; วันหมดอายุสมาชิกภาพ: ${m.membership_expire_date ? new Date(m.membership_expire_date).toLocaleDateString('th-TH') : '-'}</p>
-        <p>อีเมล: ${m.email || '-'} &nbsp;•&nbsp; โทรศัพท์: ${m.phone || '-'}</p>
+        <p style="color:var(--muted); font-size:13px">เลขบัตรประชาชนและชื่อ-นามสกุล (ภาษาไทย) แก้ไขไม่ได้ในหน้านี้ — เลขสมาชิก/ใบอนุญาตจัดการโดยเจ้าหน้าที่เท่านั้น</p>
       </div>
-      <div class="panel">
-        <h2>แก้ไขข้อมูลติดต่อ</h2>
-        <p style="color:var(--muted); font-size:13px">การแก้ไขชื่อ-นามสกุลต้องแนบเอกสารและรออนุมัติจากเจ้าหน้าที่</p>
-        <label>อีเมล</label>
-        <input type="email" id="email" value="${m.email || ''}">
-        <label>เบอร์โทรศัพท์</label>
-        <input type="tel" id="phone" value="${m.phone || ''}">
-        <button class="btn" style="width:auto" onclick="saveContact()">บันทึกข้อมูล</button>
-      </div>
+
+      <div id="editError" class="error-box"></div>
+
+      <fieldset class="panel">
+        <legend>ข้อมูลส่วนตัว</legend>
+        <div class="detail-photo" id="photoPreview">${currentPhotoUrl ? `<img src="${currentPhotoUrl}">` : '👤'}</div>
+        <div class="doc-row"><label>เปลี่ยนรูปถ่าย</label><input type="file" id="s_photo" accept=".jpg,.jpeg,.png"></div>
+        <div class="grid-2">
+          ${fld('s_prefix_en', 'คำนำหน้า (อังกฤษ)', m.prefix_en)}
+          ${fld('s_first_name_en', 'ชื่อ (อังกฤษ)', m.first_name_en)}
+          ${fld('s_last_name_en', 'นามสกุล (อังกฤษ)', m.last_name_en)}
+          ${fld('s_dob', 'วัน/เดือน/ปีเกิด', (m.dob||'').slice(0,10), 'date')}
+          ${fld('s_religion', 'ศาสนา', m.religion)}
+          ${fld('s_ethnicity', 'เชื้อชาติ', m.ethnicity)}
+          ${fld('s_nationality', 'สัญชาติ', m.nationality)}
+          ${fld('s_phone', 'เบอร์โทรศัพท์', m.phone)}
+          ${fld('s_email', 'อีเมล', m.email, 'email')}
+          ${fld('s_line_id', 'Line ID', m.line_id)}
+        </div>
+        <p style="color:var(--muted); font-size:13px; margin-top:8px">การแก้ไขชื่อ-นามสกุล (อังกฤษ) ต้องรออนุมัติจากเจ้าหน้าที่ ข้อมูลอื่นในหมวดนี้บันทึกได้ทันที</p>
+      </fieldset>
+
+      <fieldset class="panel">
+        <legend>ข้อมูลการศึกษา</legend>
+        <div id="eduRows"></div>
+        <button type="button" class="btn small secondary" onclick="addEduRow()">+ เพิ่มรายการการศึกษา</button>
+      </fieldset>
+
+      <fieldset class="panel">
+        <legend>ข้อมูลการทำงาน</legend>
+        <div class="grid-2">
+          ${fld('s_work_status', 'สถานะการทำงาน', m.work_status)}
+          ${fld('s_position', 'ตำแหน่ง', m.position)}
+          ${fld('s_agency', 'หน่วยงาน', m.agency)}
+          ${fld('s_affiliation', 'สังกัด', m.affiliation)}
+          ${fld('s_work_province', 'จังหวัดที่ปฏิบัติงาน', m.work_province)}
+          ${fld('s_expertise', 'ความเชี่ยวชาญด้านสังคมสงเคราะห์', m.expertise)}
+        </div>
+      </fieldset>
+
+      <fieldset class="panel">
+        <legend>ที่อยู่ปัจจุบัน</legend>
+        <div class="grid-2">
+          ${fld('s_cur_house_no', 'บ้านเลขที่', m.addr_current_house_no)}
+          ${fld('s_cur_moo', 'หมู่ที่', m.addr_current_moo)}
+          ${fld('s_cur_building', 'หมู่บ้าน/คอนโด/อาคาร', m.addr_current_building)}
+          ${fld('s_cur_soi', 'ซอย', m.addr_current_soi)}
+          ${fld('s_cur_road', 'ถนน', m.addr_current_road)}
+          ${fld('s_cur_subdistrict', 'แขวง/ตำบล', m.addr_current_subdistrict)}
+          ${fld('s_cur_district', 'เขต/อำเภอ', m.addr_current_district)}
+          ${fld('s_cur_province', 'จังหวัด', m.addr_current_province)}
+          ${fld('s_cur_zipcode', 'รหัสไปรษณีย์', m.addr_current_zipcode)}
+        </div>
+        <label style="margin-top:8px"><input type="checkbox" id="sameAsRegistered" onchange="copyCurrentToRegistered()" style="width:auto; display:inline-block; margin-right:6px">
+          ที่อยู่ตามทะเบียนราษฎร์เป็นที่อยู่เดียวกัน</label>
+      </fieldset>
+
+      <fieldset class="panel">
+        <legend>ที่อยู่ตามทะเบียนราษฎร์</legend>
+        <div class="grid-2">
+          ${fld('s_reg_house_no', 'บ้านเลขที่', m.addr_registered_house_no)}
+          ${fld('s_reg_moo', 'หมู่ที่', m.addr_registered_moo)}
+          ${fld('s_reg_building', 'หมู่บ้าน/คอนโด/อาคาร', m.addr_registered_building)}
+          ${fld('s_reg_soi', 'ซอย', m.addr_registered_soi)}
+          ${fld('s_reg_road', 'ถนน', m.addr_registered_road)}
+          ${fld('s_reg_subdistrict', 'แขวง/ตำบล', m.addr_registered_subdistrict)}
+          ${fld('s_reg_district', 'เขต/อำเภอ', m.addr_registered_district)}
+          ${fld('s_reg_province', 'จังหวัด', m.addr_registered_province)}
+          ${fld('s_reg_zipcode', 'รหัสไปรษณีย์', m.addr_registered_zipcode)}
+        </div>
+      </fieldset>
+
+      <fieldset class="panel">
+        <legend>ที่อยู่สถานที่ทำงาน</legend>
+        <div class="grid-2">
+          ${fld('s_wp_name', 'ชื่อหน่วยงาน', m.workplace_name)}
+          ${fld('s_wp_house_no', 'บ้านเลขที่', m.workplace_house_no)}
+          ${fld('s_wp_building', 'อาคาร', m.workplace_building)}
+          ${fld('s_wp_floor', 'ชั้น', m.workplace_floor)}
+          ${fld('s_wp_moo', 'หมู่', m.workplace_moo)}
+          ${fld('s_wp_soi', 'ซอย', m.workplace_soi)}
+          ${fld('s_wp_road', 'ถนน', m.workplace_road)}
+          ${fld('s_wp_subdistrict', 'แขวง/ตำบล', m.workplace_subdistrict)}
+          ${fld('s_wp_district', 'เขต/อำเภอ', m.workplace_district)}
+          ${fld('s_wp_province', 'จังหวัด', m.workplace_province)}
+          ${fld('s_wp_zipcode', 'รหัสไปรษณีย์', m.workplace_zipcode)}
+          ${fld('s_wp_email', 'อีเมลหน่วยงาน', m.workplace_email, 'email')}
+          ${fld('s_wp_phone', 'เบอร์โทรศัพท์หน่วยงาน', m.workplace_phone)}
+        </div>
+      </fieldset>
+
+      <fieldset class="panel">
+        <legend>ที่อยู่สำหรับจัดส่งเอกสาร</legend>
+        <label>เลือกใช้ที่อยู่</label>
+        <select id="s_mailing_type">
+          ${['ที่อยู่ปัจจุบัน', 'ที่อยู่ตามทะเบียนราษฎร์', 'ที่อยู่สถานที่ทำงาน'].map(s => `<option value="${s}" ${m.mailing_address_type === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+        <div class="grid-2">
+          ${fld('s_mail_name', 'ชื่อ-นามสกุลผู้รับ', m.mailing_recipient_name)}
+          ${fld('s_mail_phone', 'เบอร์โทรศัพท์ผู้รับ', m.mailing_recipient_phone)}
+        </div>
+      </fieldset>
+
+      <button class="btn" style="width:auto" onclick="saveProfile()">บันทึกข้อมูล</button>
     `;
+
+    edu.forEach(e => addEduRow(e));
+    if (!edu.length) addEduRow();
+
+    document.getElementById('s_photo').addEventListener('change', async (ev) => {
+      const file = ev.target.files[0];
+      if (!file) return;
+      try {
+        const uploaded = await uploadDocument(file, 'รูปถ่าย');
+        currentPhotoUrl = uploaded.url;
+        document.getElementById('photoPreview').innerHTML = `<img src="${uploaded.url}">`;
+      } catch (err) {
+        alert('อัปโหลดรูปไม่สำเร็จ: ' + err.message);
+      }
+    });
   } catch (err) {
     el.innerHTML = `<div class="panel"><p>ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ — คุณอาจยังไม่ได้ยื่นใบสมัคร หรือใบสมัครยังไม่ได้รับอนุมัติและชำระเงิน</p>
       <a class="btn" style="width:auto; display:inline-block" href="member-apply.html">ไปที่หน้าสมัครสมาชิก</a></div>`;
+    const navTypeChange = document.getElementById('navTypeChange');
+    if (navTypeChange) navTypeChange.style.display = 'none';
   }
 }
 
-async function saveContact() {
+async function saveProfile() {
+  const errBox = document.getElementById('editError');
+  errBox.style.display = 'none';
+  const v = id => document.getElementById(id).value;
   try {
-    await apiCall('updateMember', {
-      patch: { email: document.getElementById('email').value, phone: document.getElementById('phone').value }
-    });
-    alert('บันทึกข้อมูลสำเร็จ');
+    const patch = {
+      prefix_en: v('s_prefix_en'), first_name_en: v('s_first_name_en'), last_name_en: v('s_last_name_en'),
+      dob: v('s_dob'), religion: v('s_religion'), ethnicity: v('s_ethnicity'), nationality: v('s_nationality'),
+      phone: v('s_phone'), email: v('s_email'), line_id: v('s_line_id'), photo_url: currentPhotoUrl,
+      education_json: JSON.stringify(collectEducation()),
+      work_status: v('s_work_status'), position: v('s_position'), agency: v('s_agency'),
+      affiliation: v('s_affiliation'), work_province: v('s_work_province'), expertise: v('s_expertise'),
+      addr_current_house_no: v('s_cur_house_no'), addr_current_moo: v('s_cur_moo'), addr_current_building: v('s_cur_building'),
+      addr_current_soi: v('s_cur_soi'), addr_current_road: v('s_cur_road'), addr_current_subdistrict: v('s_cur_subdistrict'),
+      addr_current_district: v('s_cur_district'), addr_current_province: v('s_cur_province'), addr_current_zipcode: v('s_cur_zipcode'),
+      addr_registered_house_no: v('s_reg_house_no'), addr_registered_moo: v('s_reg_moo'), addr_registered_building: v('s_reg_building'),
+      addr_registered_soi: v('s_reg_soi'), addr_registered_road: v('s_reg_road'), addr_registered_subdistrict: v('s_reg_subdistrict'),
+      addr_registered_district: v('s_reg_district'), addr_registered_province: v('s_reg_province'), addr_registered_zipcode: v('s_reg_zipcode'),
+      workplace_name: v('s_wp_name'), workplace_house_no: v('s_wp_house_no'), workplace_building: v('s_wp_building'),
+      workplace_floor: v('s_wp_floor'), workplace_moo: v('s_wp_moo'), workplace_soi: v('s_wp_soi'), workplace_road: v('s_wp_road'),
+      workplace_subdistrict: v('s_wp_subdistrict'), workplace_district: v('s_wp_district'), workplace_province: v('s_wp_province'),
+      workplace_zipcode: v('s_wp_zipcode'), workplace_email: v('s_wp_email'), workplace_phone: v('s_wp_phone'),
+      mailing_address_type: v('s_mailing_type'), mailing_recipient_name: v('s_mail_name'), mailing_recipient_phone: v('s_mail_phone')
+    };
+    const res = await apiCall('updateMember', { patch });
+    alert(res.nameChangePending
+      ? 'บันทึกข้อมูลสำเร็จ — คำขอเปลี่ยนชื่อ-นามสกุล (อังกฤษ) ถูกส่งไปรอเจ้าหน้าที่อนุมัติแล้ว'
+      : 'บันทึกข้อมูลสำเร็จ');
     load();
   } catch (err) {
-    alert('บันทึกไม่สำเร็จ: ' + err.message);
+    errBox.textContent = 'บันทึกไม่สำเร็จ: ' + err.message;
+    errBox.style.display = 'block';
   }
 }
 

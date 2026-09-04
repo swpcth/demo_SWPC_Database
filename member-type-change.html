@@ -13,7 +13,7 @@
     <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
     <nav>
       <a href="member-dashboard.html">ข้อมูลของฉัน</a>
-      <a href="member-apply.html">สมัครสมาชิก</a>
+      <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
       <a href="member-type-change.html" id="navTypeChange" class="active">เปลี่ยนประเภทสมาชิก</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -113,6 +113,7 @@ async function loadMyRequests() {
 async function loadProfile() {
   try {
     const profile = await apiCall('getMyProfile');
+    document.getElementById('navApply').style.display = 'none'; // มีโปรไฟล์แล้ว = เป็นสมาชิกแล้ว
     if (profile.profile_kind === 'organization') {
       showNotice('เมนูนี้ใช้สำหรับสมาชิกบุคคลเท่านั้น');
       return;
@@ -131,6 +132,8 @@ async function loadProfile() {
     }
     document.getElementById('formPanel').style.display = 'block';
   } catch (err) {
+    const navTypeChange = document.getElementById('navTypeChange');
+    if (navTypeChange) navTypeChange.style.display = 'none';
     showNotice('ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ — ต้องเป็นสมาชิกก่อนจึงจะยื่นคำขอเปลี่ยนสถานภาพได้');
   }
 }

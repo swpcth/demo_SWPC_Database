@@ -13,7 +13,7 @@
     <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
     <nav>
       <a href="member-dashboard.html">ข้อมูลของฉัน</a>
-      <a href="member-apply.html" class="active">สมัครสมาชิก</a>
+      <a href="member-apply.html" id="navApply" class="active">สมัครสมาชิก</a>
       <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -30,7 +30,7 @@
     </div>
 
     <!-- แบบฟอร์มสมัครใหม่ -->
-    <div class="panel">
+    <div class="panel" id="newApplicationPanel">
       <h2>ยื่นใบสมัครใหม่</h2>
       <div id="typePicker">
         <label>เลือกประเภทที่ต้องการสมัคร</label>
@@ -569,18 +569,19 @@ async function submitSlip(applicationId) {
   }
 }
 
-async function hideTypeChangeNavIfNotEligible() {
-  try {
-    const p = await apiCall('getMyProfile');
-    if (p.profile_kind === 'organization' || p.member_type === 'สามัญ') {
-      const el = document.getElementById('navTypeChange');
-      if (el) el.style.display = 'none';
+async function checkAlreadyMemberAndAdjustPage() {
+  const profile = await applyMemberNavVisibility();
+  if (profile) {
+    // เป็นสมาชิกอยู่แล้ว (บุคคลหรือองค์กร) — ไม่ต้องยื่นใบสมัครซ้ำ ซ่อนแบบฟอร์มสมัครใหม่
+    const newAppPanel = document.getElementById('newApplicationPanel');
+    if (newAppPanel) {
+      newAppPanel.innerHTML = '<h2>ยื่นใบสมัครใหม่</h2><p class="empty-state">คุณเป็นสมาชิกอยู่แล้ว ไม่จำเป็นต้องยื่นใบสมัครสมาชิกอีก</p>';
     }
-  } catch (e) { /* ยังไม่มีข้อมูลสมาชิก — ปล่อยเมนูไว้ตามปกติ */ }
+  }
 }
 
 loadMyApplications();
-hideTypeChangeNavIfNotEligible();
+checkAlreadyMemberAndAdjustPage();
 </script>
 </body>
 </html>
