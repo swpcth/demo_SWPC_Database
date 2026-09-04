@@ -16,7 +16,9 @@
       <a href="admin-members.html" class="active">ข้อมูลสมาชิก</a>
       <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
       <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
-      <a href="admin-licenses.html">ทะเบียน / ใบอนุญาต</a>
+      <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+      <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+      <a href="admin-licenses.html">ทะเบียนสมาชิก</a>
       <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
       <a href="admin-payments.html">การชำระเงิน</a>
       <a href="admin-reports.html">รายงาน</a>
@@ -201,7 +203,10 @@ function renderIndividual() {
       <td>${statusBadge(m.member_status)}</td>
       <td>${m.license_no || '-'}</td>
       <td>${m.work_province || '-'}</td>
-      <td><button class="btn small secondary" onclick="viewMember('${m.member_id}')">ดู/แก้ไขข้อมูล</button></td>
+      <td>
+        <button class="btn small secondary" onclick="viewMember('${m.member_id}')">ดู/แก้ไขข้อมูล</button>
+        ${m.license_no ? `<button class="btn small secondary" onclick="printLicense('${m.member_id}')">พิมพ์ใบอนุญาต</button>` : ''}
+      </td>
     </tr>
   `).join('');
 }
@@ -277,6 +282,15 @@ function collectEditEducation() {
     major: row.querySelector('.edu-major').value,
     institute: row.querySelector('.edu-institute').value
   })).filter(e => e.level || e.degree || e.institute);
+}
+
+async function printLicense(memberId) {
+  try {
+    const res = await apiCall('generateLicensePdf', { member_id: memberId });
+    window.open(res.url, '_blank');
+  } catch (err) {
+    alert('พิมพ์ใบอนุญาตไม่สำเร็จ: ' + err.message);
+  }
 }
 
 async function viewMember(memberId) {

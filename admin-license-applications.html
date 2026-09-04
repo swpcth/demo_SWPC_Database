@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คำขอใบอนุญาต — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+      <a href="admin-members.html">ข้อมูลสมาชิก</a>
+      <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+      <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      <a href="admin-license-applications.html" class="active">คำขอใบอนุญาต</a>
+      <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+      <a href="admin-licenses.html">ทะเบียนสมาชิก</a>
+      <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="admin-payments.html">การชำระเงิน</a>
+      <a href="admin-reports.html">รายงาน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>คำขอใบอนุญาต</h1></header>
+
+    <div class="panel">
+      <div class="type-tabs">
+        <button class="tab-chip active" data-type="" onclick="filterType('')">ทั้งหมด</button>
+        <button class="tab-chip" data-type="ขึ้นทะเบียน" onclick="filterType('ขึ้นทะเบียน')">ขึ้นทะเบียนใหม่</button>
+        <button class="tab-chip" data-type="ต่ออายุใบอนุญาต" onclick="filterType('ต่ออายุใบอนุญาต')">ต่ออายุ</button>
+      </div>
+      <table>
+        <thead><tr><th>เลขที่คำขอ</th><th>ประเภท</th><th>ชื่อสมาชิก</th><th>ค่าธรรมเนียม</th><th>วันที่ยื่น</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="7" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>ตรวจสอบการชำระเงิน</h2>
+      <table>
+        <thead><tr><th>เลขที่คำขอ</th><th>ประเภท</th><th>จำนวนเงิน</th><th>สลิป</th><th></th></tr></thead>
+        <tbody id="payRows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div id="detailOverlay" class="overlay" style="display:none" onclick="if(event.target===this) closeDetail()">
+  <div class="overlay-card">
+    <button class="overlay-close" onclick="closeDetail()">✕</button>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+let allApps = [];
+let typeFilter = '';
+
+function filterType(t) {
+  typeFilter = t;
+  document.querySelectorAll('.tab-chip').forEach(b => b.classList.toggle('active', b.dataset.type === t));
+  renderApps();
+}
+
+function docItem(docs, docType) {
+  const found = docs.find(d => d.doc_type === docType);
+  if (found) return `<div class="doc-item"><span>${docType}</span><a href="${found.url}" target="_blank">ดูเอกสาร</a></div>`;
+  return `<div class="doc-item missing"><span>${docType}</span><span>ไม่มีเอกสาร</span></div>`;
+}
+
+function renderApps() {
+  const tbody = document.getElementById('rows');
+  const rows = allApps.filter(a => !typeFilter || a.applicant_type === typeFilter);
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่มีคำขอในหมวดนี้</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(a => {
+    const d = JSON.parse(a.ref_data_json || '{}');
+    return `
+      <tr>
+        <td>${a.application_id}</td>
+        <td>${a.applicant_type}</td>
+        <td>${d.name || '-'}</td>
+        <td>${a.fee_amount || 0} บาท</td>
+        <td>${new Date(a.submitted_at).toLocaleDateString('th-TH')}</td>
+        <td><span class="badge pending">${a.status}</span></td>
+        <td>
+          <button class="btn small secondary" onclick="viewDetail('${a.application_id}')">ดูรายละเอียด</button>
+          ${a.status === 'รอตรวจสอบ' ? `
+            <button class="btn small" onclick="review('${a.application_id}','approve')">อนุมัติ</button>
+            <button class="btn small secondary" onclick="review('${a.application_id}','reject')">ไม่อนุมัติ</button>
+          ` : ''}
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function viewDetail(applicationId) {
+  const a = allApps.find(x => x.application_id === applicationId);
+  if (!a) return;
+  const d = JSON.parse(a.ref_data_json || '{}');
+  const docs = JSON.parse(a.documents_json || '[]');
+  let docsHtml = a.applicant_type === 'ขึ้นทะเบียน'
+    ? docItem(docs, 'เอกสารขึ้นทะเบียน')
+    : (docs.length ? docs.map(doc => docItem(docs, doc.doc_type)).join('') : '<p class="empty-state">ไม่มีเอกสารแนบ (อาจเป็นการต่อก่อนหมดอายุด้วย CE ที่ไม่ต้องแนบเอกสาร)</p>');
+  document.getElementById('detailBody').innerHTML = `
+    <h2>${a.applicant_type} — ${a.application_id}</h2>
+    <p><span class="badge pending">${a.status}</span> • ค่าธรรมเนียม ${a.fee_amount} บาท</p>
+    <p><b>ชื่อสมาชิก:</b> ${d.name || '-'}</p>
+    ${d.method ? '<p><b>วิธีต่ออายุ:</b> ' + ({CE_before:'ก่อนหมดอายุด้วยผล CE', CE_after:'หลังหมดอายุด้วยผล CE', exam:'สอบข้อเขียนใหม่'}[d.method] || d.method) + '</p>' : ''}
+    <h3>เอกสารแนบ</h3>
+    ${docsHtml}
+    ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn)"><b>เหตุผลไม่อนุมัติ:</b> ' + a.reject_reason + '</p>' : ''}
+    ${a.status === 'รอตรวจสอบ' ? `
+      <div class="detail-actions">
+        <button class="btn" onclick="closeDetail(); review('${a.application_id}','approve')">อนุมัติ</button>
+        <button class="btn secondary" onclick="closeDetail(); review('${a.application_id}','reject')">ไม่อนุมัติ</button>
+      </div>` : ''}
+  `;
+  document.getElementById('detailOverlay').style.display = 'flex';
+}
+function closeDetail() { document.getElementById('detailOverlay').style.display = 'none'; }
+
+async function review(applicationId, decision) {
+  let reason = '';
+  if (decision === 'reject') {
+    reason = prompt('ระบุเหตุผลที่ไม่อนุมัติ:') || '';
+    if (!reason) return;
+  }
+  try {
+    await apiCall('reviewApplication', { application_id: applicationId, decision, reason });
+    loadAll();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function loadApps() {
+  try {
+    allApps = await apiCall('listLicenseApplications');
+    renderApps();
+  } catch (err) {
+    document.getElementById('rows').innerHTML = `<tr><td colspan="7" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+async function loadPayments() {
+  const tbody = document.getElementById('payRows');
+  try {
+    const appIds = allApps.map(a => a.application_id);
+    const payments = (await apiCall('listPayments'))
+      .filter(p => p.ref_type === 'application' && p.status === 'รอตรวจสอบ' && appIds.indexOf(p.ref_id) !== -1);
+    if (!payments.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีรายการรอตรวจสอบสลิป</td></tr>';
+      return;
+    }
+    tbody.innerHTML = payments.map(pm => {
+      const app = allApps.find(a => a.application_id === pm.ref_id);
+      const isRenewal = app && app.applicant_type === 'ต่ออายุใบอนุญาต';
+      return `
+        <tr>
+          <td>${pm.ref_id}</td>
+          <td>${app ? app.applicant_type : '-'}</td>
+          <td>${pm.amount} บาท</td>
+          <td>${pm.slip_url ? `<a href="${pm.slip_url}" target="_blank">ดูสลิป</a>` : '-'}</td>
+          <td>
+            <button class="btn small" onclick="verifyPayment('${pm.payment_id}','${isRenewal}','approve')">ยืนยันชำระเงิน</button>
+            <button class="btn small secondary" onclick="verifyPayment('${pm.payment_id}','${isRenewal}','reject')">ปฏิเสธ</button>
+          </td>
+        </tr>`;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+async function verifyPayment(paymentId, isRenewalStr, decision) {
+  const isRenewal = isRenewalStr === 'true';
+  const action = isRenewal ? 'verifyLicenseRenewalPayment' : 'verifyRegistrationPayment';
+  if (decision === 'approve' && !confirm('ยืนยันว่าตรวจสอบสลิปถูกต้อง และต้องการออก/ต่ออายุใบอนุญาตทันที?')) return;
+  try {
+    await apiCall(action, { payment_id: paymentId, decision });
+    if (decision === 'approve') alert('ดำเนินการสำเร็จ');
+    loadAll();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function loadAll() {
+  await loadApps();
+  await loadPayments();
+}
+loadAll();
+</script>
+</body>
+</html>

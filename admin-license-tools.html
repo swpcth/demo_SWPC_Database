@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เครื่องมือใบอนุญาต (กลุ่ม) — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+      <a href="admin-members.html">ข้อมูลสมาชิก</a>
+      <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+      <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+      <a href="admin-license-tools.html" class="active">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+      <a href="admin-licenses.html">ทะเบียนสมาชิก</a>
+      <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="admin-payments.html">การชำระเงิน</a>
+      <a href="admin-reports.html">รายงาน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>เครื่องมือใบอนุญาต (จัดการแบบกลุ่ม)</h1></header>
+
+    <!-- 4.2.2 เปิด/ปิดช่วงเวลาต่ออายุ -->
+    <div class="panel">
+      <h2>ช่วงเวลาให้สมาชิกกดต่ออายุใบอนุญาตด้วยตนเอง</h2>
+      <p style="color:var(--muted); font-size:13px">ระบบเปิดให้อัตโนมัติเมื่อเหลือ ≤180 วันก่อนหมดอายุอยู่แล้ว สวิตช์นี้เป็นตัวควบคุมเพิ่มเติมระดับทั้งระบบ (เช่น ปิดชั่วคราวนอกช่วงที่เจ้าหน้าที่ให้บริการ)</p>
+      <p>สถานะปัจจุบัน: <span id="windowStatus" class="badge pending">กำลังโหลด...</span></p>
+      <button class="btn small" onclick="setWindow(true)">เปิดให้ต่ออายุ</button>
+      <button class="btn small secondary" onclick="setWindow(false)">ปิดชั่วคราว</button>
+    </div>
+
+    <!-- 4.4.1 นำเข้ารายชื่อ -->
+    <div class="panel">
+      <h2>นำเข้ารายชื่อผู้มีสิทธิ์ต่ออายุใบอนุญาต</h2>
+      <button class="btn small secondary" onclick="pullFromCe()">ดึงข้อมูลจากระบบ CE</button>
+      <p style="color:var(--muted); font-size:13px; margin-top:8px">ยังไม่ได้เชื่อมต่อ API จริง — ใช้นำเข้าไฟล์ CSV แทนได้ (ทางเลือกสำรองตาม TOR)</p>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div><label>ชื่อกลุ่ม (เช่น "รอบต่ออายุ ก.ค. 2569")</label><input type="text" id="batchName"></div>
+        <div><label>ประเภทการนำเข้า</label>
+          <select id="importType">
+            <option value="before_expiry">ต่ออายุก่อนใบอนุญาตหมดอายุ</option>
+            <option value="after_expiry">ต่ออายุหลังใบอนุญาตหมดอายุ (ถือเป็นขึ้นทะเบียนใหม่)</option>
+          </select>
+        </div>
+      </div>
+      <label>ไฟล์ CSV (คอลัมน์แรก = เลขบัตรประชาชน หรือ เลขสมาชิก อย่างใดอย่างหนึ่ง มีหัวตารางหรือไม่ก็ได้)</label>
+      <input type="file" id="csvFile" accept=".csv">
+      <button class="btn small" style="margin-top:8px" onclick="importCsv()">นำเข้ารายชื่อ</button>
+      <div id="importResult" style="margin-top:8px; font-size:13px"></div>
+    </div>
+
+    <!-- 4.4.2 กลุ่มรออนุมัติ -->
+    <div class="panel">
+      <h2>กลุ่มที่นำเข้าแล้ว (อนุมัติแบบกลุ่ม)</h2>
+      <table>
+        <thead><tr><th>ชื่อกลุ่ม</th><th>ประเภท</th><th>จำนวน</th><th>รอตรวจสอบ</th><th>ดำเนินการแล้ว</th><th></th></tr></thead>
+        <tbody id="batchRows"><tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- 4.4.3 พิมพ์ใบอนุญาต -->
+    <div class="panel">
+      <h2>สั่งพิมพ์ใบอนุญาต (PDF)</h2>
+      <p style="color:var(--muted); font-size:13px">พิมพ์รายบุคคลจากหน้า "ข้อมูลสมาชิก" หรือพิมพ์แบบกลุ่มโดยกรอกเลขสมาชิกด้านล่าง (คั่นด้วยจุลภาค) — ไฟล์ PDF จะถูกสร้างแยกทีละคน ไม่ได้รวมเป็นไฟล์เดียว</p>
+      <input type="text" id="batchPrintIds" placeholder="เช่น MBR-abc123, MBR-def456">
+      <button class="btn small" onclick="printBatch()">พิมพ์แบบกลุ่ม</button>
+      <div id="printResults" style="margin-top:8px"></div>
+    </div>
+
+    <!-- 4.4.4 ประวัติการยกเลิกเลข -->
+    <div class="panel">
+      <h2>ประวัติการยกเลิกเลขที่ใบอนุญาต</h2>
+      <table>
+        <thead><tr><th>เลขเดิม</th><th>เลขใหม่</th><th>ชื่อสมาชิก</th><th>วันที่ยกเลิก</th><th>เหตุผล</th></tr></thead>
+        <tbody id="voidRows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div id="detailOverlay" class="overlay" style="display:none" onclick="if(event.target===this) closeDetail()">
+  <div class="overlay-card">
+    <button class="overlay-close" onclick="closeDetail()">✕</button>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+function closeDetail() { document.getElementById('detailOverlay').style.display = 'none'; }
+
+async function loadWindowStatus() {
+  try {
+    const res = await apiCall('getRenewalWindowStatus');
+    const el = document.getElementById('windowStatus');
+    el.textContent = res.open ? 'เปิดให้ต่ออายุ' : 'ปิดชั่วคราว';
+    el.className = 'badge ' + (res.open ? 'ok' : 'warn');
+  } catch (err) { /* ignore */ }
+}
+
+async function setWindow(open) {
+  try {
+    await apiCall('setRenewalWindow', { open });
+    loadWindowStatus();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function pullFromCe() {
+  try {
+    await apiCall('pullCeEligibleList');
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function parseCsv(text) {
+  return text.split(/\r?\n/).map(l => l.split(',')[0].trim()).filter(v => v && !/^[a-zA-Z_]/.test(v));
+}
+
+async function importCsv() {
+  const batchName = document.getElementById('batchName').value.trim();
+  const importType = document.getElementById('importType').value;
+  const file = document.getElementById('csvFile').files[0];
+  const resultBox = document.getElementById('importResult');
+  if (!batchName) { alert('กรุณาตั้งชื่อกลุ่ม'); return; }
+  if (!file) { alert('กรุณาเลือกไฟล์ CSV'); return; }
+  try {
+    const text = await file.text();
+    const values = parseCsv(text);
+    if (!values.length) { alert('ไม่พบข้อมูลในไฟล์'); return; }
+    const rows = values.map(v => ({ national_id: v, member_no: v }));
+    const res = await apiCall('importRenewalEligibilityCsv', { rows, import_type: importType, batch_name: batchName });
+    resultBox.innerHTML = `นำเข้าสำเร็จ ${res.matched} รายการ` + (res.notFound.length ? ` — ไม่พบข้อมูล ${res.notFound.length} รายการ: ${res.notFound.join(', ')}` : '');
+    loadBatches();
+  } catch (err) {
+    resultBox.innerHTML = '<span style="color:var(--warn)">นำเข้าไม่สำเร็จ: ' + err.message + '</span>';
+  }
+}
+
+async function loadBatches() {
+  const tbody = document.getElementById('batchRows');
+  try {
+    const batches = await apiCall('listRenewalBatches');
+    if (!batches.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ยังไม่มีกลุ่มที่นำเข้า</td></tr>'; return; }
+    tbody.innerHTML = batches.map(b => `
+      <tr>
+        <td>${b.batch_name}</td>
+        <td>${b.import_type === 'after_expiry' ? 'หลังหมดอายุ' : 'ก่อนหมดอายุ'}</td>
+        <td>${b.total}</td>
+        <td>${b.pending}</td>
+        <td>${b.decided}</td>
+        <td>
+          <button class="btn small secondary" onclick="viewBatch('${b.batch_name}')">ดูรายชื่อ</button>
+          ${b.pending > 0 ? `
+            <button class="btn small" onclick="decideBatch('${b.batch_name}','approve')">อนุมัติทั้งกลุ่ม</button>
+            <button class="btn small secondary" onclick="decideBatch('${b.batch_name}','reject')">ไม่อนุมัติทั้งกลุ่ม</button>
+          ` : ''}
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+async function viewBatch(batchName) {
+  try {
+    const members = await apiCall('getRenewalBatchMembers', { batch_name: batchName });
+    document.getElementById('detailBody').innerHTML = `
+      <h2>รายชื่อในกลุ่ม "${batchName}"</h2>
+      <table><thead><tr><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>สถานะ</th></tr></thead>
+      <tbody>${members.map(m => `<tr><td>${m.member_no}</td><td>${m.name}</td><td><span class="badge pending">${m.status}</span></td></tr>`).join('')}</tbody></table>
+    `;
+    document.getElementById('detailOverlay').style.display = 'flex';
+  } catch (err) {
+    alert('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function decideBatch(batchName, decision) {
+  if (!confirm(decision === 'approve' ? 'ยืนยันอนุมัติและต่ออายุใบอนุญาตให้ทุกคนในกลุ่มนี้ทันที?' : 'ยืนยันไม่อนุมัติทั้งกลุ่มนี้?')) return;
+  try {
+    const res = await apiCall('decideRenewalBatch', { batch_name: batchName, decision });
+    alert(decision === 'approve' ? `ดำเนินการสำเร็จ ${res.successCount} คน (ล้มเหลว ${res.failCount} คน)` : 'ไม่อนุมัติทั้งกลุ่มเรียบร้อย');
+    loadBatches();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function printBatch() {
+  const ids = document.getElementById('batchPrintIds').value.split(',').map(s => s.trim()).filter(Boolean);
+  const box = document.getElementById('printResults');
+  if (!ids.length) { alert('กรุณากรอกเลขสมาชิกอย่างน้อย 1 คน'); return; }
+  box.innerHTML = 'กำลังสร้าง PDF...';
+  try {
+    const results = await apiCall('generateLicensePdfBatch', { member_ids: ids });
+    box.innerHTML = results.map(r => r.url
+      ? `<p>✅ ${r.name}: <a href="${r.url}" target="_blank">เปิด PDF</a></p>`
+      : `<p style="color:var(--warn)">❌ ${r.member_id}: ${r.error}</p>`
+    ).join('');
+  } catch (err) {
+    box.innerHTML = '<span style="color:var(--warn)">สร้าง PDF ไม่สำเร็จ: ' + err.message + '</span>';
+  }
+}
+
+async function loadVoided() {
+  const tbody = document.getElementById('voidRows');
+  try {
+    const rows = await apiCall('listVoidedLicenses');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ยังไม่มีประวัติการยกเลิก</td></tr>'; return; }
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.old_license_no}</td>
+        <td>${r.new_license_no}</td>
+        <td>${r.member_name}</td>
+        <td>${new Date(r.void_date).toLocaleDateString('th-TH')}</td>
+        <td>${r.reason}</td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+loadWindowStatus();
+loadBatches();
+loadVoided();
+</script>
+</body>
+</html>

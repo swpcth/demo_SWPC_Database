@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ใบอนุญาตของฉัน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
+    <nav>
+      <a href="member-dashboard.html">ข้อมูลของฉัน</a>
+      <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
+      <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
+      <a href="member-license.html" id="navLicense" class="active">ใบอนุญาตของฉัน</a>
+      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>ใบอนุญาตของฉัน</h1></header>
+
+    <div class="panel">
+      <h2>ข้อมูลใบอนุญาตปัจจุบัน</h2>
+      <div id="licenseInfo"><p class="empty-state">กำลังโหลด...</p></div>
+    </div>
+
+    <div class="panel">
+      <h2>สถานะคำขอของฉัน</h2>
+      <div id="myRequests"><p class="empty-state">กำลังโหลด...</p></div>
+    </div>
+
+    <div class="panel" id="registerPanel" style="display:none">
+      <h2>ขึ้นทะเบียนรับใบอนุญาต</h2>
+      <p style="color:var(--muted); font-size:13px">แนบเอกสารประกอบการพิจารณา แล้วรอเจ้าหน้าที่ตรวจสอบ</p>
+      <div id="registerError" class="error-box"></div>
+      <div class="doc-row"><label>เอกสารประกอบการขึ้นทะเบียน</label><input type="file" id="reg_doc" accept=".pdf,.jpg,.jpeg,.png"></div>
+      <button class="btn" style="width:auto; margin-top:12px" onclick="submitRegistration()">ยื่นคำขอขึ้นทะเบียน</button>
+    </div>
+
+    <div class="panel" id="renewPanel" style="display:none">
+      <h2>ต่ออายุใบอนุญาต</h2>
+      <div id="renewError" class="error-box"></div>
+      <div id="renewForm"></div>
+    </div>
+
+    <div class="panel" id="notEligiblePanel" style="display:none">
+      <p class="empty-state" id="notEligibleText"></p>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(['member'], 'index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+function licBadgeClass(status) {
+  if (status === 'ปกติ') return 'ok';
+  if (status === 'ใกล้หมดอายุ') return 'pending';
+  return 'warn';
+}
+
+async function loadLicenseInfo() {
+  const el = document.getElementById('licenseInfo');
+  try {
+    const lic = await apiCall('myLicense');
+    if (!lic) { el.innerHTML = '<p class="empty-state">ยังไม่มีใบอนุญาต</p>'; return; }
+    el.innerHTML = `
+      <p><b>เลขที่ใบอนุญาต:</b> ${lic.license_no}</p>
+      <p><b>วันที่ออก:</b> ${fmtDate(lic.issue_date)} &nbsp;•&nbsp; <b>วันหมดอายุ:</b> ${fmtDate(lic.expire_date)}</p>
+      <p><b>สถานะ:</b> <span class="badge ${licBadgeClass(lic.status)}">${lic.status}</span></p>
+    `;
+  } catch (err) {
+    el.innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+
+function statusBadgeClass(status) {
+  if (status === 'ขึ้นทะเบียนสำเร็จ' || status === 'ต่ออายุสำเร็จ') return 'ok';
+  if (status === 'ไม่อนุมัติ') return 'warn';
+  return 'pending';
+}
+
+function renderPaySlipForm(a) {
+  return `
+    <div class="pay-box">
+      <p>ค่าธรรมเนียม: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี [ระบุเลขบัญชีสภาฯ] แล้วแนบสลิปด้านล่าง</p>
+      <input type="file" id="slip_${a.application_id}" accept=".pdf,.jpg,.jpeg,.png">
+      <button type="button" class="btn small" onclick="submitSlip('${a.application_id}')">แนบสลิปการโอนเงิน</button>
+    </div>`;
+}
+
+async function submitSlip(applicationId) {
+  const input = document.getElementById('slip_' + applicationId);
+  if (!input.files[0]) { alert('กรุณาเลือกไฟล์สลิปก่อน'); return; }
+  try {
+    const uploaded = await uploadDocument(input.files[0], 'สลิปการโอนเงิน');
+    await apiCall('submitPaymentSlip', { application_id: applicationId, slip_url: uploaded.url, method: 'โอนเงิน' });
+    alert('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ');
+    loadAll();
+  } catch (err) {
+    alert('แนบสลิปไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function loadMyRequests() {
+  const el = document.getElementById('myRequests');
+  try {
+    const apps = (await apiCall('myApplications')).filter(a => ['ขึ้นทะเบียน', 'ต่ออายุใบอนุญาต'].indexOf(a.applicant_type) !== -1);
+    if (!apps.length) { el.innerHTML = '<p class="empty-state">ยังไม่เคยยื่นคำขอ</p>'; return; }
+    el.innerHTML = apps.map(a => `
+      <div class="app-status-card">
+        <div>
+          <b>${a.applicant_type}</b> — เลขที่คำขอ ${a.application_id}<br>
+          <span style="color:var(--muted); font-size:13px">ยื่นเมื่อ ${fmtDate(a.submitted_at)}</span>
+        </div>
+        <span class="badge ${statusBadgeClass(a.status)}">${a.status}</span>
+        ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn); font-size:13px">เหตุผล: ' + a.reject_reason + '</p>' : ''}
+        ${a.status === 'รอชำระเงิน' ? renderPaySlipForm(a) : ''}
+      </div>
+    `).join('');
+  } catch (err) {
+    el.innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+
+async function submitRegistration() {
+  const errBox = document.getElementById('registerError');
+  errBox.style.display = 'none';
+  try {
+    const documents = [];
+    const file = document.getElementById('reg_doc').files[0];
+    if (file) documents.push(await uploadDocument(file, 'เอกสารขึ้นทะเบียน'));
+    const res = await apiCall('submitLicenseRegistration', { documents });
+    alert('ยื่นคำขอขึ้นทะเบียนสำเร็จ เลขที่คำขอ ' + res.application_id);
+    loadAll();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  }
+}
+
+function renderRenewForm(eligibility) {
+  const isAfter = eligibility.isAfterExpiry;
+  document.getElementById('renewForm').innerHTML = `
+    <p>สถานะใบอนุญาต: ${isAfter ? '<span class="badge warn">หมดอายุแล้ว</span>' : '<span class="badge pending">เหลืออีก ' + eligibility.daysUntilExpire + ' วัน</span>'}</p>
+    <label>เลือกวิธีต่ออายุ</label>
+    <select id="renew_method" onchange="toggleRenewMethodUI()">
+      ${!isAfter ? '<option value="CE_before">ต่อก่อนหมดอายุด้วยผลการศึกษาต่อเนื่อง (CE)</option>' : ''}
+      <option value="CE_after">ต่อด้วยผลการศึกษาต่อเนื่อง (CE) ${isAfter ? '(หลังหมดอายุ)' : ''}</option>
+      <option value="exam">ต่อด้วยผลสอบข้อเขียนใหม่</option>
+    </select>
+
+    <div id="ceBeforeBox" style="display:none">
+      <label style="margin-top:12px"><input type="checkbox" id="ce_declare" style="width:auto; display:inline-block; margin-right:6px">
+        ข้าพเจ้ายืนยันว่าผ่านเกณฑ์การศึกษาต่อเนื่อง (CE) ตามที่สภาฯ กำหนด</label>
+      <p style="color:var(--muted); font-size:12px">* ระบบยังไม่ได้เชื่อมต่อ API ตรวจสอบ CE จริง เจ้าหน้าที่จะสุ่มตรวจสอบย้อนหลังได้</p>
+    </div>
+
+    <div id="docsBox" style="display:none">
+      <div class="doc-row"><label>เอกสารผลการสอบ/สัมภาษณ์</label><input type="file" id="renew_doc" accept=".pdf,.jpg,.jpeg,.png"></div>
+    </div>
+
+    <button class="btn" style="width:auto; margin-top:12px" onclick="submitRenewal(${isAfter})">ยื่นคำขอต่ออายุ</button>
+  `;
+  toggleRenewMethodUI();
+}
+
+function toggleRenewMethodUI() {
+  const method = document.getElementById('renew_method').value;
+  document.getElementById('ceBeforeBox').style.display = method === 'CE_before' ? 'block' : 'none';
+  document.getElementById('docsBox').style.display = method !== 'CE_before' ? 'block' : 'none';
+}
+
+async function submitRenewal(isAfter) {
+  const errBox = document.getElementById('renewError');
+  errBox.style.display = 'none';
+  const method = document.getElementById('renew_method').value;
+  try {
+    const documents = [];
+    if (method !== 'CE_before') {
+      const file = document.getElementById('renew_doc').files[0];
+      if (file) documents.push(await uploadDocument(file, method === 'exam' ? 'ผลสอบข้อเขียน/สัมภาษณ์' : 'ผลการศึกษาต่อเนื่อง'));
+    }
+    const payload = { method, documents };
+    if (method === 'CE_before') payload.ce_self_declared = document.getElementById('ce_declare').checked;
+    const res = await apiCall('submitLicenseRenewal', payload);
+    alert(res.status === 'รอชำระเงิน' ? 'ยื่นคำขอสำเร็จ กรุณาชำระเงินที่ด้านบน' : 'ยื่นคำขอสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ');
+    loadAll();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  }
+}
+
+async function loadAll() {
+  await loadLicenseInfo();
+  await loadMyRequests();
+
+  document.getElementById('registerPanel').style.display = 'none';
+  document.getElementById('renewPanel').style.display = 'none';
+  document.getElementById('notEligiblePanel').style.display = 'none';
+
+  try {
+    const profile = await apiCall('getMyProfile');
+    if (profile.profile_kind === 'organization') {
+      document.getElementById('notEligiblePanel').style.display = 'block';
+      document.getElementById('notEligibleText').textContent = 'เมนูนี้ใช้สำหรับสมาชิกบุคคลเท่านั้น';
+      return;
+    }
+  } catch (e) { /* ไปแสดงข้อความ ineligible ตามปกติผ่าน eligibility check ด้านล่าง */ }
+
+  const regCheck = await apiCall('getRegistrationEligibility');
+  if (regCheck.eligible) {
+    document.getElementById('registerPanel').style.display = 'block';
+    return;
+  }
+
+  const renewCheck = await apiCall('getRenewalEligibility');
+  if (renewCheck.eligible) {
+    document.getElementById('renewPanel').style.display = 'block';
+    renderRenewForm(renewCheck);
+    return;
+  }
+
+  document.getElementById('notEligiblePanel').style.display = 'block';
+  document.getElementById('notEligibleText').textContent = renewCheck.license ? renewCheck.reason : (regCheck.reason || renewCheck.reason);
+}
+
+loadAll();
+applyMemberNavVisibility();
+</script>
+</body>
+</html>

@@ -16,7 +16,9 @@
       <a href="admin-members.html">ข้อมูลสมาชิก</a>
       <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
       <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
-      <a href="admin-licenses.html" class="active">ทะเบียน / ใบอนุญาต</a>
+      <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+      <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+      <a href="admin-licenses.html" class="active">ทะเบียนสมาชิก</a>
       <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
       <a href="admin-payments.html">การชำระเงิน</a>
       <a href="admin-reports.html">รายงาน</a>
@@ -181,12 +183,23 @@ async function viewRegistry(memberId) {
 
       <div class="detail-actions">
         <button class="btn" onclick="renewMembership('${m.member_id}')">ต่ออายุสมาชิกภาพ</button>
+        ${lic.license_no ? `<button class="btn secondary" onclick="printLicense('${m.member_id}')">พิมพ์ใบอนุญาต</button>` : ''}
       </div>
     `;
   } catch (err) {
     document.getElementById('detailBody').innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
   }
 }
+
+async function printLicense(memberId) {
+  try {
+    const res = await apiCall('generateLicensePdf', { member_id: memberId });
+    window.open(res.url, '_blank');
+  } catch (err) {
+    alert('พิมพ์ใบอนุญาตไม่สำเร็จ: ' + err.message);
+  }
+}
+
 function closeDetail() { document.getElementById('detailOverlay').style.display = 'none'; }
 
 async function renewMembership(memberId) {
