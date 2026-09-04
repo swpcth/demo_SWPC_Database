@@ -14,7 +14,7 @@
     <nav>
       <a href="member-dashboard.html">ข้อมูลของฉัน</a>
       <a href="member-apply.html" class="active">สมัครสมาชิก</a>
-      <a href="member-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+      <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -69,13 +69,45 @@
         </fieldset>
 
         <fieldset>
-          <legend>2) ข้อมูลการศึกษา</legend>
+          <legend>2) ที่อยู่ปัจจุบัน</legend>
+          <div class="grid-2">
+            <div><label>บ้านเลขที่</label><input type="text" id="i_cur_house_no" oninput="copyCurrentToRegistered()"></div>
+            <div><label>หมู่ที่</label><input type="text" id="i_cur_moo" oninput="copyCurrentToRegistered()"></div>
+            <div><label>หมู่บ้าน/คอนโด/อาคาร</label><input type="text" id="i_cur_building" oninput="copyCurrentToRegistered()"></div>
+            <div><label>ซอย</label><input type="text" id="i_cur_soi" oninput="copyCurrentToRegistered()"></div>
+            <div><label>ถนน</label><input type="text" id="i_cur_road" oninput="copyCurrentToRegistered()"></div>
+            <div><label>แขวง/ตำบล</label><input type="text" id="i_cur_subdistrict" oninput="copyCurrentToRegistered()"></div>
+            <div><label>เขต/อำเภอ</label><input type="text" id="i_cur_district" oninput="copyCurrentToRegistered()"></div>
+            <div><label>จังหวัด</label><input type="text" id="i_cur_province" oninput="copyCurrentToRegistered()"></div>
+            <div><label>รหัสไปรษณีย์</label><input type="text" id="i_cur_zipcode" oninput="copyCurrentToRegistered()"></div>
+          </div>
+          <label style="margin-top:8px"><input type="checkbox" id="sameAsRegistered" onchange="copyCurrentToRegistered()" style="width:auto; display:inline-block; margin-right:6px">
+            ที่อยู่ตามทะเบียนราษฎร์เป็นที่อยู่เดียวกัน</label>
+        </fieldset>
+
+        <fieldset>
+          <legend>3) ที่อยู่ตามทะเบียนราษฎร์</legend>
+          <div class="grid-2">
+            <div><label>บ้านเลขที่</label><input type="text" id="i_reg_house_no"></div>
+            <div><label>หมู่ที่</label><input type="text" id="i_reg_moo"></div>
+            <div><label>หมู่บ้าน/คอนโด/อาคาร</label><input type="text" id="i_reg_building"></div>
+            <div><label>ซอย</label><input type="text" id="i_reg_soi"></div>
+            <div><label>ถนน</label><input type="text" id="i_reg_road"></div>
+            <div><label>แขวง/ตำบล</label><input type="text" id="i_reg_subdistrict"></div>
+            <div><label>เขต/อำเภอ</label><input type="text" id="i_reg_district"></div>
+            <div><label>จังหวัด</label><input type="text" id="i_reg_province"></div>
+            <div><label>รหัสไปรษณีย์</label><input type="text" id="i_reg_zipcode"></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>4) ข้อมูลการศึกษา</legend>
           <div id="eduRows"></div>
           <button type="button" class="btn small secondary" onclick="addEduRow()">+ เพิ่มรายการการศึกษา</button>
         </fieldset>
 
         <fieldset>
-          <legend>3) ข้อมูลการทำงาน</legend>
+          <legend>5) ข้อมูลการทำงาน</legend>
           <div class="grid-2">
             <div><label>สถานะการทำงาน</label><input type="text" id="i_work_status"></div>
             <div><label>ตำแหน่ง</label><input type="text" id="i_position"></div>
@@ -87,7 +119,7 @@
         </fieldset>
 
         <fieldset>
-          <legend>4) ข้อมูลสถานที่ทำงาน</legend>
+          <legend>6) ข้อมูลสถานที่ทำงาน</legend>
           <div class="grid-2">
             <div><label>ชื่อหน่วยงาน</label><input type="text" id="i_workplace_name"></div>
             <div><label>บ้านเลขที่</label><input type="text" id="i_wp_house_no"></div>
@@ -106,7 +138,21 @@
         </fieldset>
 
         <fieldset>
-          <legend>5) เอกสารแนบ (PDF, JPG, JPEG, PNG)</legend>
+          <legend>7) ที่อยู่สำหรับจัดส่งเอกสาร</legend>
+          <label>เลือกใช้ที่อยู่</label>
+          <select id="i_mailing_type">
+            <option value="ที่อยู่ปัจจุบัน">ที่อยู่ปัจจุบัน</option>
+            <option value="ที่อยู่ตามทะเบียนราษฎร์">ที่อยู่ตามทะเบียนราษฎร์</option>
+            <option value="ที่อยู่สถานที่ทำงาน">ที่อยู่สถานที่ทำงาน</option>
+          </select>
+          <div class="grid-2">
+            <div><label>ชื่อ-นามสกุลผู้รับ</label><input type="text" id="i_mail_name"></div>
+            <div><label>เบอร์โทรศัพท์ผู้รับ</label><input type="tel" id="i_mail_phone"></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>8) เอกสารแนบ (PDF, JPG, JPEG, PNG)</legend>
           <div class="doc-row"><label>สำเนาบัตรประชาชน</label><input type="file" id="doc_national_id" accept=".pdf,.jpg,.jpeg,.png"></div>
           <div class="doc-row"><label>รูปถ่ายสมาชิก</label><input type="file" id="doc_photo" accept=".jpg,.jpeg,.png"></div>
           <div class="doc-row"><label>วุฒิการศึกษา</label><input type="file" id="doc_education" accept=".pdf,.jpg,.jpeg,.png"></div>
@@ -249,6 +295,25 @@ function updateAge() {
   document.getElementById('i_age').value = age + ' ปี';
 }
 
+const CUR_REG_FIELD_MAP = [
+  ['i_cur_house_no', 'i_reg_house_no'], ['i_cur_moo', 'i_reg_moo'], ['i_cur_building', 'i_reg_building'],
+  ['i_cur_soi', 'i_reg_soi'], ['i_cur_road', 'i_reg_road'], ['i_cur_subdistrict', 'i_reg_subdistrict'],
+  ['i_cur_district', 'i_reg_district'], ['i_cur_province', 'i_reg_province'], ['i_cur_zipcode', 'i_reg_zipcode']
+];
+
+function copyCurrentToRegistered() {
+  const checked = document.getElementById('sameAsRegistered').checked;
+  CUR_REG_FIELD_MAP.forEach(([curId, regId]) => {
+    const regInput = document.getElementById(regId);
+    if (checked) {
+      regInput.value = document.getElementById(curId).value;
+      regInput.disabled = true;
+    } else {
+      regInput.disabled = false;
+    }
+  });
+}
+
 function addEduRow() {
   eduCount++;
   const id = eduCount;
@@ -340,7 +405,28 @@ async function submitIndividual(e) {
       workplace_province: document.getElementById('i_wp_province').value,
       workplace_zipcode: document.getElementById('i_wp_zipcode').value,
       workplace_email: document.getElementById('i_wp_email').value,
-      workplace_phone: document.getElementById('i_wp_phone').value
+      workplace_phone: document.getElementById('i_wp_phone').value,
+      addr_current_house_no: document.getElementById('i_cur_house_no').value,
+      addr_current_moo: document.getElementById('i_cur_moo').value,
+      addr_current_building: document.getElementById('i_cur_building').value,
+      addr_current_soi: document.getElementById('i_cur_soi').value,
+      addr_current_road: document.getElementById('i_cur_road').value,
+      addr_current_subdistrict: document.getElementById('i_cur_subdistrict').value,
+      addr_current_district: document.getElementById('i_cur_district').value,
+      addr_current_province: document.getElementById('i_cur_province').value,
+      addr_current_zipcode: document.getElementById('i_cur_zipcode').value,
+      addr_registered_house_no: document.getElementById('i_reg_house_no').value,
+      addr_registered_moo: document.getElementById('i_reg_moo').value,
+      addr_registered_building: document.getElementById('i_reg_building').value,
+      addr_registered_soi: document.getElementById('i_reg_soi').value,
+      addr_registered_road: document.getElementById('i_reg_road').value,
+      addr_registered_subdistrict: document.getElementById('i_reg_subdistrict').value,
+      addr_registered_district: document.getElementById('i_reg_district').value,
+      addr_registered_province: document.getElementById('i_reg_province').value,
+      addr_registered_zipcode: document.getElementById('i_reg_zipcode').value,
+      mailing_address_type: document.getElementById('i_mailing_type').value,
+      mailing_recipient_name: document.getElementById('i_mail_name').value,
+      mailing_recipient_phone: document.getElementById('i_mail_phone').value
     };
     const res = await apiCall('submitApplication', { applicant_type: currentType, data, documents });
     alert('ส่งใบสมัครสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ (จะแจ้งผลทางอีเมล)');
@@ -483,7 +569,18 @@ async function submitSlip(applicationId) {
   }
 }
 
+async function hideTypeChangeNavIfNotEligible() {
+  try {
+    const p = await apiCall('getMyProfile');
+    if (p.profile_kind === 'organization' || p.member_type === 'สามัญ') {
+      const el = document.getElementById('navTypeChange');
+      if (el) el.style.display = 'none';
+    }
+  } catch (e) { /* ยังไม่มีข้อมูลสมาชิก — ปล่อยเมนูไว้ตามปกติ */ }
+}
+
 loadMyApplications();
+hideTypeChangeNavIfNotEligible();
 </script>
 </body>
 </html>

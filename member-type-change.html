@@ -14,7 +14,7 @@
     <nav>
       <a href="member-dashboard.html">ข้อมูลของฉัน</a>
       <a href="member-apply.html">สมัครสมาชิก</a>
-      <a href="member-type-change.html" class="active">เปลี่ยนประเภทสมาชิก</a>
+      <a href="member-type-change.html" id="navTypeChange" class="active">เปลี่ยนประเภทสมาชิก</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -116,6 +116,10 @@ async function loadProfile() {
     if (profile.profile_kind === 'organization') {
       showNotice('เมนูนี้ใช้สำหรับสมาชิกบุคคลเท่านั้น');
       return;
+    }
+    if (profile.member_type === 'สามัญ') {
+      const el = document.getElementById('navTypeChange');
+      if (el) el.style.display = 'none';
     }
     if (profile.member_type !== 'สมทบ') {
       showNotice('บัญชีนี้เป็นสมาชิก' + profile.member_type + 'อยู่แล้ว — ระบบรองรับเฉพาะการเปลี่ยนจากสมาชิกสมทบเป็นสมาชิกสามัญเท่านั้น จึงไม่มีคำขอให้ยื่นสำหรับบัญชีนี้');
