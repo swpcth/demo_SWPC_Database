@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>บัตรสมาชิก</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
+    <nav>
+      <a href="member-dashboard.html">ข้อมูลของฉัน</a>
+      <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
+      <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
+      <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
+      <a href="member-card.html" id="navCard" class="active">บัตรสมาชิก</a>
+      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>บัตรสมาชิก</h1></header>
+
+    <div id="content"><p class="empty-state">กำลังโหลด...</p></div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(['member'], 'index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+
+function statusInfo(days) {
+  if (days === null) return { label: 'ไม่ทราบสถานะ', cls: 'card-status-gray' };
+  if (days < 0) return { label: 'หมดอายุ', cls: 'card-status-red' };
+  if (days <= 90) return { label: 'หมดอายุในอีก 90 วัน', cls: 'card-status-orange' };
+  if (days <= 180) return { label: 'หมดอายุในอีก 6 เดือน', cls: 'card-status-yellow' };
+  return { label: 'ยังไม่หมดอายุ', cls: 'card-status-green' };
+}
+
+function daysUntilClient(iso) {
+  if (!iso) return null;
+  return Math.floor((new Date(iso).getTime() - Date.now()) / (24 * 3600 * 1000));
+}
+
+let currentData = null;
+
+async function load() {
+  const el = document.getElementById('content');
+  try {
+    const data = await apiCall('getMyCard');
+    currentData = data;
+
+    if (data.isOrg) {
+      el.innerHTML = '<div class="panel"><p>สมาชิกวิสามัญ (องค์กร) ใช้ใบรับรองแทนบัตรสมาชิก — ไปที่หน้า <a href="member-certificate.html">ใบรับรองสมาชิกวิสามัญ</a></p></div>';
+      return;
+    }
+
+    const m = data.profile;
+    const days = daysUntilClient(m.membership_expire_date);
+    const st = statusInfo(days);
+    const isGold = m.member_type === 'สามัญ';
+    const cardThemeClass = isGold ? 'card-gold' : 'card-silver';
+    const typeLabelTh = isGold ? 'สมาชิกสามัญสภาวิชาชีพสังคมสงเคราะห์' : 'สมาชิกสมทบสภาวิชาชีพสังคมสงเคราะห์';
+    const typeLabelEn = isGold ? 'Social Work Professions Council Member' : 'Social Work Professions Council Associate Member';
+    const verifyUrl = location.origin + location.pathname.replace('member-card.html', '') + 'verify-card.html?token=' + data.card.qr_token;
+
+    el.innerHTML = `
+      <div class="card-tabs">
+        <button class="tab-chip active" onclick="showSide('front')">หน้าบัตร</button>
+        <button class="tab-chip" onclick="showSide('back')">หลังบัตร</button>
+      </div>
+
+      <div class="member-card ${cardThemeClass}" id="cardFront">
+        <div class="card-top">
+          <img src="logo.png" class="card-logo">
+          <div class="card-title">
+            <div class="card-title-th">${typeLabelTh}</div>
+            <div class="card-title-en">${typeLabelEn}</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-photo">${m.photo_url ? `<img src="${m.photo_url}">` : '👤'}</div>
+          <div class="card-info">
+            <div class="card-name-th">${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</div>
+            <div class="card-name-en">${m.prefix_en || ''} ${m.first_name_en || ''} ${m.last_name_en || ''}</div>
+            <div class="card-row"><span>เลขประจำตัวประชาชน</span><b>${m.national_id || '-'}</b></div>
+            <div class="card-row"><span>เลขที่สมาชิก</span><b>${m.member_no || '-'}</b></div>
+            <div class="card-row"><span>วันออกบัตร</span><b>${fmtDate(data.card.issued_at)}</b></div>
+            <div class="card-row"><span>วันหมดอายุ</span><b>${fmtDate(m.membership_expire_date)}</b></div>
+          </div>
+        </div>
+        <div class="card-signature">
+          <div class="sig-line"></div>
+          <div class="sig-name">(${data.signatory.name})</div>
+          <div class="sig-position">${data.signatory.position}</div>
+        </div>
+      </div>
+
+      <div class="member-card ${cardThemeClass}" id="cardBack" style="display:none">
+        <div class="card-back-content">
+          <p><b>สภาวิชาชีพสังคมสงเคราะห์</b><br>Social Work Professions Council</p>
+          <p style="font-size:12px">ที่อยู่: สภาวิชาชีพสังคมสงเคราะห์ เลขที่ 255 ตึกกรมกิจการสตรีและสถาบันครอบครัว แขวงทุ่งพญาไท เขตราชเทวี กรุงเทพมหานคร 10400<br>Address: Social Work Professions Council, 255 Department of Women's Affairs and Family Development, Thung Phaya Thai Sub-district, Ratchathewi District, Bangkok 10400</p>
+          <p style="font-size:12px">โทรศัพท์: +(0)66-20509427, +(0)66-983801351 • อีเมล: thaisocialworkcouncil@gmail.com</p>
+          <div id="qrcodeBack" class="card-qr"></div>
+          <p style="font-size:11px; margin-top:8px">สแกนเพื่อตรวจสอบความถูกต้องของบัตร</p>
+          <p style="font-size:11px; font-weight:600">บัตรนี้เป็นกรรมสิทธิ์ของสภาวิชาชีพสังคมสงเคราะห์</p>
+        </div>
+      </div>
+
+      <div class="card-alert">โปรดต่ออายุบัตรสมาชิกล่วงหน้า 90 วัน ก่อนบัตรหมดอายุ</div>
+
+      <div class="card-status-bar ${st.cls}">${st.label}${days !== null && days >= 0 ? ' (' + days + ' วัน)' : ''}</div>
+
+      <div class="card-summary-bar">
+        <div><span>เลขสมาชิก</span><b>${m.member_no || '-'}</b></div>
+        <div><span>วันออกบัตร</span><b>${fmtDate(data.card.issued_at)}</b></div>
+        <div><span>วันหมดอายุ</span><b>${fmtDate(m.membership_expire_date)}</b></div>
+      </div>
+
+      <div class="panel">
+        <button class="btn small secondary" onclick="downloadCard()">ดาวน์โหลดบัตรเป็นรูปภาพ</button>
+      </div>
+
+      <div class="panel">
+        <h2>ประวัติการชำระเงิน (ต่ออายุ)</h2>
+        <div id="paymentHistory"></div>
+      </div>
+
+      <div class="panel" id="renewalPanel"></div>
+    `;
+
+    renderQr(verifyUrl);
+    renderPaymentHistory(data);
+    loadRenewalPanel();
+  } catch (err) {
+    el.innerHTML = '<div class="panel"><p class="empty-state">ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ หรือโหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p></div>';
+  }
+}
+
+function renderQr(url) {
+  const box = document.getElementById('qrcodeBack');
+  if (box && window.QRCode) {
+    box.innerHTML = '';
+    new QRCode(box, { text: url, width: 110, height: 110 });
+  }
+}
+
+function showSide(side) {
+  document.getElementById('cardFront').style.display = side === 'front' ? 'block' : 'none';
+  document.getElementById('cardBack').style.display = side === 'back' ? 'block' : 'none';
+  document.querySelectorAll('.card-tabs .tab-chip').forEach((b, i) => b.classList.toggle('active', (side === 'front' && i === 0) || (side === 'back' && i === 1)));
+}
+
+function renderPaymentHistory(data) {
+  const box = document.getElementById('paymentHistory');
+  if (!data.renewalApplications.length) {
+    box.innerHTML = '<p class="empty-state">ไม่มีประวัติการชำระเงิน</p>';
+    return;
+  }
+  box.innerHTML = data.renewalApplications.map(a => {
+    const pm = data.payments.find(p => p.ref_id === a.application_id);
+    const receiptUrl = pm && pm.slip_url ? pm.slip_url : null;
+    return `
+      <div class="app-status-card">
+        <div>
+          <b>ต่ออายุสมาชิก</b> — ${fmtDate(a.submitted_at)}<br>
+          <span style="color:var(--muted); font-size:13px">เลขที่คำขอ ${a.application_id}</span>
+        </div>
+        <span class="badge ${a.status === 'ต่ออายุสำเร็จ' ? 'ok' : 'pending'}">${a.status}</span>
+        ${receiptUrl ? `<a class="btn small secondary" style="width:auto" href="${receiptUrl}" target="_blank">ดูใบเสร็จ</a>` : ''}
+      </div>`;
+  }).join('');
+}
+
+async function loadRenewalPanel() {
+  const panel = document.getElementById('renewalPanel');
+  const pendingPayment = currentData.renewalApplications.find(a => a.status === 'รอชำระเงิน');
+
+  if (pendingPayment) {
+    const pm = currentData.payments.find(p => p.ref_id === pendingPayment.application_id);
+    panel.innerHTML = `
+      <h2>ต่ออายุสมาชิก</h2>
+      <div class="pay-box">
+        <p>ค่าธรรมเนียม: <b>${pendingPayment.fee_amount} บาท</b> — โอนเข้าบัญชี [ระบุเลขบัญชีสภาฯ] แล้วแนบสลิปด้านล่าง</p>
+        <input type="file" id="renewSlip" accept=".pdf,.jpg,.jpeg,.png">
+        <button type="button" class="btn small" onclick="submitRenewalSlip('${pendingPayment.application_id}')">แนบสลิปการโอนเงิน</button>
+      </div>
+    `;
+    return;
+  }
+
+  try {
+    const check = await apiCall('getMembershipRenewalEligibility');
+    if (check.eligible) {
+      panel.innerHTML = `
+        <h2>ต่ออายุสมาชิก</h2>
+        <p style="color:var(--muted); font-size:13px">${check.isExpired ? 'บัตรของท่านหมดอายุแล้ว' : 'เหลืออีก ' + check.daysUntilExpire + ' วันก่อนบัตรหมดอายุ'} — กดต่ออายุแล้วชำระเงินได้ทันที</p>
+        <button class="btn" style="width:auto" onclick="submitRenewal()">ต่ออายุสมาชิก</button>
+      `;
+    } else {
+      panel.innerHTML = `<h2>ต่ออายุสมาชิก</h2>
+        <button class="btn" style="width:auto" disabled title="${check.reason}">ต่ออายุสมาชิก</button>
+        <p style="color:var(--muted); font-size:13px; margin-top:8px">${check.reason}</p>`;
+    }
+  } catch (err) {
+    panel.innerHTML = '<p class="empty-state">โหลดข้อมูลปุ่มต่ออายุไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+
+async function submitRenewalSlip(applicationId) {
+  const input = document.getElementById('renewSlip');
+  if (!input.files[0]) { alert('กรุณาเลือกไฟล์สลิปก่อน'); return; }
+  try {
+    const uploaded = await uploadDocument(input.files[0], 'สลิปการโอนเงิน');
+    await apiCall('submitPaymentSlip', { application_id: applicationId, slip_url: uploaded.url, method: 'โอนเงิน' });
+    alert('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ');
+    load();
+  } catch (err) {
+    alert('แนบสลิปไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function submitRenewal() {
+  try {
+    const res = await apiCall('submitMembershipRenewal');
+    alert('ยื่นต่ออายุสำเร็จ เลขที่คำขอ ' + res.application_id + ' กรุณาแนบสลิปการโอนเงินที่จะปรากฏด้านล่างนี้');
+    load();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+function downloadCard() {
+  const target = document.getElementById('cardFront').style.display !== 'none' ? 'cardFront' : 'cardBack';
+  html2canvas(document.getElementById(target), { scale: 2 }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = 'บัตรสมาชิก.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+}
+
+load();
+applyMemberNavVisibility();
+</script>
+</body>
+</html>

@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ใบอนุญาตของฉัน</title>
+<title>ใบอนุญาต</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -15,41 +17,88 @@
       <a href="member-dashboard.html">ข้อมูลของฉัน</a>
       <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
       <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
-      <a href="member-license.html" id="navLicense" class="active">ใบอนุญาตของฉัน</a>
+      <a href="member-license.html" id="navLicense" class="active">ใบอนุญาต</a>
+      <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
   </aside>
 
   <main class="main">
-    <header><h1>ใบอนุญาตของฉัน</h1></header>
+    <header><h1>ใบอนุญาต</h1></header>
 
-    <div class="panel">
-      <h2>ข้อมูลใบอนุญาตปัจจุบัน</h2>
-      <div id="licenseInfo"><p class="empty-state">กำลังโหลด...</p></div>
+    <div id="blockedPanel" class="panel" style="display:none">
+      <p class="empty-state" id="blockedText"></p>
+      <a class="btn" style="width:auto; display:inline-block" href="member-card.html">ไปที่หน้าบัตรสมาชิกเพื่อต่ออายุ</a>
     </div>
 
-    <div class="panel">
-      <h2>สถานะคำขอของฉัน</h2>
-      <div id="myRequests"><p class="empty-state">กำลังโหลด...</p></div>
-    </div>
+    <div id="cardSection" style="display:none">
+      <div class="card-tabs">
+        <button class="tab-chip active" onclick="showSide('front')">หน้าบัตร</button>
+        <button class="tab-chip" onclick="showSide('back')">หลังบัตร</button>
+      </div>
 
-    <div class="panel" id="registerPanel" style="display:none">
-      <h2>ขึ้นทะเบียนรับใบอนุญาต</h2>
-      <p style="color:var(--muted); font-size:13px">แนบเอกสารประกอบการพิจารณา แล้วรอเจ้าหน้าที่ตรวจสอบ</p>
-      <div id="registerError" class="error-box"></div>
-      <div class="doc-row"><label>เอกสารประกอบการขึ้นทะเบียน</label><input type="file" id="reg_doc" accept=".pdf,.jpg,.jpeg,.png"></div>
-      <button class="btn" style="width:auto; margin-top:12px" onclick="submitRegistration()">ยื่นคำขอขึ้นทะเบียน</button>
-    </div>
+      <div class="member-card card-license" id="cardFront">
+        <div class="card-top">
+          <img src="logo.png" class="card-logo">
+          <div class="card-title">
+            <div class="card-title-th">ใบอนุญาตผู้ประกอบวิชาชีพสังคมสงเคราะห์รับอนุญาต</div>
+            <div class="card-title-en">Licensed Social Worker</div>
+          </div>
+        </div>
+        <div class="card-body" id="cardBodyFront"></div>
+        <div class="card-signature" id="cardSigFront"></div>
+      </div>
 
-    <div class="panel" id="renewPanel" style="display:none">
-      <h2>ต่ออายุใบอนุญาต</h2>
-      <div id="renewError" class="error-box"></div>
-      <div id="renewForm"></div>
-    </div>
+      <div class="member-card card-license" id="cardBack" style="display:none">
+        <div class="card-back-content">
+          <p><b>สภาวิชาชีพสังคมสงเคราะห์</b><br>Social Work Professions Council</p>
+          <p style="font-size:11px">ที่อยู่: สภาวิชาชีพสังคมสงเคราะห์ เลขที่ 255 ตึกกรมกิจการสตรีและสถาบันครอบครัว แขวงทุ่งพญาไท เขตราชเทวี กรุงเทพมหานคร 10400<br>Address: Social Work Professions Council, 255 Department of Women's Affairs and Family Development, Thung Phaya Thai Sub-district, Ratchathewi District, Bangkok 10400</p>
+          <p style="font-size:11px">โทรศัพท์: +(0)66-20509427, +(0)66-983801351 • อีเมล: thaisocialworkcouncil@gmail.com</p>
+          <div id="qrcodeBack" class="card-qr"></div>
+          <p style="font-size:11px; margin-top:8px">สแกนเพื่อตรวจสอบความถูกต้องของใบอนุญาต</p>
+          <p style="font-size:11px; font-weight:600">บัตรนี้เป็นกรรมสิทธิ์ของสภาวิชาชีพสังคมสงเคราะห์</p>
+        </div>
+      </div>
 
-    <div class="panel" id="notEligiblePanel" style="display:none">
-      <p class="empty-state" id="notEligibleText"></p>
+      <div class="card-alert">โปรดต่ออายุใบอนุญาตล่วงหน้า 180 วัน (6 เดือน) ก่อนบัตรหมดอายุ</div>
+
+      <div class="card-status-bar" id="statusBar"></div>
+
+      <div class="card-summary-bar" id="summaryBar"></div>
+
+      <div class="panel">
+        <h2>คะแนนการศึกษาต่อเนื่อง (CE) ปัจจุบัน</h2>
+        <div id="ceSection"></div>
+      </div>
+
+      <div class="panel">
+        <button class="btn small secondary" onclick="downloadCard()">ดาวน์โหลดบัตรใบอนุญาต (รูปภาพ)</button>
+        <button class="btn small" onclick="downloadPdf()">ดาวน์โหลดใบอนุญาต (PDF ใช้แทนตัวจริงได้)</button>
+      </div>
+
+      <div class="panel">
+        <h2>ประวัติการชำระเงิน (ต่ออายุ)</h2>
+        <div id="myRequests"></div>
+      </div>
+
+      <div class="panel" id="registerPanel" style="display:none">
+        <h2>ขึ้นทะเบียนรับใบอนุญาต</h2>
+        <p style="color:var(--muted); font-size:13px">แนบเอกสารประกอบการพิจารณา แล้วรอเจ้าหน้าที่ตรวจสอบ</p>
+        <div id="registerError" class="error-box"></div>
+        <div class="doc-row"><label>เอกสารประกอบการขึ้นทะเบียน</label><input type="file" id="reg_doc" accept=".pdf,.jpg,.jpeg,.png"></div>
+        <button class="btn" style="width:auto; margin-top:12px" onclick="submitRegistration()">ยื่นคำขอขึ้นทะเบียน</button>
+      </div>
+
+      <div class="panel" id="renewPanel" style="display:none">
+        <h2>ต่ออายุใบอนุญาต</h2>
+        <div id="renewError" class="error-box"></div>
+        <div id="renewForm"></div>
+      </div>
+
+      <div class="panel" id="notEligiblePanel" style="display:none">
+        <p class="empty-state" id="notEligibleText"></p>
+      </div>
     </div>
   </main>
 </div>
@@ -60,31 +109,77 @@ Auth.requireRole(['member'], 'index.html');
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
 
 function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
-function licBadgeClass(status) {
-  if (status === 'ปกติ') return 'ok';
-  if (status === 'ใกล้หมดอายุ') return 'pending';
-  return 'warn';
+
+function daysUntilClient(iso) {
+  if (!iso) return null;
+  return Math.floor((new Date(iso).getTime() - Date.now()) / (24 * 3600 * 1000));
 }
 
-async function loadLicenseInfo() {
-  const el = document.getElementById('licenseInfo');
-  try {
-    const lic = await apiCall('myLicense');
-    if (!lic) { el.innerHTML = '<p class="empty-state">ยังไม่มีใบอนุญาต</p>'; return; }
-    el.innerHTML = `
-      <p><b>เลขที่ใบอนุญาต:</b> ${lic.license_no}</p>
-      <p><b>วันที่ออก:</b> ${fmtDate(lic.issue_date)} &nbsp;•&nbsp; <b>วันหมดอายุ:</b> ${fmtDate(lic.expire_date)}</p>
-      <p><b>สถานะ:</b> <span class="badge ${licBadgeClass(lic.status)}">${lic.status}</span></p>
-    `;
-  } catch (err) {
-    el.innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
-  }
+// TOR ข้อ 6.3: 3 ระดับ (ต่างจากบัตรสมาชิกที่มี 4 ระดับ) — อิงหน้าต่างต่ออายุ 180 วัน
+function statusInfo(days) {
+  if (days === null) return { label: 'ไม่ทราบสถานะ', cls: 'card-status-gray' };
+  if (days < 0) return { label: 'หมดอายุ', cls: 'card-status-red' };
+  if (days <= 180) return { label: 'หมดอายุในอีก 6 เดือน', cls: 'card-status-yellow' };
+  return { label: 'ยังไม่หมดอายุ', cls: 'card-status-green' };
 }
 
 function statusBadgeClass(status) {
   if (status === 'ขึ้นทะเบียนสำเร็จ' || status === 'ต่ออายุสำเร็จ') return 'ok';
   if (status === 'ไม่อนุมัติ') return 'warn';
   return 'pending';
+}
+
+let currentData = null;
+
+function showSide(side) {
+  document.getElementById('cardFront').style.display = side === 'front' ? 'block' : 'none';
+  document.getElementById('cardBack').style.display = side === 'back' ? 'block' : 'none';
+  document.querySelectorAll('.card-tabs .tab-chip').forEach((b, i) => b.classList.toggle('active', (side === 'front' && i === 0) || (side === 'back' && i === 1)));
+}
+
+function renderCard(data) {
+  const m = data.member, lic = data.license;
+  document.getElementById('cardBodyFront').innerHTML = `
+    <div class="card-photo">${m.photo_url ? `<img src="${m.photo_url}">` : '👤'}</div>
+    <div class="card-info">
+      <div class="card-name-th">${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</div>
+      <div class="card-name-en">${m.prefix_en || ''} ${m.first_name_en || ''} ${m.last_name_en || ''}</div>
+      <div class="card-row"><span>เลขประจำตัวประชาชน</span><b>${m.national_id || '-'}</b></div>
+      <div class="card-row"><span>เลขที่ใบอนุญาต</span><b>${lic ? lic.license_no : 'ยังไม่มี'}</b></div>
+      <div class="card-row"><span>วันออกบัตร</span><b>${lic ? fmtDate(lic.issue_date) : '-'}</b></div>
+      <div class="card-row"><span>วันหมดอายุ</span><b>${lic ? fmtDate(lic.expire_date) : '-'}</b></div>
+    </div>
+  `;
+  document.getElementById('cardSigFront').innerHTML = `
+    <div class="sig-line"></div>
+    <div class="sig-name">(${data.signatory.name})</div>
+    <div class="sig-position">${data.signatory.position}</div>
+  `;
+
+  const days = lic ? daysUntilClient(lic.expire_date) : null;
+  const st = statusInfo(days);
+  document.getElementById('statusBar').className = 'card-status-bar ' + st.cls;
+  document.getElementById('statusBar').textContent = st.label + (days !== null && days >= 0 ? ' (' + days + ' วัน)' : '');
+
+  document.getElementById('summaryBar').innerHTML = `
+    <div><span>เลขที่ใบอนุญาต</span><b>${lic ? lic.license_no : '-'}</b></div>
+    <div><span>วันออกบัตร</span><b>${lic ? fmtDate(lic.issue_date) : '-'}</b></div>
+    <div><span>วันหมดอายุ</span><b>${lic ? fmtDate(lic.expire_date) : '-'}</b></div>
+  `;
+
+  const pct = Math.min(100, Math.round((data.ceScore / data.ceMinimum) * 100));
+  document.getElementById('ceSection').innerHTML = `
+    <p>${data.ceScore} / ${data.ceMinimum} หน่วยกิต ${data.ceScore >= data.ceMinimum ? '<span class="badge ok">ผ่านเกณฑ์แล้ว</span>' : '<span class="badge pending">ยังไม่ครบเกณฑ์</span>'}</p>
+    <div class="ce-progress-track"><div class="ce-progress-fill" style="width:${pct}%"></div></div>
+    <p style="color:var(--muted); font-size:12px; margin-top:4px">* คะแนน CE กรอกด้วยมือโดยเจ้าหน้าที่ ยังไม่ได้เชื่อมต่อระบบ CE จริง</p>
+  `;
+
+  if (data.card && data.card.qr_token) {
+    const verifyUrl = location.origin + location.pathname.replace('member-license.html', '') + 'verify-card.html?token=' + data.card.qr_token;
+    const box = document.getElementById('qrcodeBack');
+    box.innerHTML = '';
+    if (window.QRCode) new QRCode(box, { text: verifyUrl, width: 110, height: 110 });
+  }
 }
 
 function renderPaySlipForm(a) {
@@ -109,25 +204,27 @@ async function submitSlip(applicationId) {
   }
 }
 
-async function loadMyRequests() {
+function renderPaymentHistory(data) {
   const el = document.getElementById('myRequests');
-  try {
-    const apps = (await apiCall('myApplications')).filter(a => ['ขึ้นทะเบียน', 'ต่ออายุใบอนุญาต'].indexOf(a.applicant_type) !== -1);
-    if (!apps.length) { el.innerHTML = '<p class="empty-state">ยังไม่เคยยื่นคำขอ</p>'; return; }
-    el.innerHTML = apps.map(a => `
+  if (!data.renewalApplications.length) {
+    el.innerHTML = '<p class="empty-state">ไม่มีประวัติการชำระเงิน</p>';
+    return;
+  }
+  el.innerHTML = data.renewalApplications.map(a => {
+    const pm = data.payments.find(p => p.ref_id === a.application_id);
+    const receiptUrl = pm && pm.slip_url ? pm.slip_url : null;
+    return `
       <div class="app-status-card">
         <div>
-          <b>${a.applicant_type}</b> — เลขที่คำขอ ${a.application_id}<br>
-          <span style="color:var(--muted); font-size:13px">ยื่นเมื่อ ${fmtDate(a.submitted_at)}</span>
+          <b>ต่ออายุใบอนุญาต</b> — ${fmtDate(a.submitted_at)}<br>
+          <span style="color:var(--muted); font-size:13px">เลขที่คำขอ ${a.application_id}</span>
         </div>
         <span class="badge ${statusBadgeClass(a.status)}">${a.status}</span>
         ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn); font-size:13px">เหตุผล: ' + a.reject_reason + '</p>' : ''}
         ${a.status === 'รอชำระเงิน' ? renderPaySlipForm(a) : ''}
-      </div>
-    `).join('');
-  } catch (err) {
-    el.innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
-  }
+        ${receiptUrl ? `<a class="btn small secondary" style="width:auto" href="${receiptUrl}" target="_blank">ดูใบเสร็จ</a>` : ''}
+      </div>`;
+  }).join('');
 }
 
 async function submitRegistration() {
@@ -160,7 +257,7 @@ function renderRenewForm(eligibility) {
     <div id="ceBeforeBox" style="display:none">
       <label style="margin-top:12px"><input type="checkbox" id="ce_declare" style="width:auto; display:inline-block; margin-right:6px">
         ข้าพเจ้ายืนยันว่าผ่านเกณฑ์การศึกษาต่อเนื่อง (CE) ตามที่สภาฯ กำหนด</label>
-      <p style="color:var(--muted); font-size:12px">* ระบบยังไม่ได้เชื่อมต่อ API ตรวจสอบ CE จริง เจ้าหน้าที่จะสุ่มตรวจสอบย้อนหลังได้</p>
+      <p style="color:var(--muted); font-size:12px">* ผู้ที่จะกดต่ออายุด้วยวิธีนี้ได้ ต้องผ่านการศึกษาต่อเนื่องแล้วเท่านั้น ระบบยังไม่ได้เชื่อมต่อ API ตรวจสอบ CE จริง เจ้าหน้าที่จะสุ่มตรวจสอบย้อนหลังได้</p>
     </div>
 
     <div id="docsBox" style="display:none">
@@ -191,7 +288,7 @@ async function submitRenewal(isAfter) {
     const payload = { method, documents };
     if (method === 'CE_before') payload.ce_self_declared = document.getElementById('ce_declare').checked;
     const res = await apiCall('submitLicenseRenewal', payload);
-    alert(res.status === 'รอชำระเงิน' ? 'ยื่นคำขอสำเร็จ กรุณาชำระเงินที่ด้านบน' : 'ยื่นคำขอสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ');
+    alert(res.status === 'รอชำระเงิน' ? 'ยื่นคำขอสำเร็จ กรุณาชำระเงินที่ด้านล่าง' : 'ยื่นคำขอสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ');
     loadAll();
   } catch (err) {
     errBox.textContent = err.message;
@@ -199,38 +296,73 @@ async function submitRenewal(isAfter) {
   }
 }
 
-async function loadAll() {
-  await loadLicenseInfo();
-  await loadMyRequests();
+function downloadCard() {
+  const target = document.getElementById('cardFront').style.display !== 'none' ? 'cardFront' : 'cardBack';
+  html2canvas(document.getElementById(target), { scale: 2 }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = 'ใบอนุญาต.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+}
 
+async function downloadPdf() {
+  try {
+    const res = await apiCall('generateLicensePdf');
+    window.open(res.url, '_blank');
+  } catch (err) {
+    alert('สร้าง PDF ไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function loadEligibilityPanels() {
   document.getElementById('registerPanel').style.display = 'none';
   document.getElementById('renewPanel').style.display = 'none';
   document.getElementById('notEligiblePanel').style.display = 'none';
 
   try {
-    const profile = await apiCall('getMyProfile');
-    if (profile.profile_kind === 'organization') {
-      document.getElementById('notEligiblePanel').style.display = 'block';
-      document.getElementById('notEligibleText').textContent = 'เมนูนี้ใช้สำหรับสมาชิกบุคคลเท่านั้น';
+    const regCheck = await apiCall('getRegistrationEligibility');
+    if (regCheck.eligible) {
+      document.getElementById('registerPanel').style.display = 'block';
       return;
     }
-  } catch (e) { /* ไปแสดงข้อความ ineligible ตามปกติผ่าน eligibility check ด้านล่าง */ }
-
-  const regCheck = await apiCall('getRegistrationEligibility');
-  if (regCheck.eligible) {
-    document.getElementById('registerPanel').style.display = 'block';
-    return;
+    const renewCheck = await apiCall('getRenewalEligibility');
+    if (renewCheck.eligible) {
+      document.getElementById('renewPanel').style.display = 'block';
+      renderRenewForm(renewCheck);
+      return;
+    }
+    if (currentData.license) {
+      document.getElementById('notEligiblePanel').style.display = 'block';
+      document.getElementById('notEligibleText').textContent = renewCheck.reason;
+    }
+  } catch (err) {
+    document.getElementById('notEligiblePanel').style.display = 'block';
+    document.getElementById('notEligibleText').textContent = 'ตรวจสอบสิทธิ์ไม่สำเร็จ: ' + err.message;
   }
+}
 
-  const renewCheck = await apiCall('getRenewalEligibility');
-  if (renewCheck.eligible) {
-    document.getElementById('renewPanel').style.display = 'block';
-    renderRenewForm(renewCheck);
-    return;
+async function loadAll() {
+  try {
+    const data = await apiCall('getMyLicenseCard');
+    currentData = data;
+
+    if (data.accessBlocked) {
+      document.getElementById('cardSection').style.display = 'none';
+      document.getElementById('blockedPanel').style.display = 'block';
+      document.getElementById('blockedText').textContent = data.reason;
+      return;
+    }
+
+    document.getElementById('blockedPanel').style.display = 'none';
+    document.getElementById('cardSection').style.display = 'block';
+    renderCard(data);
+    renderPaymentHistory(data);
+    await loadEligibilityPanels();
+  } catch (err) {
+    document.getElementById('blockedPanel').style.display = 'block';
+    document.getElementById('blockedText').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + err.message;
   }
-
-  document.getElementById('notEligiblePanel').style.display = 'block';
-  document.getElementById('notEligibleText').textContent = renewCheck.license ? renewCheck.reason : (regCheck.reason || renewCheck.reason);
 }
 
 loadAll();

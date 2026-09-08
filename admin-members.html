@@ -362,7 +362,9 @@ function renderEditForm(data) {
             ${['ปกติ', 'ใกล้หมดอายุ', 'หมดอายุ', 'อยู่ระหว่างต่ออายุ', 'พักใช้', 'เพิกถอน'].map(s => `<option value="${s}" ${(lic.status || m.license_status) === s ? 'selected' : ''}>${s}</option>`).join('')}
           </select>
         </div>
+        ${fld('e_ce_score', 'คะแนน/หน่วยกิต CE สะสม', m.ce_score, 'number')}
       </div>
+      <p style="color:var(--muted); font-size:12px">คะแนน CE กรอกด้วยมือชั่วคราว เพราะยังไม่ได้เชื่อมต่อ API ระบบการศึกษาต่อเนื่องจริง (ดู LICENSE_SYSTEM.md)</p>
     </fieldset>
 
     <fieldset>
@@ -477,7 +479,7 @@ async function saveMemberEdit(memberId) {
       first_name_en: v('e_first_name_en'), last_name_en: v('e_last_name_en'),
       religion: v('e_religion'), ethnicity: v('e_ethnicity'), nationality: v('e_nationality'),
       phone: v('e_phone'), email: v('e_email'), line_id: v('e_line_id'),
-      member_status: v('e_member_status'), photo_url: currentEditPhotoUrl,
+      member_status: v('e_member_status'), photo_url: currentEditPhotoUrl, ce_score: v('e_ce_score'),
       applied_date: v('e_applied_date'), membership_expire_date: v('e_membership_expire_date'),
       education_json: JSON.stringify(collectEditEducation()),
       work_status: v('e_work_status'), position: v('e_position'), agency: v('e_agency'),

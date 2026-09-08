@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ใบรับรองสมาชิกวิสามัญ</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
+    <nav>
+      <a href="member-dashboard.html">ข้อมูลของฉัน</a>
+      <a href="member-certificate.html" class="active">ใบรับรองสมาชิกวิสามัญ</a>
+      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>ใบรับรองสมาชิกวิสามัญ</h1></header>
+    <div id="content"><p class="empty-state">กำลังโหลด...</p></div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(['member'], 'index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+
+async function load() {
+  const el = document.getElementById('content');
+  try {
+    const data = await apiCall('getMyCard');
+    if (!data.isOrg) {
+      el.innerHTML = '<div class="panel"><p>เมนูนี้ใช้สำหรับสมาชิกวิสามัญ (องค์กร) เท่านั้น — ไปที่หน้า <a href="member-card.html">บัตรสมาชิก</a></p></div>';
+      return;
+    }
+    const org = data.profile;
+    const verifyUrl = location.origin + location.pathname.replace('member-certificate.html', '') + 'verify-card.html?token=' + data.card.qr_token;
+
+    el.innerHTML = `
+      <div class="cert-shell" id="certBox">
+        <img src="logo.png" class="cert-logo">
+        <div class="cert-title">ใบรับรองสมาชิกวิสามัญ</div>
+        <div class="cert-subtitle">สภาวิชาชีพสังคมสงเคราะห์ — Social Work Professions Council</div>
+        <p class="cert-line">ขอรับรองว่า</p>
+        <div class="cert-org-name">${org.org_name_th || ''}</div>
+        ${org.org_name_en ? `<div class="cert-org-name-en">${org.org_name_en}</div>` : ''}
+        <p class="cert-line">เป็นสมาชิกวิสามัญของสภาวิชาชีพสังคมสงเคราะห์ เลขทะเบียน <b>${org.reg_no || '-'}</b></p>
+        <p class="cert-line">วันที่อนุมัติ: ${fmtDate(org.approved_date)} &nbsp;&nbsp; วันสิ้นสุดสมาชิกภาพ: ${fmtDate(org.end_date)}</p>
+        <div class="cert-footer">
+          <div class="cert-sig">
+            <div id="qrcodeCert"></div>
+          </div>
+          <div class="cert-sig">
+            <div class="sig-line"></div>
+            <div class="sig-name">(${data.signatory.name})</div>
+            <div class="sig-position">${data.signatory.position}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <button class="btn" style="width:auto" onclick="downloadPdf()">ดาวน์โหลดใบรับรอง (PDF)</button>
+      </div>
+    `;
+    new QRCode(document.getElementById('qrcodeCert'), { text: verifyUrl, width: 90, height: 90 });
+  } catch (err) {
+    el.innerHTML = '<div class="panel"><p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p></div>';
+  }
+}
+
+async function downloadPdf() {
+  try {
+    const res = await apiCall('generateOrgCertificatePdf');
+    window.open(res.url, '_blank');
+  } catch (err) {
+    alert('สร้าง PDF ไม่สำเร็จ: ' + err.message);
+  }
+}
+
+load();
+</script>
+</body>
+</html>

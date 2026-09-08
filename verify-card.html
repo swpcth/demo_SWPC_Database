@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ตรวจสอบความถูกต้อง — สภาวิชาชีพสังคมสงเคราะห์</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="public-shell">
+  <div class="public-header">
+    <img src="logo.png" alt="ตราสภาฯ" class="logo-mark">
+    <div>
+      <div class="mark-text">สภาวิชาชีพสังคมสงเคราะห์</div>
+      <div class="mark-sub">ระบบตรวจสอบความถูกต้องของบัตร/ใบอนุญาต (QR Code)</div>
+    </div>
+  </div>
+
+  <div class="public-card">
+    <div id="result"><p class="empty-state">กำลังตรวจสอบ...</p></div>
+    <p class="back-link"><a href="index.html">← กลับหน้าหลัก</a> &nbsp;|&nbsp; <a href="public-search.html">ค้นหาด้วยชื่อ/เลขใบอนุญาตแทน</a></p>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+async function verify() {
+  const params = new URLSearchParams(location.search);
+  const token = params.get('token');
+  const box = document.getElementById('result');
+  if (!token) {
+    box.innerHTML = '<p class="empty-state">ไม่พบรหัส QR ในลิงก์นี้ — กรุณาสแกน QR Code บนบัตร/ใบอนุญาตอีกครั้ง</p>';
+    return;
+  }
+  try {
+    const res = await apiCall('verifyQrToken', { token });
+    if (!res.valid) {
+      box.innerHTML = `
+        <div class="verify-invalid">
+          <div class="verify-icon">✕</div>
+          <h2>ไม่สามารถยืนยันความถูกต้องได้</h2>
+          <p>${res.message}</p>
+        </div>`;
+      return;
+    }
+    const statusClass = res.status === 'ปกติ' ? 'ok' : (res.status === 'ใกล้หมดอายุ' ? 'pending' : 'warn');
+    box.innerHTML = `
+      <div class="verify-valid">
+        <div class="verify-icon">✓</div>
+        <h2>ยืนยันความถูกต้อง</h2>
+        <p style="color:var(--muted); font-size:13px">ออกโดยสภาวิชาชีพสังคมสงเคราะห์จริง</p>
+      </div>
+      <div class="result-card" style="margin-top:16px">
+        <div>
+          <b>${res.name}</b> ${res.org_name_en ? '(' + res.org_name_en + ')' : ''} — ${res.kind === 'organization' ? 'สมาชิกวิสามัญ' : 'สมาชิก' + res.member_type}<br>
+          ${res.member_no ? '<span style="color:var(--muted); font-size:13px">เลขที่สมาชิก: ' + res.member_no + '</span><br>' : ''}
+          ${res.reg_no ? '<span style="color:var(--muted); font-size:13px">เลขทะเบียน: ' + res.reg_no + '</span><br>' : ''}
+          ${res.license_no ? '<span style="color:var(--muted); font-size:13px">เลขใบอนุญาต: ' + res.license_no + ' (' + (res.license_status || '-') + ')</span>' : ''}
+        </div>
+        <div style="text-align:right">
+          <span class="badge ${statusClass}">${res.status || '-'}</span><br>
+          ${res.expire_date ? '<span style="font-size:12px; color:var(--muted)">หมดอายุ ' + new Date(res.expire_date).toLocaleDateString('th-TH') + '</span>' : ''}
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    box.innerHTML = '<p class="empty-state">ตรวจสอบไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+verify();
+</script>
+</body>
+</html>

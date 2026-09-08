@@ -29,9 +29,32 @@
 
   <main class="main">
     <header><h1>การชำระเงิน</h1></header>
-    <div class="module-stub">
-      <p>โมดูลนี้มีโครง Google Sheet และ API endpoint (<code>listPayments</code>) พร้อมใช้งานแล้วใน <code>apps-script/Code.gs</code>
-      แต่ยังไม่ได้ต่อ UI เต็มรูปแบบ — ดูรายละเอียดที่ต้องพัฒนาต่อใน <code>docs/ROADMAP.md</code> (อ้างอิง TOR ข้อ 11)</p>
+
+    <div class="panel">
+      <h2>ตรวจสอบการชำระเงินต่ออายุสมาชิก (บัตรสมาชิก)</h2>
+      <p style="color:var(--muted); font-size:13px">คำขอสมัคร/เปลี่ยนประเภท/ใบอนุญาต มีหน้าตรวจสอบการชำระเงินของตัวเองแยกไว้แล้ว (เมนู "คำขอสมัครสมาชิก" / "เปลี่ยนประเภทสมาชิก" / "คำขอใบอนุญาต") — ตารางนี้เฉพาะการต่ออายุสมาชิกภาพที่กดจากหน้า "บัตรสมาชิก" เท่านั้น</p>
+      <table>
+        <thead><tr><th>เลขที่คำขอ</th><th>ชื่อสมาชิก</th><th>จำนวนเงิน</th><th>สลิป</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>รายการชำระเงินทั้งหมด (ทุกประเภท)</h2>
+      <div class="list-toolbar">
+        <select id="f_status" onchange="renderAll()">
+          <option value="">สถานะทั้งหมด</option>
+          <option value="รอชำระ">รอชำระ</option>
+          <option value="รอตรวจสอบ">รอตรวจสอบ</option>
+          <option value="ชำระแล้ว">ชำระแล้ว</option>
+          <option value="ปฏิเสธ">ปฏิเสธ</option>
+        </select>
+      </div>
+      <p class="count-line" id="countLine">ทั้งหมด 0 รายการ</p>
+      <table>
+        <thead><tr><th>เลขที่รายการ</th><th>อ้างอิง</th><th>จำนวนเงิน</th><th>วิธีชำระ</th><th>สถานะ</th><th>วันที่ชำระ</th></tr></thead>
+        <tbody id="allRows"><tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
     </div>
   </main>
 </div>
@@ -40,6 +63,80 @@
 <script>
 Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+let allPayments = [];
+
+async function loadRenewalQueue() {
+  const tbody = document.getElementById('rows');
+  try {
+    const payments = await apiCall('listMembershipRenewalPayments');
+    if (!payments.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีรายการรอตรวจสอบ</td></tr>';
+      return;
+    }
+    const apps = await apiCall('listApplications'); // เผื่อ join ชื่อ (ต่ออายุสมาชิกไม่อยู่ในนี้ ใช้ ref_data_json ของ Applications โดยตรงแทน)
+    tbody.innerHTML = payments.map(pm => `
+      <tr>
+        <td>${pm.ref_id}</td>
+        <td>${pm.member_id}</td>
+        <td>${pm.amount} บาท</td>
+        <td>${pm.slip_url ? `<a href="${pm.slip_url}" target="_blank">ดูสลิป</a>` : '-'}</td>
+        <td>
+          <button class="btn small" onclick="verifyRenewal('${pm.payment_id}','approve')">ยืนยันชำระเงิน</button>
+          <button class="btn small secondary" onclick="verifyRenewal('${pm.payment_id}','reject')">ปฏิเสธ</button>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+async function verifyRenewal(paymentId, decision) {
+  if (decision === 'approve' && !confirm('ยืนยันว่าตรวจสอบสลิปถูกต้อง และต้องการต่ออายุสมาชิกภาพทันที?')) return;
+  try {
+    await apiCall('verifyMembershipRenewalPayment', { payment_id: paymentId, decision });
+    if (decision === 'approve') alert('ต่ออายุสมาชิกภาพสำเร็จ');
+    loadAll();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+function renderAll() {
+  const status = document.getElementById('f_status').value;
+  const rows = allPayments.filter(p => !status || p.status === status);
+  document.getElementById('countLine').textContent = 'ทั้งหมด ' + rows.length + ' รายการ';
+  const tbody = document.getElementById('allRows');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่พบข้อมูล</td></tr>';
+    return;
+  }
+  const statusClass = s => s === 'ชำระแล้ว' ? 'ok' : (s === 'รอตรวจสอบ' ? 'pending' : (s === 'ปฏิเสธ' ? 'warn' : 'pending'));
+  tbody.innerHTML = rows.map(p => `
+    <tr>
+      <td>${p.payment_id}</td>
+      <td>${p.ref_type} — ${p.ref_id}</td>
+      <td>${p.amount} บาท</td>
+      <td>${p.method || '-'}</td>
+      <td><span class="badge ${statusClass(p.status)}">${p.status}</span></td>
+      <td>${p.paid_at ? new Date(p.paid_at).toLocaleDateString('th-TH') : '-'}</td>
+    </tr>`).join('');
+}
+
+async function loadAllPayments() {
+  try {
+    allPayments = await apiCall('listPayments');
+    renderAll();
+  } catch (err) {
+    document.getElementById('allRows').innerHTML = `<tr><td colspan="6" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+async function loadAll() {
+  await loadRenewalQueue();
+  await loadAllPayments();
+}
+loadAll();
 </script>
 </body>
 </html>

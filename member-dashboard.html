@@ -16,6 +16,8 @@
       <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
       <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
       <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
+      <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -89,9 +91,16 @@ function copyCurrentToRegistered() {
 function updateNavVisibility(profile) {
   const navApply = document.getElementById('navApply');
   const navTypeChange = document.getElementById('navTypeChange');
+  const navLicense = document.getElementById('navLicense');
+  const navCard = document.getElementById('navCard');
+  const navCertificate = document.getElementById('navCertificate');
   if (navApply) navApply.style.display = 'none'; // มีโปรไฟล์แล้ว = เป็นสมาชิกแล้ว ไม่ต้องสมัครซ้ำ
-  if (navTypeChange && (profile.profile_kind === 'organization' || profile.member_type === 'สามัญ')) {
-    navTypeChange.style.display = 'none';
+  const isOrg = profile.profile_kind === 'organization';
+  if (navTypeChange && (isOrg || profile.member_type === 'สามัญ')) navTypeChange.style.display = 'none';
+  if (isOrg) {
+    if (navLicense) navLicense.style.display = 'none';
+    if (navCard) navCard.style.display = 'none';
+    if (navCertificate) navCertificate.style.display = '';
   }
 }
 

@@ -86,6 +86,15 @@
         <tbody id="voidRows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
+
+    <!-- TOR ข้อ 6.3: บันทึก Log การดาวน์โหลดใบอนุญาต -->
+    <div class="panel">
+      <h2>ประวัติการดาวน์โหลดใบอนุญาต (PDF)</h2>
+      <table>
+        <thead><tr><th>เลขที่ใบอนุญาต</th><th>สมาชิก</th><th>ผู้ดาวน์โหลด</th><th>วันเวลา</th></tr></thead>
+        <tbody id="downloadLogRows"><tr><td colspan="4" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
   </main>
 </div>
 
@@ -237,9 +246,27 @@ async function loadVoided() {
   }
 }
 
+async function loadDownloadLog() {
+  const tbody = document.getElementById('downloadLogRows');
+  try {
+    const rows = await apiCall('listLicenseDownloadLog');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state">ยังไม่มีประวัติการดาวน์โหลด</td></tr>'; return; }
+    tbody.innerHTML = rows.slice(0, 100).map(r => `
+      <tr>
+        <td>${r.license_no}</td>
+        <td>${r.member_id}</td>
+        <td>${r.downloaded_by}</td>
+        <td>${new Date(r.downloaded_at).toLocaleString('th-TH')}</td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
 loadWindowStatus();
 loadBatches();
 loadVoided();
+loadDownloadLog();
 </script>
 </body>
 </html>

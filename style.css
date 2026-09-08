@@ -740,3 +740,211 @@ fieldset legend {
 
 .disclaimer { font-size: 12px; color: var(--muted); margin-top: 20px; }
 .back-link { font-size: 13px; margin-top: 8px; }
+
+/* ---------- Digital membership card (TOR ข้อ 5) ---------- */
+
+.card-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.member-card {
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 1.586 / 1;
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin: 0 auto 20px;
+  position: relative;
+  color: #2b2205;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card-gold {
+  background: linear-gradient(135deg, #f7e7a6 0%, #d4af37 45%, #b8860b 100%);
+}
+
+.card-silver {
+  background: linear-gradient(135deg, #e8e8ec 0%, #b9b9c6 45%, #8f8fa3 100%);
+  color: #24242e;
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  padding: 2px;
+}
+
+.card-title-th { font-family: var(--font-display); font-size: 14px; font-weight: 700; line-height: 1.2; }
+.card-title-en { font-size: 10px; }
+
+.card-body {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.card-photo {
+  width: 64px;
+  height: 78px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-size: 28px;
+}
+.card-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+.card-info { flex: 1; min-width: 0; }
+.card-name-th { font-size: 15px; font-weight: 700; }
+.card-name-en { font-size: 11px; margin-bottom: 4px; }
+.card-row { display: flex; justify-content: space-between; font-size: 10px; gap: 8px; }
+.card-row span { opacity: 0.75; }
+
+.card-signature {
+  text-align: right;
+  font-size: 9px;
+}
+.card-signature .sig-line {
+  width: 120px;
+  border-top: 1px solid rgba(0,0,0,0.4);
+  margin: 0 0 4px auto;
+}
+
+.card-back-content {
+  text-align: center;
+  font-size: 12px;
+}
+.card-back-content p { margin: 4px 0; }
+.card-qr {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+}
+.card-qr canvas, .card-qr img { background: #fff; padding: 6px; border-radius: 4px; }
+
+.card-alert {
+  background: #fff3cd;
+  border: 1px solid #ffe08a;
+  color: #6b5100;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.card-status-bar {
+  text-align: center;
+  padding: 8px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 13px;
+  color: #fff;
+  margin-bottom: 16px;
+}
+.card-status-green { background: #2f6b4f; }
+.card-status-yellow { background: #a6821f; }
+.card-status-orange { background: #b0621f; }
+.card-status-red { background: #a83228; }
+.card-status-gray { background: var(--muted); }
+
+.card-summary-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.card-summary-bar div {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  text-align: center;
+}
+.card-summary-bar span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.card-summary-bar b { font-size: 15px; }
+
+/* ---------- Organization certificate ---------- */
+
+.cert-shell {
+  background: #fff;
+  border: 2px solid var(--navy-deep);
+  border-radius: 8px;
+  padding: 40px 48px;
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 20px;
+}
+.cert-logo { width: 64px; height: 64px; border-radius: 50%; margin-bottom: 12px; }
+.cert-title { font-family: var(--font-display); font-size: 24px; color: var(--navy-deep); }
+.cert-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.cert-line { font-size: 14px; margin: 8px 0; }
+.cert-org-name { font-family: var(--font-display); font-size: 20px; margin: 12px 0 2px; }
+.cert-org-name-en { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+.cert-footer {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  margin-top: 32px;
+}
+.cert-sig { font-size: 12px; text-align: center; }
+.cert-sig .sig-line { width: 160px; border-top: 1px solid var(--ink); margin: 0 auto 6px; }
+
+/* ---------- QR verification result ---------- */
+
+.verify-valid, .verify-invalid {
+  text-align: center;
+  padding: 12px 0;
+}
+.verify-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+}
+.verify-valid .verify-icon { background: var(--ok); }
+.verify-invalid .verify-icon { background: var(--warn); }
+.verify-valid h2, .verify-invalid h2 { font-family: var(--font-display); font-size: 20px; margin: 0 0 4px; }
+
+/* ---------- License card (TOR ข้อ 6) — blue-green theme ---------- */
+
+.card-license {
+  background: linear-gradient(135deg, #a8e0d4 0%, #4fa8b8 50%, #1d6f8c 100%);
+  color: #0d2b33;
+}
+
+.ce-progress-track {
+  width: 100%;
+  height: 14px;
+  background: var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ce-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4fa8b8, #1d6f8c);
+  border-radius: 8px;
+  transition: width 0.3s ease;
+}
