@@ -948,3 +948,45 @@ fieldset legend {
   border-radius: 8px;
   transition: width 0.3s ease;
 }
+
+/* ---------- Card layout refinements (matched to production reference) ---------- */
+
+.card-photo-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.card-no-label {
+  font-size: 8px;
+  text-align: center;
+  line-height: 1.3;
+}
+.card-no-label b { font-size: 11px; }
+
+.card-dates-row {
+  display: flex;
+  gap: 14px;
+  margin-top: 4px;
+}
+.card-dates-row > div { font-size: 10px; }
+.card-dates-row span { display: block; opacity: 0.75; }
+
+.card-back-layout {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+.card-back-text { font-size: 11px; text-align: left; }
+.card-back-text p { margin: 4px 0; }
+.card-back-qr { flex-shrink: 0; text-align: center; }
+.card-back-footer {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  margin: 8px 0 0;
+}

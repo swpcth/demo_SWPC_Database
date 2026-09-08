@@ -51,14 +51,19 @@
       </div>
 
       <div class="member-card card-license" id="cardBack" style="display:none">
-        <div class="card-back-content">
-          <p><b>สภาวิชาชีพสังคมสงเคราะห์</b><br>Social Work Professions Council</p>
-          <p style="font-size:11px">ที่อยู่: สภาวิชาชีพสังคมสงเคราะห์ เลขที่ 255 ตึกกรมกิจการสตรีและสถาบันครอบครัว แขวงทุ่งพญาไท เขตราชเทวี กรุงเทพมหานคร 10400<br>Address: Social Work Professions Council, 255 Department of Women's Affairs and Family Development, Thung Phaya Thai Sub-district, Ratchathewi District, Bangkok 10400</p>
-          <p style="font-size:11px">โทรศัพท์: +(0)66-20509427, +(0)66-983801351 • อีเมล: thaisocialworkcouncil@gmail.com</p>
-          <div id="qrcodeBack" class="card-qr"></div>
-          <p style="font-size:11px; margin-top:8px">สแกนเพื่อตรวจสอบความถูกต้องของใบอนุญาต</p>
-          <p style="font-size:11px; font-weight:600">บัตรนี้เป็นกรรมสิทธิ์ของสภาวิชาชีพสังคมสงเคราะห์</p>
+        <div class="card-back-layout">
+          <div class="card-back-text">
+            <p><b>ที่อยู่</b></p>
+            <p style="font-size:11px">สภาวิชาชีพสังคมสงเคราะห์<br>เลขที่ 255 ตึกกรมกิจการสตรีและสถาบันครอบครัว ชั้น 1<br>ถนนราชวิถี แขวงทุ่งพญาไท เขตราชเทวี กรุงเทพมหานคร 10400</p>
+            <p style="font-size:11px">Address<br>Social Work Professions Council<br>255 Ratchawithi Rd., Ratchathewi, Bangkok 10400 Thailand</p>
+            <p style="font-size:11px">Tel. 02 050 9427, 098 380 1351<br>Email: thaisocialworkcouncil@gmail.com</p>
+          </div>
+          <div class="card-back-qr">
+            <div id="qrcodeBack" class="card-qr"></div>
+            <p style="font-size:10px; text-align:center">สแกนเพื่อตรวจสอบ<br>ความถูกต้อง</p>
+          </div>
         </div>
+        <p class="card-back-footer">บัตรนี้เป็นกรรมสิทธิ์ของสภาวิชาชีพสังคมสงเคราะห์</p>
       </div>
 
       <div class="card-alert">โปรดต่ออายุใบอนุญาตล่วงหน้า 180 วัน (6 เดือน) ก่อนบัตรหมดอายุ</div>
@@ -140,14 +145,18 @@ function showSide(side) {
 function renderCard(data) {
   const m = data.member, lic = data.license;
   document.getElementById('cardBodyFront').innerHTML = `
-    <div class="card-photo">${m.photo_url ? `<img src="${m.photo_url}">` : '👤'}</div>
+    <div class="card-photo-col">
+      <div class="card-photo">${m.photo_url ? `<img src="${m.photo_url}">` : '👤'}</div>
+      <div class="card-no-label">เลขที่ใบอนุญาต<br><b>${lic ? lic.license_no : 'ยังไม่มี'}</b><br>License No.</div>
+    </div>
     <div class="card-info">
       <div class="card-name-th">${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</div>
       <div class="card-name-en">${m.prefix_en || ''} ${m.first_name_en || ''} ${m.last_name_en || ''}</div>
       <div class="card-row"><span>เลขประจำตัวประชาชน</span><b>${m.national_id || '-'}</b></div>
-      <div class="card-row"><span>เลขที่ใบอนุญาต</span><b>${lic ? lic.license_no : 'ยังไม่มี'}</b></div>
-      <div class="card-row"><span>วันออกบัตร</span><b>${lic ? fmtDate(lic.issue_date) : '-'}</b></div>
-      <div class="card-row"><span>วันหมดอายุ</span><b>${lic ? fmtDate(lic.expire_date) : '-'}</b></div>
+      <div class="card-dates-row">
+        <div><span>วันออกบัตร</span><b>${lic ? fmtDate(lic.issue_date) : '-'}</b></div>
+        <div><span>วันหมดอายุ</span><b>${lic ? fmtDate(lic.expire_date) : '-'}</b></div>
+      </div>
     </div>
   `;
   document.getElementById('cardSigFront').innerHTML = `
