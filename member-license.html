@@ -176,10 +176,17 @@ function renderCard(data) {
     <div><span>วันหมดอายุ</span><b>${lic ? fmtDate(lic.expire_date) : '-'}</b></div>
   `;
 
-  const pct = Math.min(100, Math.round((data.ceScore / data.ceMinimum) * 100));
+  const pct1 = Math.min(100, Math.round((data.ceCat1 / data.ceMinCat1) * 100));
+  const pct2 = Math.min(100, Math.round((data.ceCat2 / data.ceMinCat2) * 100));
+  const pass1 = data.ceCat1 >= data.ceMinCat1;
+  const pass2 = data.ceCat2 >= data.ceMinCat2;
   document.getElementById('ceSection').innerHTML = `
-    <p>${data.ceScore} / ${data.ceMinimum} หน่วยกิต ${data.ceScore >= data.ceMinimum ? '<span class="badge ok">ผ่านเกณฑ์แล้ว</span>' : '<span class="badge pending">ยังไม่ครบเกณฑ์</span>'}</p>
-    <div class="ce-progress-track"><div class="ce-progress-fill" style="width:${pct}%"></div></div>
+    <p style="font-size:13px; color:var(--muted)">รอบสะสม 5 ปี ต้องผ่านเกณฑ์ทั้ง 2 หมวด</p>
+    <p><b>หมวด 1</b> (ด้านสังคมสงเคราะห์ศาสตร์โดยตรง): ${data.ceCat1} / ${data.ceMinCat1} หน่วยคะแนน ${pass1 ? '<span class="badge ok">ผ่านเกณฑ์</span>' : '<span class="badge pending">ยังไม่ครบ</span>'}</p>
+    <div class="ce-progress-track"><div class="ce-progress-fill" style="width:${pct1}%"></div></div>
+    <p style="margin-top:14px"><b>หมวด 2</b> (สังคมศาสตร์/มนุษยศาสตร์/จิตวิทยา/พฤติกรรมศาสตร์ ฯลฯ): ${data.ceCat2} / ${data.ceMinCat2} หน่วยคะแนน ${pass2 ? '<span class="badge ok">ผ่านเกณฑ์</span>' : '<span class="badge pending">ยังไม่ครบ</span>'}</p>
+    <div class="ce-progress-track"><div class="ce-progress-fill" style="width:${pct2}%"></div></div>
+    <p style="margin-top:10px">${pass1 && pass2 ? '<span class="badge ok">ผ่านเกณฑ์ CE ครบทั้ง 2 หมวดแล้ว — ต่ออายุด้วยวิธี CE ได้</span>' : '<span class="badge pending">ยังไม่ผ่านเกณฑ์ครบทั้ง 2 หมวด — ต้องต่ออายุด้วยการสอบข้อเขียนใหม่แทน</span>'}</p>
     <p style="color:var(--muted); font-size:12px; margin-top:4px">* คะแนน CE กรอกด้วยมือโดยเจ้าหน้าที่ ยังไม่ได้เชื่อมต่อระบบ CE จริง</p>
   `;
 
@@ -254,23 +261,30 @@ async function submitRegistration() {
 
 function renderRenewForm(eligibility) {
   const isAfter = eligibility.isAfterExpiry;
+  const ceQualified = eligibility.ceQualified;
+  const ceOptionLabel = isAfter ? 'ต่อหลังหมดอายุด้วยผลการศึกษาต่อเนื่อง (CE)' : 'ต่อก่อนหมดอายุด้วยผลการศึกษาต่อเนื่อง (CE)';
+
   document.getElementById('renewForm').innerHTML = `
     <p>สถานะใบอนุญาต: ${isAfter ? '<span class="badge warn">หมดอายุแล้ว</span>' : '<span class="badge pending">เหลืออีก ' + eligibility.daysUntilExpire + ' วัน</span>'}</p>
+    <p>คะแนน CE (ตามผลประเมินจากเว็บไซต์การศึกษาต่อเนื่องสภาฯ): หมวด 1 ${eligibility.ceCat1}/${eligibility.ceMinCat1} • หมวด 2 ${eligibility.ceCat2}/${eligibility.ceMinCat2}
+      ${ceQualified ? '<span class="badge ok">ผ่านเกณฑ์ CE</span>' : '<span class="badge pending">ยังไม่ผ่านเกณฑ์ CE</span>'}</p>
     <label>เลือกวิธีต่ออายุ</label>
     <select id="renew_method" onchange="toggleRenewMethodUI()">
-      ${!isAfter ? '<option value="CE_before">ต่อก่อนหมดอายุด้วยผลการศึกษาต่อเนื่อง (CE)</option>' : ''}
-      <option value="CE_after">ต่อด้วยผลการศึกษาต่อเนื่อง (CE) ${isAfter ? '(หลังหมดอายุ)' : ''}</option>
+      ${ceQualified ? `<option value="${isAfter ? 'CE_after' : 'CE_before'}">${ceOptionLabel}</option>` : ''}
       <option value="exam">ต่อด้วยผลสอบข้อเขียนใหม่</option>
     </select>
+    ${!ceQualified ? `<p style="color:var(--warn); font-size:12px">ผู้ที่จะกดต่ออายุด้วยผล CE ได้ ต้องผ่านเกณฑ์ CE ครบทั้ง 2 หมวดแล้วเท่านั้น (ดูคะแนนสะสมด้านบน) — บัญชีนี้ยังไม่ผ่านเกณฑ์ จึงเลือกได้เฉพาะวิธีสอบข้อเขียนใหม่</p>` : ''}
 
-    <div id="ceBeforeBox" style="display:none">
-      <label style="margin-top:12px"><input type="checkbox" id="ce_declare" style="width:auto; display:inline-block; margin-right:6px">
-        ข้าพเจ้ายืนยันว่าผ่านเกณฑ์การศึกษาต่อเนื่อง (CE) ตามที่สภาฯ กำหนด</label>
-      <p style="color:var(--muted); font-size:12px">* ผู้ที่จะกดต่ออายุด้วยวิธีนี้ได้ ต้องผ่านการศึกษาต่อเนื่องแล้วเท่านั้น ระบบยังไม่ได้เชื่อมต่อ API ตรวจสอบ CE จริง เจ้าหน้าที่จะสุ่มตรวจสอบย้อนหลังได้</p>
+    <div id="ceAfterDocsBox" style="display:none">
+      <p style="color:var(--muted); font-size:12px">กรณีต่อหลังหมดอายุด้วยผล CE ต้องแนบผลการสอบสัมภาษณ์เพิ่มเติมด้วย</p>
+      <div class="doc-row"><label>ผลการสอบสัมภาษณ์ *</label><input type="file" id="doc_interview_ce" accept=".pdf,.jpg,.jpeg,.png"></div>
     </div>
 
-    <div id="docsBox" style="display:none">
-      <div class="doc-row"><label>เอกสารผลการสอบ/สัมภาษณ์</label><input type="file" id="renew_doc" accept=".pdf,.jpg,.jpeg,.png"></div>
+    <div id="examDocsBox" style="display:none">
+      <p style="color:var(--muted); font-size:12px">ต้องแนบผลสอบข้อเขียนครบ 2 วิชา และผลสอบสัมภาษณ์</p>
+      <div class="doc-row"><label>ผลสอบข้อเขียน วิชาที่ 1 *</label><input type="file" id="doc_subject1" accept=".pdf,.jpg,.jpeg,.png"></div>
+      <div class="doc-row"><label>ผลสอบข้อเขียน วิชาที่ 2 *</label><input type="file" id="doc_subject2" accept=".pdf,.jpg,.jpeg,.png"></div>
+      <div class="doc-row"><label>ผลสอบสัมภาษณ์ *</label><input type="file" id="doc_interview_exam" accept=".pdf,.jpg,.jpeg,.png"></div>
     </div>
 
     <button class="btn" style="width:auto; margin-top:12px" onclick="submitRenewal(${isAfter})">ยื่นคำขอต่ออายุ</button>
@@ -280,8 +294,8 @@ function renderRenewForm(eligibility) {
 
 function toggleRenewMethodUI() {
   const method = document.getElementById('renew_method').value;
-  document.getElementById('ceBeforeBox').style.display = method === 'CE_before' ? 'block' : 'none';
-  document.getElementById('docsBox').style.display = method !== 'CE_before' ? 'block' : 'none';
+  document.getElementById('ceAfterDocsBox').style.display = (method === 'CE_after') ? 'block' : 'none';
+  document.getElementById('examDocsBox').style.display = (method === 'exam') ? 'block' : 'none';
 }
 
 async function submitRenewal(isAfter) {
@@ -290,12 +304,21 @@ async function submitRenewal(isAfter) {
   const method = document.getElementById('renew_method').value;
   try {
     const documents = [];
-    if (method !== 'CE_before') {
-      const file = document.getElementById('renew_doc').files[0];
-      if (file) documents.push(await uploadDocument(file, method === 'exam' ? 'ผลสอบข้อเขียน/สัมภาษณ์' : 'ผลการศึกษาต่อเนื่อง'));
+    if (method === 'CE_after') {
+      const file = document.getElementById('doc_interview_ce').files[0];
+      if (!file) throw new Error('กรุณาแนบผลการสอบสัมภาษณ์');
+      documents.push(await uploadDocument(file, 'ผลสอบสัมภาษณ์'));
+    }
+    if (method === 'exam') {
+      const f1 = document.getElementById('doc_subject1').files[0];
+      const f2 = document.getElementById('doc_subject2').files[0];
+      const f3 = document.getElementById('doc_interview_exam').files[0];
+      if (!f1 || !f2 || !f3) throw new Error('กรุณาแนบผลสอบข้อเขียนทั้ง 2 วิชา และผลสอบสัมภาษณ์ให้ครบ');
+      documents.push(await uploadDocument(f1, 'ผลสอบข้อเขียน วิชาที่ 1'));
+      documents.push(await uploadDocument(f2, 'ผลสอบข้อเขียน วิชาที่ 2'));
+      documents.push(await uploadDocument(f3, 'ผลสอบสัมภาษณ์'));
     }
     const payload = { method, documents };
-    if (method === 'CE_before') payload.ce_self_declared = document.getElementById('ce_declare').checked;
     const res = await apiCall('submitLicenseRenewal', payload);
     alert(res.status === 'รอชำระเงิน' ? 'ยื่นคำขอสำเร็จ กรุณาชำระเงินที่ด้านล่าง' : 'ยื่นคำขอสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ');
     loadAll();
