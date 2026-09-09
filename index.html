@@ -16,6 +16,7 @@
     <div class="modules">
       ข้อมูลสมาชิก · สมัครสมาชิก · ทะเบียน · ใบอนุญาต · บัตรสมาชิก · สวัสดิการ · รายงาน
     </div>
+    <div id="publicStatsWidget" class="public-stats-widget"></div>
   </div>
 
   <div class="auth-main">
@@ -128,6 +129,18 @@ if (hashParams.get('error')) {
 if (Auth.isLoggedIn() && !Auth.getRole().startsWith('admin')) {
   window.location.href = 'member-dashboard.html';
 }
+
+// TOR ข้อ 8.8 — ตัวอย่างการเชื่อมโยงสถิติสมาชิกแบบเรียลไทม์ผ่าน public action (ไม่ต้อง login)
+// เว็บไซต์หลักของสภาฯ หรือเว็บการศึกษาต่อเนื่อง สามารถเรียก endpoint นี้ (action: publicStats) ไปแสดงผลในหน้าเว็บของตนเองได้เช่นเดียวกัน
+async function loadPublicStatsWidget() {
+  try {
+    const s = await apiCall('publicStats');
+    const parts = Object.entries(s.byType).map(([k, v]) => `${k} ${v} คน`).join(' · ');
+    document.getElementById('publicStatsWidget').innerHTML =
+      `<b>${s.totalMembers.toLocaleString()}</b> สมาชิกทั้งหมด (${parts})`;
+  } catch (err) { /* ไม่ต้องแสดง error ให้ผู้ใช้เห็น เป็นแค่ widget เสริม */ }
+}
+loadPublicStatsWidget();
 </script>
 </body>
 </html>

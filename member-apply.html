@@ -17,6 +17,8 @@
       <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
       <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
       <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="member-receipts.html">ใบเสร็จของฉัน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -48,12 +50,25 @@
       <!-- ฟอร์มบุคคล: สามัญ / สมทบ -->
       <form id="form-individual" style="display:none" onsubmit="return submitIndividual(event)">
         <p class="form-type-tag" id="individualTypeTag"></p>
+        <div class="panel" style="margin:12px 0">
+          <label>เลือกระยะเวลาสมาชิกภาพ *</label>
+          <select id="i_duration" onchange="updateFeeHint('individual')"></select>
+          <p id="i_feeHint" style="color:var(--muted); font-size:13px; margin-top:4px"></p>
+        </div>
 
         <fieldset>
           <legend>1) ข้อมูลส่วนบุคคล</legend>
           <div class="grid-2">
             <div><label>เลขประจำตัวประชาชน *</label><input type="text" id="i_national_id" pattern="[0-9]{13}" required></div>
             <div><label>วันเดือนปีเกิด *</label><input type="date" id="i_dob" required oninput="updateAge()"></div>
+            <div><label>เพศ</label>
+              <select id="i_gender">
+                <option value="ชาย">ชาย</option>
+                <option value="หญิง">หญิง</option>
+                <option value="LGBTQ+">LGBTQ+</option>
+                <option value="ไม่ระบุ" selected>ไม่ระบุ</option>
+              </select>
+            </div>
             <div><label>คำนำหน้า (ไทย) *</label><input type="text" id="i_prefix_th" required></div>
             <div><label>คำนำหน้า (อังกฤษ)</label><input type="text" id="i_prefix_en"></div>
             <div><label>ชื่อ (ไทย) *</label><input type="text" id="i_first_name_th" required></div>
@@ -168,6 +183,11 @@
 
       <!-- ฟอร์มองค์กร: วิสามัญ (Multi-step) -->
       <div id="form-org" style="display:none">
+        <div class="panel" style="margin-bottom:12px">
+          <label>เลือกระยะเวลาสมาชิกภาพ *</label>
+          <select id="org_duration" onchange="updateFeeHint('org')"></select>
+          <p id="org_feeHint" style="color:var(--muted); font-size:13px; margin-top:4px"></p>
+        </div>
         <div class="stepper-track">
           <span class="step-dot active" data-step="1">1</span>
           <span class="step-dot" data-step="2">2</span>
@@ -264,6 +284,34 @@ let currentType = null;
 let eduCount = 0;
 let orgStepNum = 1;
 
+const MEMBERSHIP_FEE_TABLE_CLIENT = {
+  'สามัญ': { '1': 200, '5': 1000, 'lifetime': 2000 },
+  'สมทบ': { '1': 100, '5': 500 },
+  'วิสามัญ': { '1': 200, '5': 1000 }
+};
+const LIFETIME_MIN_AGE_CLIENT = 65;
+const MEMBERSHIP_ENTRANCE_FEE_CLIENT = 100;
+
+function populateDurationSelect(selectId, type, age) {
+  const table = MEMBERSHIP_FEE_TABLE_CLIENT[type];
+  const opts = ['1', '5'];
+  if (type === 'สามัญ' && age !== null && age >= LIFETIME_MIN_AGE_CLIENT) opts.push('lifetime');
+  const labels = { '1': '1 ปี', '5': '5 ปี', 'lifetime': 'ตลอดชีพ (อายุ ' + LIFETIME_MIN_AGE_CLIENT + ' ปีขึ้นไป)' };
+  document.getElementById(selectId).innerHTML = opts.map(d => `<option value="${d}">${labels[d]} — ${table[d].toLocaleString()} บาท</option>`).join('');
+}
+
+function updateFeeHint(form) {
+  const isOrg = form === 'org';
+  const type = isOrg ? 'วิสามัญ' : currentType;
+  const durationSel = document.getElementById(isOrg ? 'org_duration' : 'i_duration');
+  const hintEl = document.getElementById(isOrg ? 'org_feeHint' : 'i_feeHint');
+  const duration = durationSel.value;
+  const dues = MEMBERSHIP_FEE_TABLE_CLIENT[type][duration] || 0;
+  const entrance = isOrg ? 0 : MEMBERSHIP_ENTRANCE_FEE_CLIENT;
+  hintEl.textContent = 'ค่าธรรมเนียมรวม ' + (dues + entrance).toLocaleString() + ' บาท' +
+    (entrance ? ' (ค่าบำรุง ' + dues.toLocaleString() + ' + ค่าแรกเข้า ' + entrance + ' บาท)' : '');
+}
+
 function pickType(type) {
   currentType = type;
   document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
@@ -271,10 +319,14 @@ function pickType(type) {
   if (type === 'วิสามัญ') {
     document.getElementById('form-individual').style.display = 'none';
     document.getElementById('form-org').style.display = 'block';
+    populateDurationSelect('org_duration', type, null);
+    updateFeeHint('org');
   } else {
     document.getElementById('form-org').style.display = 'none';
     document.getElementById('form-individual').style.display = 'block';
     document.getElementById('individualTypeTag').textContent = 'กำลังสมัคร: สมาชิก' + type;
+    populateDurationSelect('i_duration', type, null);
+    updateFeeHint('individual');
     if (eduCount === 0) addEduRow();
   }
 }
@@ -295,6 +347,10 @@ function updateAge() {
   const m = now.getMonth() - d.getMonth();
   if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
   document.getElementById('i_age').value = age + ' ปี';
+  if (currentType) {
+    populateDurationSelect('i_duration', currentType, age);
+    updateFeeHint('individual');
+  }
 }
 
 const CUR_REG_FIELD_MAP = [
@@ -376,6 +432,7 @@ async function submitIndividual(e) {
     const data = {
       national_id: document.getElementById('i_national_id').value,
       dob: document.getElementById('i_dob').value,
+      gender: document.getElementById('i_gender').value,
       prefix_th: document.getElementById('i_prefix_th').value,
       prefix_en: document.getElementById('i_prefix_en').value,
       first_name_th: document.getElementById('i_first_name_th').value,
@@ -430,7 +487,7 @@ async function submitIndividual(e) {
       mailing_recipient_name: document.getElementById('i_mail_name').value,
       mailing_recipient_phone: document.getElementById('i_mail_phone').value
     };
-    const res = await apiCall('submitApplication', { applicant_type: currentType, data, documents });
+    const res = await apiCall('submitApplication', { applicant_type: currentType, data, documents, duration: document.getElementById('i_duration').value });
     alert('ส่งใบสมัครสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ (จะแจ้งผลทางอีเมล)');
     window.location.reload();
   } catch (err) {
@@ -512,7 +569,7 @@ async function submitOrg() {
       odoc_juristic: 'หนังสือรับรองนิติบุคคล', odoc_appoint: 'หนังสือแต่งตั้งผู้แทนองค์กร',
       odoc_registration: 'หนังสือรับรองการจดทะเบียน', odoc_other: 'เอกสารอื่นๆ'
     });
-    const res = await apiCall('submitApplication', { applicant_type: 'วิสามัญ', data: collectOrgData(), documents });
+    const res = await apiCall('submitApplication', { applicant_type: 'วิสามัญ', data: collectOrgData(), documents, duration: document.getElementById('org_duration').value });
     alert('ส่งคำขอสมัครสมาชิกวิสามัญสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ (จะแจ้งผลทางอีเมล)');
     window.location.reload();
   } catch (err) {

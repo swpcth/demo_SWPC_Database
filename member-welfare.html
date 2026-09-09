@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สวัสดิการสมาชิก</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
+    <nav>
+      <a href="member-dashboard.html">ข้อมูลของฉัน</a>
+      <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
+      <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
+      <a href="member-license.html" id="navLicense">ใบอนุญาต</a>
+      <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-welfare.html" class="active">สวัสดิการสมาชิก</a>
+      <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>สวัสดิการสมาชิก</h1></header>
+
+    <div class="panel">
+      <h2>ข้อมูลผู้รับผลประโยชน์</h2>
+      <p style="color:var(--muted); font-size:13px">บันทึกไว้ล่วงหน้าได้หลายรายการ เพื่อเลือกใช้ตอนยื่นคำขอรับสวัสดิการ</p>
+      <div id="beneficiaryList"><p class="empty-state">กำลังโหลด...</p></div>
+      <button class="btn small secondary" onclick="showAddBeneficiaryForm()">+ เพิ่มผู้รับผลประโยชน์</button>
+      <div id="beneficiaryForm" style="display:none; margin-top:12px">
+        <div class="grid-2">
+          <div><label>คำนำหน้า</label><input type="text" id="ben_prefix"></div>
+          <div><label>ชื่อ-นามสกุล *</label><input type="text" id="ben_name"></div>
+          <div><label>เบอร์โทรศัพท์ *</label><input type="tel" id="ben_phone"></div>
+          <div><label>ความสัมพันธ์กับสมาชิก *</label>
+            <select id="ben_relationship">
+              <option value="บุตรโดยชอบด้วยกฎหมาย">บุตรโดยชอบด้วยกฎหมาย</option>
+              <option value="สามีหรือภรรยา">สามีหรือภรรยา</option>
+              <option value="บิดาหรือมารดา">บิดาหรือมารดา</option>
+              <option value="อื่นๆ">อื่นๆ</option>
+            </select>
+          </div>
+        </div>
+        <p style="color:var(--muted); font-size:12px">* กรณีถึงแก่กรรม ระเบียบสภาฯ กำหนดลำดับทายาทผู้มีสิทธิไว้ 3 ลำดับตามข้อ 3 และ 6 ได้แก่ (1) บุตรโดยชอบด้วยกฎหมาย (2) สามีหรือภรรยา (3) บิดาหรือมารดา — ทายาทลำดับถัดไปจะไม่มีสิทธิถ้าทายาทลำดับก่อนยังมีชีวิตอยู่ เจ้าหน้าที่จะเป็นผู้พิจารณาลำดับสิทธิ์ตอนตรวจสอบคำขอ</p>
+        <input type="hidden" id="ben_editing_id">
+        <button class="btn small" onclick="saveBeneficiary()">บันทึก</button>
+        <button class="btn small secondary" onclick="hideAddBeneficiaryForm()">ยกเลิก</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>ยื่นคำขอรับสวัสดิการ</h2>
+      <p style="color:var(--muted); font-size:13px">สิทธิสงวนไว้สำหรับสมาชิกประเภทสามัญเท่านั้น ต้องยื่นคำขอภายใน 180 วันนับแต่วันเกิดเหตุ/ถึงแก่กรรม (ตามระเบียบข้อ 7)</p>
+      <div id="submitError" class="error-box"></div>
+      <label>ประเภทสวัสดิการ *</label>
+      <select id="w_type" onchange="updateAmountHint()"></select>
+      <p id="amountHint" style="color:var(--muted); font-size:12px"></p>
+      <label>วันที่เกิดเหตุ / วันถึงแก่กรรม (ถ้ามี)</label>
+      <input type="date" id="w_incident_date">
+      <label>ผู้รับผลประโยชน์ (ถ้ามี)</label>
+      <select id="w_beneficiary"><option value="">— ไม่ระบุ —</option></select>
+      <label>รายละเอียด / คำอธิบายเพิ่มเติม</label>
+      <textarea id="w_description" rows="3" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:var(--radius); font-family:inherit"></textarea>
+      <div class="doc-row"><label>เอกสารประกอบ</label><input type="file" id="w_doc" accept=".pdf,.jpg,.jpeg,.png"></div>
+      <button class="btn" style="width:auto; margin-top:12px" onclick="submitWelfareRequest()">ยื่นคำขอ</button>
+    </div>
+
+    <div class="panel">
+      <h2>ประวัติการขอรับสวัสดิการของฉัน</h2>
+      <div id="myRequests"><p class="empty-state">กำลังโหลด...</p></div>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(['member'], 'index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+function statusBadgeClass(s) {
+  if (s === 'อนุมัติ') return 'ok';
+  if (s === 'ไม่อนุมัติ') return 'warn';
+  return 'pending';
+}
+
+let myBeneficiaries = [];
+
+async function loadBeneficiaries() {
+  const box = document.getElementById('beneficiaryList');
+  const sel = document.getElementById('w_beneficiary');
+  try {
+    myBeneficiaries = await apiCall('listMyBeneficiaries');
+    if (!myBeneficiaries.length) {
+      box.innerHTML = '<p class="empty-state">ยังไม่มีข้อมูลผู้รับผลประโยชน์</p>';
+    } else {
+      box.innerHTML = myBeneficiaries.map(b => `
+        <div class="app-status-card">
+          <div>
+            <b>${b.prefix || ''} ${b.name}</b> — ${b.relationship}<br>
+            <span style="color:var(--muted); font-size:13px">โทร ${b.phone}</span>
+          </div>
+          <div>
+            <button class="btn small secondary" onclick="editBeneficiary('${b.beneficiary_id}')">แก้ไข</button>
+            <button class="btn small secondary" onclick="deleteBeneficiary('${b.beneficiary_id}')">ลบ</button>
+          </div>
+        </div>`).join('');
+    }
+    sel.innerHTML = '<option value="">— ไม่ระบุ —</option>' +
+      myBeneficiaries.map(b => `<option value="${b.beneficiary_id}">${b.prefix || ''} ${b.name} (${b.relationship})</option>`).join('');
+  } catch (err) {
+    box.innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+
+function showAddBeneficiaryForm() {
+  document.getElementById('ben_editing_id').value = '';
+  document.getElementById('ben_prefix').value = '';
+  document.getElementById('ben_name').value = '';
+  document.getElementById('ben_phone').value = '';
+  document.getElementById('ben_relationship').value = '';
+  document.getElementById('beneficiaryForm').style.display = 'block';
+}
+function hideAddBeneficiaryForm() { document.getElementById('beneficiaryForm').style.display = 'none'; }
+
+function editBeneficiary(id) {
+  const b = myBeneficiaries.find(x => x.beneficiary_id === id);
+  if (!b) return;
+  document.getElementById('ben_editing_id').value = id;
+  document.getElementById('ben_prefix').value = b.prefix || '';
+  document.getElementById('ben_name').value = b.name;
+  document.getElementById('ben_phone').value = b.phone;
+  document.getElementById('ben_relationship').value = b.relationship;
+  document.getElementById('beneficiaryForm').style.display = 'block';
+}
+
+async function saveBeneficiary() {
+  const id = document.getElementById('ben_editing_id').value;
+  const payload = {
+    prefix: document.getElementById('ben_prefix').value,
+    name: document.getElementById('ben_name').value,
+    phone: document.getElementById('ben_phone').value,
+    relationship: document.getElementById('ben_relationship').value
+  };
+  try {
+    if (id) {
+      await apiCall('updateBeneficiary', Object.assign({ beneficiary_id: id }, payload));
+    } else {
+      await apiCall('addBeneficiary', payload);
+    }
+    hideAddBeneficiaryForm();
+    loadBeneficiaries();
+  } catch (err) {
+    alert('บันทึกไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function deleteBeneficiary(id) {
+  if (!confirm('ยืนยันลบข้อมูลผู้รับผลประโยชน์รายนี้?')) return;
+  try {
+    await apiCall('deleteBeneficiary', { beneficiary_id: id });
+    loadBeneficiaries();
+  } catch (err) {
+    alert('ลบไม่สำเร็จ: ' + err.message);
+  }
+}
+
+let welfareTypesInfo = { types: [], maxAmounts: {}, claimDeadlineDays: 180 };
+
+async function loadWelfareTypes() {
+  try {
+    welfareTypesInfo = await apiCall('getWelfareTypes');
+    document.getElementById('w_type').innerHTML = welfareTypesInfo.types.map(t => `<option value="${t}">${t}</option>`).join('');
+    updateAmountHint();
+  } catch (err) { /* ignore */ }
+}
+
+function updateAmountHint() {
+  const type = document.getElementById('w_type').value;
+  const cap = welfareTypesInfo.maxAmounts[type];
+  document.getElementById('amountHint').textContent = cap
+    ? 'วงเงินสูงสุดตามระเบียบสำหรับประเภทนี้: ไม่เกิน ' + cap.toLocaleString() + ' บาท'
+    : 'ประเภทนี้พิจารณาวงเงินเป็นรายกรณีตามที่คณะอนุกรรมการสวัสดิการอนุมัติ';
+}
+
+async function submitWelfareRequest() {
+  const errBox = document.getElementById('submitError');
+  errBox.style.display = 'none';
+  try {
+    const documents = [];
+    const file = document.getElementById('w_doc').files[0];
+    if (file) documents.push(await uploadDocument(file, 'เอกสารประกอบคำขอสวัสดิการ'));
+    const res = await apiCall('submitWelfareRequest', {
+      welfare_type: document.getElementById('w_type').value,
+      beneficiary_id: document.getElementById('w_beneficiary').value,
+      description: document.getElementById('w_description').value,
+      incident_date: document.getElementById('w_incident_date').value,
+      documents: documents
+    });
+    alert('ยื่นคำขอสำเร็จ เลขที่คำขอ ' + res.welfare_id);
+    document.getElementById('w_description').value = '';
+    document.getElementById('w_incident_date').value = '';
+    document.getElementById('w_doc').value = '';
+    loadMyRequests();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  }
+}
+
+async function loadMyRequests() {
+  const box = document.getElementById('myRequests');
+  try {
+    const rows = await apiCall('myWelfareRequests');
+    if (!rows.length) { box.innerHTML = '<p class="empty-state">ยังไม่เคยยื่นคำขอรับสวัสดิการ</p>'; return; }
+    box.innerHTML = rows.map(w => `
+      <div class="app-status-card">
+        <div>
+          <b>${w.welfare_type}</b> — ยื่นเมื่อ ${fmtDate(w.requested_at)}<br>
+          <span style="color:var(--muted); font-size:13px">เลขที่คำขอ ${w.welfare_id}${w.incident_date ? ' • วันเกิดเหตุ ' + fmtDate(w.incident_date) : ''}</span>
+          ${w.description ? '<p style="font-size:13px; margin-top:4px">' + w.description + '</p>' : ''}
+        </div>
+        <span class="badge ${statusBadgeClass(w.status)}">${w.status}</span>
+        ${w.status === 'ไม่อนุมัติ' && w.reject_reason ? '<p style="color:var(--warn); font-size:13px">เหตุผล: ' + w.reject_reason + '</p>' : ''}
+        ${w.status === 'อนุมัติ' ? '<p style="font-size:13px">จำนวนเงินที่อนุมัติ: ' + w.approved_amount + ' บาท' + (w.note ? ' • หมายเหตุ: ' + w.note : '') + '</p>' : ''}
+        ${w.disbursed_at ? '<p style="font-size:13px">จ่ายเงินแล้วเมื่อ ' + fmtDate(w.disbursed_at) + (w.disbursement_doc_url ? ' — <a href="' + w.disbursement_doc_url + '" target="_blank">ดาวน์โหลดใบยืนยันการจ่ายเงิน</a>' : '') + '</p>' : ''}
+      </div>`).join('');
+  } catch (err) {
+    box.innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+
+loadBeneficiaries();
+loadWelfareTypes();
+loadMyRequests();
+applyMemberNavVisibility();
+</script>
+</body>
+</html>

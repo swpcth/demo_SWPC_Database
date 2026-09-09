@@ -18,9 +18,11 @@
       <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
       <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
       <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
-      <a href="admin-licenses.html">ทะเบียนสมาชิก</a>
+      <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
       <a href="admin-welfare.html" class="active">สวัสดิการสมาชิก</a>
       <a href="admin-payments.html">การชำระเงิน</a>
+      <a href="admin-refunds.html">คืนเงิน</a>
+      <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
       <a href="admin-reports.html">รายงาน</a>
       <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -29,17 +31,194 @@
 
   <main class="main">
     <header><h1>สวัสดิการสมาชิก</h1></header>
-    <div class="module-stub">
-      <p>โมดูลนี้มีโครง Google Sheet และ API endpoint (<code>listWelfare</code>) พร้อมใช้งานแล้วใน <code>apps-script/Code.gs</code>
-      แต่ยังไม่ได้ต่อ UI เต็มรูปแบบ — ดูรายละเอียดที่ต้องพัฒนาต่อใน <code>docs/ROADMAP.md</code> (อ้างอิง TOR ข้อ 7)</p>
+
+    <div class="panel">
+      <div class="list-toolbar">
+        <select id="f_status" onchange="loadAll()">
+          <option value="">สถานะทั้งหมด</option>
+          <option value="รอตรวจสอบ">รอตรวจสอบ</option>
+          <option value="รออนุมัติ">รออนุมัติ</option>
+          <option value="อนุมัติ">อนุมัติ</option>
+          <option value="ไม่อนุมัติ">ไม่อนุมัติ</option>
+        </select>
+      </div>
+      <p class="count-line" id="countLine">ทั้งหมด 0 รายการ</p>
+      <table>
+        <thead><tr><th>เลขที่คำขอ</th><th>ประเภทสวัสดิการ</th><th>สมาชิก</th><th>วันที่ยื่น</th><th>สถานะ</th><th>จำนวนเงิน</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="7" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
     </div>
   </main>
 </div>
 
+<div id="detailOverlay" class="overlay" style="display:none" onclick="if(event.target===this) closeDetail()">
+  <div class="overlay-card">
+    <button class="overlay-close" onclick="closeDetail()">✕</button>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
 <script src="api.js"></script>
 <script>
-Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
+Auth.requireRole(["admin_super", "admin_staff", "admin_welfare"], "admin-login.html");
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+let allWelfare = [];
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+function statusBadgeClass(s) {
+  if (s === 'อนุมัติ') return 'ok';
+  if (s === 'ไม่อนุมัติ') return 'warn';
+  return 'pending';
+}
+
+function docItem(doc) {
+  return `<div class="doc-item"><span>${doc.doc_type}</span><a href="${doc.url}" target="_blank">ดูเอกสาร</a></div>`;
+}
+
+function renderRows() {
+  const tbody = document.getElementById('rows');
+  document.getElementById('countLine').textContent = 'ทั้งหมด ' + allWelfare.length + ' รายการ';
+  if (!allWelfare.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่พบคำขอ</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allWelfare.map(w => `
+    <tr>
+      <td>${w.welfare_id}</td>
+      <td>${w.welfare_type}</td>
+      <td>${w.member_id}</td>
+      <td>${fmtDate(w.requested_at)}</td>
+      <td><span class="badge ${statusBadgeClass(w.status)}">${w.status}</span></td>
+      <td>${w.approved_amount ? w.approved_amount + ' บาท' : '-'}</td>
+      <td><button class="btn small secondary" onclick="viewDetail('${w.welfare_id}')">ดูรายละเอียด</button></td>
+    </tr>`).join('');
+}
+
+async function viewDetail(welfareId) {
+  document.getElementById('detailBody').innerHTML = '<p class="empty-state">กำลังโหลด...</p>';
+  document.getElementById('detailOverlay').style.display = 'flex';
+  try {
+    const data = await apiCall('getWelfareDetail', { welfare_id: welfareId });
+    const w = data.welfare, m = data.member, ben = data.beneficiary;
+    const docs = JSON.parse(w.documents_json || '[]');
+    document.getElementById('detailBody').innerHTML = `
+      <h2>${w.welfare_type} — ${w.welfare_id}</h2>
+      <p><span class="badge ${statusBadgeClass(w.status)}">${w.status}</span> • ยื่นเมื่อ ${fmtDate(w.requested_at)}</p>
+      <p><b>สมาชิก:</b> ${m ? [m.prefix_th, m.first_name_th, m.last_name_th].filter(Boolean).join(' ') + ' (' + (m.member_no || '-') + ')' : w.member_id}</p>
+      ${w.description ? '<p><b>รายละเอียด:</b> ' + w.description + '</p>' : ''}
+      ${w.incident_date ? '<p><b>วันที่เกิดเหตุ/ถึงแก่กรรม:</b> ' + fmtDate(w.incident_date) + '</p>' : ''}
+      ${ben ? '<p><b>ผู้รับผลประโยชน์:</b> ' + (ben.prefix || '') + ' ' + ben.name + ' (' + ben.relationship + ') โทร ' + ben.phone + '</p>' : ''}
+
+      <h3>เอกสารประกอบ</h3>
+      ${docs.length ? docs.map(docItem).join('') : '<p class="empty-state">ไม่มีเอกสารแนบ</p>'}
+      <div class="doc-row" style="margin-top:8px"><label>เพิ่มเอกสาร</label><input type="file" id="addDoc" accept=".pdf,.jpg,.jpeg,.png"></div>
+      <button class="btn small secondary" onclick="addDocument('${w.welfare_id}')">อัปโหลดเอกสารเพิ่ม</button>
+
+      ${w.status === 'ไม่อนุมัติ' && w.reject_reason ? '<p style="color:var(--warn)"><b>เหตุผลไม่อนุมัติ:</b> ' + w.reject_reason + '</p>' : ''}
+      ${w.status === 'อนุมัติ' ? '<p><b>จำนวนเงินที่อนุมัติ:</b> ' + w.approved_amount + ' บาท' + (w.note ? ' • หมายเหตุ: ' + w.note : '') + '</p>' : ''}
+      ${w.disbursed_at ? '<p><b>จ่ายเงินแล้วเมื่อ:</b> ' + fmtDate(w.disbursed_at) + (w.disbursement_doc_url ? ' — <a href="' + w.disbursement_doc_url + '" target="_blank">ดูใบยืนยันการจ่ายเงิน</a>' : '') + '</p>' : ''}
+
+      ${(w.status === 'รอตรวจสอบ' || w.status === 'รออนุมัติ') ? `
+        <div class="detail-actions">
+          <button class="btn" onclick="approveRequest('${w.welfare_id}')">อนุมัติ</button>
+          <button class="btn secondary" onclick="rejectRequest('${w.welfare_id}')">ไม่อนุมัติ</button>
+        </div>` : ''}
+      ${w.status === 'อนุมัติ' && !w.disbursed_at ? `
+        <div class="detail-actions">
+          <button class="btn" onclick="disburse('${w.welfare_id}')">บันทึกการเบิกจ่ายเงิน</button>
+        </div>` : ''}
+
+      <h3>ประวัติเอกสาร (อัปโหลด/แก้ไข)</h3>
+      ${data.docLog.length ? data.docLog.map(l => `<p style="font-size:13px">${fmtDate(l.at)} — ${l.action} "${l.doc_type}" โดย ${l.actor_role} (${l.actor_user_id})</p>`).join('') : '<p class="empty-state">ไม่มีประวัติ</p>'}
+    `;
+  } catch (err) {
+    document.getElementById('detailBody').innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+function closeDetail() { document.getElementById('detailOverlay').style.display = 'none'; }
+
+async function addDocument(welfareId) {
+  const input = document.getElementById('addDoc');
+  if (!input.files[0]) { alert('กรุณาเลือกไฟล์ก่อน'); return; }
+  const docType = prompt('ระบุประเภทเอกสาร เช่น "ใบรับรองแพทย์เพิ่มเติม"') || 'เอกสารเพิ่มเติม';
+  try {
+    const uploaded = await uploadDocument(input.files[0], docType);
+    await apiCall('addWelfareDocument', { welfare_id: welfareId, doc_type: docType, url: uploaded.url });
+    viewDetail(welfareId);
+  } catch (err) {
+    alert('อัปโหลดไม่สำเร็จ: ' + err.message);
+  }
+}
+
+const WELFARE_MAX_AMOUNTS_CLIENT = {
+  'การช่วยเหลือกรณีถึงแก่กรรม': 5000,
+  'การช่วยเหลือกรณีประสบภัยพิบัติหรือสาธารณภัย': 10000
+};
+
+async function approveRequest(welfareId) {
+  const w = allWelfare.find(x => x.welfare_id === welfareId);
+  const cap = w ? WELFARE_MAX_AMOUNTS_CLIENT[w.welfare_type] : null;
+  const suggestedText = cap ? ' (วงเงินสูงสุดตามระเบียบ: ' + cap.toLocaleString() + ' บาท)' : '';
+  const amount = prompt('ระบุจำนวนเงินที่อนุมัติ (บาท)' + suggestedText + ':', cap || '');
+  if (!amount || isNaN(Number(amount))) { alert('กรุณาระบุจำนวนเงินเป็นตัวเลข'); return; }
+  const note = prompt('หมายเหตุ (ถ้ามี):') || '';
+  try {
+    await apiCall('reviewWelfareRequest', { welfare_id: welfareId, decision: 'approve', approved_amount: amount, note });
+    closeDetail();
+    loadAll();
+  } catch (err) {
+    if (err.message.indexOf('เกินวงเงินสูงสุด') !== -1) {
+      if (confirm(err.message + '\n\nยืนยันอนุมัติเกินวงเงินหรือไม่?')) {
+        try {
+          await apiCall('reviewWelfareRequest', { welfare_id: welfareId, decision: 'approve', approved_amount: amount, note, override_cap: true });
+          closeDetail();
+          loadAll();
+        } catch (err2) {
+          alert('ดำเนินการไม่สำเร็จ: ' + err2.message);
+        }
+      }
+      return;
+    }
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function rejectRequest(welfareId) {
+  const reason = prompt('ระบุเหตุผลที่ไม่อนุมัติ:');
+  if (!reason) return;
+  try {
+    await apiCall('reviewWelfareRequest', { welfare_id: welfareId, decision: 'reject', reject_reason: reason });
+    closeDetail();
+    loadAll();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function disburse(welfareId) {
+  if (!confirm('ยืนยันบันทึกการเบิกจ่ายเงิน และออกเอกสารยืนยันการจ่ายเงิน?')) return;
+  try {
+    const res = await apiCall('recordWelfareDisbursement', { welfare_id: welfareId });
+    alert('บันทึกการเบิกจ่ายสำเร็จ');
+    if (res.disbursement_doc_url) window.open(res.disbursement_doc_url, '_blank');
+    viewDetail(welfareId);
+    loadAll();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function loadAll() {
+  const status = document.getElementById('f_status').value;
+  try {
+    allWelfare = await apiCall('listWelfare', status ? { status } : {});
+    renderRows();
+  } catch (err) {
+    document.getElementById('rows').innerHTML = `<tr><td colspan="7" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+loadAll();
 </script>
 </body>
 </html>

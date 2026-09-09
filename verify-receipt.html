@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ตรวจสอบใบเสร็จรับเงิน — สภาวิชาชีพสังคมสงเคราะห์</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="public-shell">
+  <div class="public-header">
+    <img src="logo.png" alt="ตราสภาฯ" class="logo-mark">
+    <div>
+      <div class="mark-text">สภาวิชาชีพสังคมสงเคราะห์</div>
+      <div class="mark-sub">ระบบตรวจสอบใบเสร็จรับเงินอิเล็กทรอนิกส์</div>
+    </div>
+  </div>
+
+  <div class="public-card">
+    <label>เลขที่ใบเสร็จ</label>
+    <div class="search-row">
+      <input type="text" id="q" placeholder="เช่น RCT2569-00001" onkeydown="if(event.key==='Enter') doVerify()">
+      <button class="btn" style="width:auto" onclick="doVerify()">ตรวจสอบ</button>
+    </div>
+    <div id="result"></div>
+    <p class="back-link"><a href="index.html">← กลับหน้าหลัก</a></p>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+async function doVerify() {
+  const q = document.getElementById('q').value.trim();
+  const box = document.getElementById('result');
+  if (!q) { box.innerHTML = '<p class="empty-state">กรุณากรอกเลขที่ใบเสร็จ</p>'; return; }
+  box.innerHTML = '<p class="empty-state">กำลังตรวจสอบ...</p>';
+  try {
+    const res = await apiCall('verifyReceipt', { receipt_no: q });
+    if (!res.valid) {
+      box.innerHTML = `<div class="verify-invalid"><div class="verify-icon">✕</div><h2>ไม่พบใบเสร็จนี้</h2><p>${res.message}</p></div>`;
+      return;
+    }
+    box.innerHTML = `
+      <div class="verify-valid">
+        <div class="verify-icon">✓</div>
+        <h2>ใบเสร็จถูกต้อง</h2>
+      </div>
+      <div class="result-card" style="margin-top:16px">
+        <div>
+          <b>${res.name}</b><br>
+          <span style="color:var(--muted); font-size:13px">เลขที่ใบเสร็จ: ${res.receipt_no}</span><br>
+          <span style="color:var(--muted); font-size:13px">รายการ: ${res.ref_type}</span><br>
+          <span style="color:var(--muted); font-size:13px">ช่องทาง: ${res.channel || '-'}</span>
+        </div>
+        <div style="text-align:right">
+          <b>${res.amount} บาท</b><br>
+          <span style="font-size:12px; color:var(--muted)">${new Date(res.paid_at).toLocaleDateString('th-TH')}</span>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    box.innerHTML = '<p class="empty-state">ตรวจสอบไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+</script>
+</body>
+</html>

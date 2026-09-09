@@ -990,3 +990,10 @@ fieldset legend {
   font-weight: 600;
   margin: 8px 0 0;
 }
+
+/* ---------- Public stats widget (TOR ข้อ 8.8 ตัวอย่าง) ---------- */
+.public-stats-widget {
+  margin-top: 16px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.85);
+}

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ใบเสร็จของฉัน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
+    <nav>
+      <a href="member-dashboard.html">ข้อมูลของฉัน</a>
+      <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
+      <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
+      <a href="member-license.html" id="navLicense">ใบอนุญาต</a>
+      <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="member-receipts.html" class="active">ใบเสร็จของฉัน</a>
+      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>ใบเสร็จของฉัน</h1></header>
+
+    <div class="panel">
+      <p style="color:var(--muted); font-size:13px">ใบเสร็จรับเงินอิเล็กทรอนิกส์ออกให้อัตโนมัติทันทีที่ชำระเงินสำเร็จ ดาวน์โหลดได้ทุกครั้งที่ต้องการ</p>
+      <div id="receiptList"><p class="empty-state">กำลังโหลด...</p></div>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(['member'], 'index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+
+async function loadReceipts() {
+  const box = document.getElementById('receiptList');
+  try {
+    const rows = await apiCall('myReceipts');
+    if (!rows.length) { box.innerHTML = '<p class="empty-state">ยังไม่มีประวัติการชำระเงิน</p>'; return; }
+    box.innerHTML = rows.map(pm => `
+      <div class="app-status-card">
+        <div>
+          <b>${pm.ref_type} — ${pm.ref_id}</b><br>
+          <span style="color:var(--muted); font-size:13px">ชำระเมื่อ ${fmtDate(pm.paid_at)} • ${pm.channel || pm.method || '-'}</span><br>
+          ${pm.receipt_no ? '<span style="color:var(--muted); font-size:13px">เลขที่ใบเสร็จ ' + pm.receipt_no + '</span>' : ''}
+        </div>
+        <div style="text-align:right">
+          <b>${pm.amount} บาท</b><br>
+          <button class="btn small secondary" style="margin-top:6px" onclick="download('${pm.payment_id}')">ดาวน์โหลดใบเสร็จ</button>
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    box.innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+
+async function download(paymentId) {
+  try {
+    const res = await apiCall('downloadMyReceipt', { payment_id: paymentId });
+    window.open(res.receipt_url, '_blank');
+  } catch (err) {
+    alert('ดาวน์โหลดไม่สำเร็จ: ' + err.message);
+  }
+}
+
+loadReceipts();
+applyMemberNavVisibility();
+</script>
+</body>
+</html>

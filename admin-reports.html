@@ -18,9 +18,11 @@
       <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
       <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
       <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
-      <a href="admin-licenses.html">ทะเบียนสมาชิก</a>
+      <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
       <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
       <a href="admin-payments.html">การชำระเงิน</a>
+      <a href="admin-refunds.html">คืนเงิน</a>
+      <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
       <a href="admin-reports.html" class="active">รายงาน</a>
       <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -29,9 +31,33 @@
 
   <main class="main">
     <header><h1>รายงาน</h1></header>
-    <div class="module-stub">
-      <p>โมดูลนี้มีโครง Google Sheet และ API endpoint (<code>dashboardSummary (ต่อยอด)</code>) พร้อมใช้งานแล้วใน <code>apps-script/Code.gs</code>
-      แต่ยังไม่ได้ต่อ UI เต็มรูปแบบ — ดูรายละเอียดที่ต้องพัฒนาต่อใน <code>docs/ROADMAP.md</code> (อ้างอิง TOR ข้อ 8)</p>
+
+    <div class="panel">
+      <div class="type-tabs" id="categoryTabs"></div>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div><label>เลือกรายงาน</label><select id="reportSelect" onchange="loadReport()"></select></div>
+        <div>
+          <label>ช่วงวันที่ (ถ้ารายงานรองรับ)</label>
+          <div style="display:flex; gap:8px">
+            <input type="date" id="fromDate" onchange="loadReport()">
+            <input type="date" id="toDate" onchange="loadReport()">
+          </div>
+        </div>
+      </div>
+
+      <div id="reportError" class="error-box"></div>
+      <h2 id="reportTitle" style="margin-top:16px"></h2>
+      <div class="list-toolbar">
+        <button class="btn small secondary" onclick="exportCsv()">ส่งออก CSV</button>
+        <button class="btn small secondary" onclick="exportFile('excel')">ส่งออก Excel</button>
+        <button class="btn small secondary" onclick="exportFile('pdf')">ส่งออก PDF</button>
+      </div>
+      <div id="exportStatus" style="font-size:13px; color:var(--muted); margin:4px 0"></div>
+      <table>
+        <thead id="reportHead"></thead>
+        <tbody id="reportBody"><tr><td class="empty-state">เลือกรายงานเพื่อดูข้อมูล</td></tr></tbody>
+      </table>
     </div>
   </main>
 </div>
@@ -40,6 +66,96 @@
 <script>
 Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+let catalog = [];
+let currentCategory = 'สมาชิก';
+let currentReport = null;
+
+async function loadCatalog() {
+  try {
+    catalog = await apiCall('listReportCatalog');
+    const categories = [...new Set(catalog.map(r => r.category))];
+    document.getElementById('categoryTabs').innerHTML = categories.map(c =>
+      `<button class="tab-chip ${c === currentCategory ? 'active' : ''}" onclick="selectCategory('${c}')">${c}</button>`).join('');
+    populateReportSelect();
+  } catch (err) {
+    document.getElementById('reportError').textContent = 'โหลดรายการรายงานไม่สำเร็จ: ' + err.message;
+    document.getElementById('reportError').style.display = 'block';
+  }
+}
+
+function selectCategory(cat) {
+  currentCategory = cat;
+  document.querySelectorAll('#categoryTabs .tab-chip').forEach(b => b.classList.toggle('active', b.textContent === cat));
+  populateReportSelect();
+}
+
+function populateReportSelect() {
+  const rows = catalog.filter(r => r.category === currentCategory);
+  document.getElementById('reportSelect').innerHTML = rows.map(r => `<option value="${r.id}">${r.label}</option>`).join('');
+  loadReport();
+}
+
+async function loadReport() {
+  const reportId = document.getElementById('reportSelect').value;
+  if (!reportId) return;
+  const errBox = document.getElementById('reportError');
+  errBox.style.display = 'none';
+  document.getElementById('reportBody').innerHTML = '<tr><td class="empty-state">กำลังโหลด...</td></tr>';
+  try {
+    const from = document.getElementById('fromDate').value;
+    const to = document.getElementById('toDate').value;
+    currentReport = await apiCall('getReport', { report_id: reportId, from: from || undefined, to: to || undefined });
+    renderReport(currentReport);
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+    document.getElementById('reportBody').innerHTML = '<tr><td class="empty-state">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+  }
+}
+
+function renderReport(report) {
+  document.getElementById('reportTitle').textContent = report.title;
+  document.getElementById('reportHead').innerHTML = '<tr>' + report.columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  if (!report.rows.length) {
+    document.getElementById('reportBody').innerHTML = `<tr><td colspan="${report.columns.length}" class="empty-state">ไม่พบข้อมูล</td></tr>`;
+    return;
+  }
+  document.getElementById('reportBody').innerHTML = report.rows.map(row =>
+    '<tr>' + row.map(v => `<td>${v !== undefined && v !== null ? v : '-'}</td>`).join('') + '</tr>'
+  ).join('');
+}
+
+function exportCsv() {
+  if (!currentReport) return;
+  const lines = [currentReport.columns.join(',')].concat(
+    currentReport.rows.map(row => row.map(v => '"' + String(v !== undefined ? v : '').replace(/"/g, '""') + '"').join(','))
+  );
+  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = currentReport.title + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function exportFile(format) {
+  const reportId = document.getElementById('reportSelect').value;
+  const statusEl = document.getElementById('exportStatus');
+  statusEl.textContent = 'กำลังสร้างไฟล์...';
+  try {
+    const from = document.getElementById('fromDate').value;
+    const to = document.getElementById('toDate').value;
+    const action = format === 'excel' ? 'exportReportExcel' : 'exportReportPdf';
+    const res = await apiCall(action, { report_id: reportId, from: from || undefined, to: to || undefined });
+    statusEl.textContent = '';
+    window.open(res.url, '_blank');
+  } catch (err) {
+    statusEl.textContent = 'สร้างไฟล์ไม่สำเร็จ: ' + err.message;
+  }
+}
+
+loadCatalog();
 </script>
 </body>
 </html>

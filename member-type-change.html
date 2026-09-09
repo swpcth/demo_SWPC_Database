@@ -17,6 +17,8 @@
       <a href="member-type-change.html" id="navTypeChange" class="active">เปลี่ยนประเภทสมาชิก</a>
       <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
       <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="member-receipts.html">ใบเสร็จของฉัน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -39,6 +41,10 @@
 
       <form id="form-typechange" onsubmit="return submitTypeChange(event)">
         <p>เปลี่ยนสถานภาพจาก <b>สมทบ</b> เป็น <b>สามัญ</b></p>
+
+        <label>เลือกระยะเวลาสมาชิกภาพสามัญ * (ไม่มีค่าธรรมเนียมเปลี่ยนประเภทแยกต่างหาก คิดเป็นค่าบำรุงสมาชิกสามัญตามระยะเวลาที่เลือกเลย ไม่เก็บค่าแรกเข้าซ้ำ)</label>
+        <select id="tc_duration" onchange="updateTcFeeHint()"></select>
+        <p id="tc_feeHint" style="color:var(--muted); font-size:13px; margin-top:4px"></p>
 
         <div class="doc-row"><label>วุฒิการศึกษา</label><input type="file" id="doc_education" accept=".pdf,.jpg,.jpeg,.png"></div>
         <div class="doc-row"><label>ใบรับรองแพทย์</label><input type="file" id="doc_medical" accept=".pdf,.jpg,.jpeg,.png"></div>
@@ -112,6 +118,29 @@ async function loadMyRequests() {
   }
 }
 
+const ORDINARY_FEE_TABLE_CLIENT = { '1': 200, '5': 1000, 'lifetime': 2000 };
+const LIFETIME_MIN_AGE_CLIENT = 65;
+
+function populateTcDuration(dob) {
+  let age = null;
+  if (dob) {
+    const d = new Date(dob), now = new Date();
+    age = now.getFullYear() - d.getFullYear();
+    const m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  }
+  const opts = ['1', '5'];
+  if (age !== null && age >= LIFETIME_MIN_AGE_CLIENT) opts.push('lifetime');
+  const labels = { '1': '1 ปี', '5': '5 ปี', 'lifetime': 'ตลอดชีพ (อายุ ' + LIFETIME_MIN_AGE_CLIENT + ' ปีขึ้นไป)' };
+  document.getElementById('tc_duration').innerHTML = opts.map(d => `<option value="${d}">${labels[d]} — ${ORDINARY_FEE_TABLE_CLIENT[d].toLocaleString()} บาท</option>`).join('');
+  updateTcFeeHint();
+}
+
+function updateTcFeeHint() {
+  const duration = document.getElementById('tc_duration').value;
+  document.getElementById('tc_feeHint').textContent = 'ค่าธรรมเนียม ' + (ORDINARY_FEE_TABLE_CLIENT[duration] || 0).toLocaleString() + ' บาท (ไม่มีค่าแรกเข้า)';
+}
+
 async function loadProfile() {
   try {
     const profile = await apiCall('getMyProfile');
@@ -133,6 +162,7 @@ async function loadProfile() {
       return;
     }
     document.getElementById('formPanel').style.display = 'block';
+    populateTcDuration(profile.dob);
   } catch (err) {
     const navTypeChange = document.getElementById('navTypeChange');
     if (navTypeChange) navTypeChange.style.display = 'none';
@@ -159,7 +189,7 @@ async function submitTypeChange(e) {
     if (eduFile) documents.push(await uploadDocument(eduFile, 'วุฒิการศึกษา'));
     if (medFile) documents.push(await uploadDocument(medFile, 'ใบรับรองแพทย์'));
 
-    const res = await apiCall('submitTypeChange', { documents });
+    const res = await apiCall('submitTypeChange', { documents, duration: document.getElementById('tc_duration').value });
     alert('ส่งคำขอเปลี่ยนสถานภาพสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ');
     window.location.reload();
   } catch (err) {

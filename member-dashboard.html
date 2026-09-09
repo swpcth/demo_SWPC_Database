@@ -18,6 +18,8 @@
       <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
       <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
       <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
+      <a href="member-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="member-receipts.html">ใบเสร็จของฉัน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -147,6 +149,11 @@ async function load() {
           ${fld('s_first_name_en', 'ชื่อ (อังกฤษ)', m.first_name_en)}
           ${fld('s_last_name_en', 'นามสกุล (อังกฤษ)', m.last_name_en)}
           ${fld('s_dob', 'วัน/เดือน/ปีเกิด', (m.dob||'').slice(0,10), 'date')}
+          <div><label>เพศ</label>
+            <select id="s_gender">
+              ${['ชาย', 'หญิง', 'LGBTQ+', 'ไม่ระบุ'].map(g => `<option value="${g}" ${(m.gender || 'ไม่ระบุ') === g ? 'selected' : ''}>${g}</option>`).join('')}
+            </select>
+          </div>
           ${fld('s_religion', 'ศาสนา', m.religion)}
           ${fld('s_ethnicity', 'เชื้อชาติ', m.ethnicity)}
           ${fld('s_nationality', 'สัญชาติ', m.nationality)}
@@ -270,7 +277,7 @@ async function saveProfile() {
   try {
     const patch = {
       prefix_en: v('s_prefix_en'), first_name_en: v('s_first_name_en'), last_name_en: v('s_last_name_en'),
-      dob: v('s_dob'), religion: v('s_religion'), ethnicity: v('s_ethnicity'), nationality: v('s_nationality'),
+      dob: v('s_dob'), gender: v('s_gender'), religion: v('s_religion'), ethnicity: v('s_ethnicity'), nationality: v('s_nationality'),
       phone: v('s_phone'), email: v('s_email'), line_id: v('s_line_id'), photo_url: currentPhotoUrl,
       education_json: JSON.stringify(collectEducation()),
       work_status: v('s_work_status'), position: v('s_position'), agency: v('s_agency'),

@@ -19,6 +19,8 @@
       <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
       <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
       <a href="member-card.html" id="navCard" class="active">บัตรสมาชิก</a>
+      <a href="member-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="member-receipts.html">ใบเสร็จของฉัน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -213,8 +215,12 @@ async function loadRenewalPanel() {
       panel.innerHTML = `
         <h2>ต่ออายุสมาชิก</h2>
         <p style="color:var(--muted); font-size:13px">${check.isExpired ? 'บัตรของท่านหมดอายุแล้ว' : 'เหลืออีก ' + check.daysUntilExpire + ' วันก่อนบัตรหมดอายุ'} — กดต่ออายุแล้วชำระเงินได้ทันที</p>
-        <button class="btn" style="width:auto" onclick="submitRenewal()">ต่ออายุสมาชิก</button>
+        <label>เลือกระยะเวลาที่ต้องการต่ออายุ</label>
+        <select id="renew_duration" onchange="updateRenewFeeHint()"></select>
+        <p id="renew_feeHint" style="color:var(--muted); font-size:13px; margin-top:4px"></p>
+        <button class="btn" style="width:auto; margin-top:8px" onclick="submitRenewal()">ต่ออายุสมาชิก</button>
       `;
+      populateRenewDuration();
     } else {
       panel.innerHTML = `<h2>ต่ออายุสมาชิก</h2>
         <button class="btn" style="width:auto" disabled title="${check.reason}">ต่ออายุสมาชิก</button>
@@ -223,6 +229,37 @@ async function loadRenewalPanel() {
   } catch (err) {
     panel.innerHTML = '<p class="empty-state">โหลดข้อมูลปุ่มต่ออายุไม่สำเร็จ: ' + err.message + '</p>';
   }
+}
+
+const MEMBERSHIP_FEE_TABLE_CLIENT = {
+  'สามัญ': { '1': 200, '5': 1000, 'lifetime': 2000 },
+  'สมทบ': { '1': 100, '5': 500 }
+};
+const LIFETIME_MIN_AGE_CLIENT = 65;
+
+function populateRenewDuration() {
+  const m = currentData.profile;
+  const type = m.member_type;
+  let age = null;
+  if (m.dob) {
+    const d = new Date(m.dob), now = new Date();
+    age = now.getFullYear() - d.getFullYear();
+    const mo = now.getMonth() - d.getMonth();
+    if (mo < 0 || (mo === 0 && now.getDate() < d.getDate())) age--;
+  }
+  const table = MEMBERSHIP_FEE_TABLE_CLIENT[type] || MEMBERSHIP_FEE_TABLE_CLIENT['สามัญ'];
+  const opts = ['1', '5'];
+  if (type === 'สามัญ' && age !== null && age >= LIFETIME_MIN_AGE_CLIENT) opts.push('lifetime');
+  const labels = { '1': '1 ปี', '5': '5 ปี', 'lifetime': 'ตลอดชีพ (อายุ ' + LIFETIME_MIN_AGE_CLIENT + ' ปีขึ้นไป)' };
+  document.getElementById('renew_duration').innerHTML = opts.map(d => `<option value="${d}">${labels[d]} — ${table[d].toLocaleString()} บาท</option>`).join('');
+  updateRenewFeeHint();
+}
+
+function updateRenewFeeHint() {
+  const m = currentData.profile;
+  const table = MEMBERSHIP_FEE_TABLE_CLIENT[m.member_type] || MEMBERSHIP_FEE_TABLE_CLIENT['สามัญ'];
+  const duration = document.getElementById('renew_duration').value;
+  document.getElementById('renew_feeHint').textContent = 'ค่าธรรมเนียม ' + (table[duration] || 0).toLocaleString() + ' บาท';
 }
 
 async function submitRenewalSlip(applicationId) {
@@ -240,7 +277,8 @@ async function submitRenewalSlip(applicationId) {
 
 async function submitRenewal() {
   try {
-    const res = await apiCall('submitMembershipRenewal');
+    const duration = document.getElementById('renew_duration').value;
+    const res = await apiCall('submitMembershipRenewal', { duration });
     alert('ยื่นต่ออายุสำเร็จ เลขที่คำขอ ' + res.application_id + ' กรุณาแนบสลิปการโอนเงินที่จะปรากฏด้านล่างนี้');
     load();
   } catch (err) {

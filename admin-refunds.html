@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คืนเงิน — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+      <a href="admin-members.html">ข้อมูลสมาชิก</a>
+      <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+      <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+      <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+      <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
+      <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="admin-payments.html">การชำระเงิน</a>
+      <a href="admin-refunds.html" class="active">คืนเงิน</a>
+      <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
+      <a href="admin-reports.html">รายงาน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>คืนเงิน (Refund)</h1></header>
+    <p style="color:var(--muted); font-size:13px">ทุกคำขอต้องผ่านการตรวจสอบและอนุมัติจากเจ้าหน้าที่การเงินก่อนดำเนินการคืนเงินทุกครั้ง (TOR ข้อ 11) — ยื่นคำขอคืนเงินได้จากหน้า "การชำระเงิน" ที่รายการที่ชำระแล้ว</p>
+
+    <div class="panel">
+      <div class="list-toolbar">
+        <select id="f_status" onchange="loadAll()">
+          <option value="">สถานะทั้งหมด</option>
+          <option value="รอตรวจสอบ">รอตรวจสอบ</option>
+          <option value="อนุมัติ">อนุมัติ (รอดำเนินการคืนเงินจริง)</option>
+          <option value="ปฏิเสธ">ปฏิเสธ</option>
+          <option value="คืนเงินแล้ว">คืนเงินแล้ว</option>
+        </select>
+      </div>
+      <table>
+        <thead><tr><th>เลขที่คำขอ</th><th>เลขที่ชำระเงิน</th><th>เหตุผล</th><th>จำนวนเงิน</th><th>วันที่ยื่น</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="7" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+function statusClass(s) {
+  if (s === 'อนุมัติ' || s === 'คืนเงินแล้ว') return 'ok';
+  if (s === 'ปฏิเสธ') return 'warn';
+  return 'pending';
+}
+
+async function loadAll() {
+  const status = document.getElementById('f_status').value;
+  const tbody = document.getElementById('rows');
+  try {
+    const rows = await apiCall('listRefunds', status ? { status } : {});
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่พบคำขอคืนเงิน</td></tr>'; return; }
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.refund_id}</td>
+        <td>${r.payment_id}</td>
+        <td>${r.reason}</td>
+        <td>${r.refund_amount} บาท</td>
+        <td>${fmtDate(r.requested_at)}</td>
+        <td><span class="badge ${statusClass(r.status)}">${r.status}</span></td>
+        <td>
+          ${r.status === 'รอตรวจสอบ' ? `
+            <button class="btn small" onclick="review('${r.refund_id}','approve')">อนุมัติ</button>
+            <button class="btn small secondary" onclick="review('${r.refund_id}','reject')">ปฏิเสธ</button>
+          ` : ''}
+          ${r.status === 'อนุมัติ' ? `<button class="btn small" onclick="markCompleted('${r.refund_id}')">ยืนยันคืนเงินแล้ว</button>` : ''}
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+async function review(refundId, decision) {
+  let amount, note;
+  if (decision === 'approve') {
+    amount = prompt('ยืนยันจำนวนเงินที่จะคืน (บาท):');
+    if (!amount || isNaN(Number(amount))) { alert('กรุณาระบุจำนวนเงินเป็นตัวเลข'); return; }
+    note = prompt('หมายเหตุ (ถ้ามี):') || '';
+  } else {
+    note = prompt('ระบุเหตุผลที่ปฏิเสธ:');
+    if (!note) return;
+  }
+  try {
+    await apiCall('reviewRefund', { refund_id: refundId, decision, refund_amount: amount, note });
+    loadAll();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function markCompleted(refundId) {
+  if (!confirm('ยืนยันว่าได้ดำเนินการคืนเงินจริง (ผ่านหน้าเว็บของ Payment Gateway/ธนาคาร) เรียบร้อยแล้ว?')) return;
+  try {
+    await apiCall('markRefundCompleted', { refund_id: refundId });
+    loadAll();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+loadAll();
+</script>
+</body>
+</html>

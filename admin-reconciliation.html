@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>กระทบยอดรายรับ — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+      <a href="admin-members.html">ข้อมูลสมาชิก</a>
+      <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+      <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+      <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+      <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
+      <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="admin-payments.html">การชำระเงิน</a>
+      <a href="admin-refunds.html">คืนเงิน</a>
+      <a href="admin-reconciliation.html" class="active">กระทบยอดรายรับ</a>
+      <a href="admin-reports.html">รายงาน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>กระทบยอดรายรับ (Reconciliation)</h1></header>
+    <p style="color:var(--muted); font-size:13px">เปรียบเทียบข้อมูลธุรกรรมในระบบกับรายงานจากผู้ให้บริการ Payment Gateway เป็นประจำทุกวัน (TOR ข้อ 11) — เนื่องจากยังไม่ได้เชื่อมต่อ Payment Gateway จริง ใช้วิธีนำเข้าไฟล์ CSV ที่ดาวน์โหลดจากหน้าเว็บผู้ให้บริการมาจับคู่แทน</p>
+
+    <div class="panel">
+      <h2>เลือกวันที่กระทบยอด</h2>
+      <input type="date" id="reconDate" onchange="loadDayData()">
+      <p id="dayCount" style="margin-top:8px; color:var(--muted); font-size:13px"></p>
+      <table>
+        <thead><tr><th>เลขที่ชำระเงิน</th><th>จำนวนเงิน</th><th>ช่องทาง</th><th>เลขอ้างอิง Gateway</th><th>สถานะกระทบยอด</th><th></th></tr></thead>
+        <tbody id="dayRows"><tr><td colspan="6" class="empty-state">เลือกวันที่เพื่อดูรายการ</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>นำเข้ารายงานจาก Payment Gateway (CSV)</h2>
+      <p style="color:var(--muted); font-size:13px">คอลัมน์ที่รองรับ: <code>amount</code> (บังคับ), <code>gateway_ref</code> (ถ้ามี จะจับคู่แม่นยำกว่า) — บรรทัดแรกเป็นหัวตารางหรือไม่ก็ได้</p>
+      <input type="file" id="csvFile" accept=".csv">
+      <textarea id="notes" placeholder="หมายเหตุ (ถ้ามี)" rows="2" style="width:100%; margin-top:8px; padding:8px; border:1px solid var(--line); border-radius:var(--radius); font-family:inherit"></textarea>
+      <button class="btn small" style="margin-top:8px" onclick="importCsv()">นำเข้าและจับคู่อัตโนมัติ</button>
+      <div id="importResult" style="margin-top:8px; font-size:13px"></div>
+    </div>
+
+    <div class="panel">
+      <h2>ประวัติการกระทบยอด</h2>
+      <table>
+        <thead><tr><th>วันที่กระทบยอด</th><th>แหล่งข้อมูล</th><th>จับคู่ได้</th><th>ไม่พบคู่</th><th>ผู้ดำเนินการ</th><th>เมื่อ</th></tr></thead>
+        <tbody id="logRows"><tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+document.getElementById('reconDate').valueAsDate = new Date();
+
+async function loadDayData() {
+  const date = document.getElementById('reconDate').value;
+  if (!date) return;
+  const tbody = document.getElementById('dayRows');
+  tbody.innerHTML = '<tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr>';
+  try {
+    const rows = await apiCall('getReconciliationData', { date });
+    document.getElementById('dayCount').textContent = `ทั้งหมด ${rows.length} รายการ — กระทบยอดแล้ว ${rows.filter(r => r.reconciled).length} รายการ`;
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่มีรายการชำระเงินในวันนี้</td></tr>'; return; }
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.payment_id}</td>
+        <td>${r.amount} บาท</td>
+        <td>${r.channel || '-'}</td>
+        <td>${r.gateway_ref || '-'}</td>
+        <td><span class="badge ${r.reconciled ? 'ok' : 'pending'}">${r.reconciled ? 'กระทบยอดแล้ว' : 'ยังไม่กระทบยอด'}</span></td>
+        <td><button class="btn small secondary" onclick="toggleReconciled('${r.payment_id}', ${!r.reconciled})">${r.reconciled ? 'ยกเลิกการกระทบยอด' : 'ทำเครื่องหมายกระทบยอดแล้ว'}</button></td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+async function toggleReconciled(paymentId, reconciled) {
+  try {
+    await apiCall('markPaymentReconciled', { payment_id: paymentId, reconciled });
+    loadDayData();
+  } catch (err) {
+    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
+  }
+}
+
+function parseGatewayCsv(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  const rows = [];
+  lines.forEach(line => {
+    const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+    const amount = Number(cols[0]);
+    if (!isNaN(amount) && amount > 0) {
+      rows.push({ amount: amount, gateway_ref: cols[1] || '' });
+    }
+  });
+  return rows;
+}
+
+async function importCsv() {
+  const date = document.getElementById('reconDate').value;
+  const file = document.getElementById('csvFile').files[0];
+  const resultBox = document.getElementById('importResult');
+  if (!date) { alert('กรุณาเลือกวันที่ก่อน'); return; }
+  if (!file) { alert('กรุณาเลือกไฟล์ CSV'); return; }
+  try {
+    const text = await file.text();
+    const rows = parseGatewayCsv(text);
+    if (!rows.length) { alert('ไม่พบข้อมูลที่อ่านได้ในไฟล์'); return; }
+    const res = await apiCall('importGatewayStatementCsv', { date, rows, notes: document.getElementById('notes').value });
+    resultBox.innerHTML = `จับคู่สำเร็จ ${res.matched} รายการ • ไม่พบคู่ในระบบ ${res.unmatchedFromGateway.length} รายการ • ยังไม่กระทบยอดในระบบ ${res.unreconciledInSystem} รายการ`;
+    loadDayData();
+    loadLog();
+  } catch (err) {
+    resultBox.innerHTML = '<span style="color:var(--warn)">นำเข้าไม่สำเร็จ: ' + err.message + '</span>';
+  }
+}
+
+async function loadLog() {
+  const tbody = document.getElementById('logRows');
+  try {
+    const rows = await apiCall('listReconciliationLog');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ยังไม่มีประวัติการกระทบยอด</td></tr>'; return; }
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.recon_date}</td>
+        <td>${r.source}</td>
+        <td>${r.matched_count}</td>
+        <td>${r.unmatched_count}</td>
+        <td>${r.performed_by}</td>
+        <td>${new Date(r.performed_at).toLocaleString('th-TH')}</td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+loadDayData();
+loadLog();
+</script>
+</body>
+</html>

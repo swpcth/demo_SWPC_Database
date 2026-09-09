@@ -18,9 +18,11 @@
       <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
       <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
       <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
-      <a href="admin-licenses.html">ทะเบียนสมาชิก</a>
+      <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
       <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
       <a href="admin-payments.html">การชำระเงิน</a>
+      <a href="admin-refunds.html">คืนเงิน</a>
+      <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
       <a href="admin-reports.html">รายงาน</a>
       <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -39,7 +41,7 @@
     <!-- สามัญ / สมทบ -->
     <div class="panel" id="panel-individual">
       <div class="list-toolbar">
-        <input type="text" id="q" placeholder="ค้นหาจากเลขสมาชิก เลขบัตรประชาชน ชื่อ นามสกุล หรือเลขใบอนุญาต" oninput="renderIndividual()">
+        <input type="text" id="q" placeholder="ค้นหาจากเลขสมาชิก เลขบัตรประชาชน ชื่อ หรือนามสกุล" oninput="renderIndividual()">
         <button class="btn small secondary" onclick="toggleFilters()">ตัวกรอง</button>
         <button class="btn small secondary" onclick="exportCsv()">ดาวน์โหลด Excel (CSV)</button>
       </div>
@@ -73,9 +75,9 @@
 
       <table>
         <thead>
-          <tr><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>สถานะ</th><th>เลขใบอนุญาต</th><th>จังหวัดที่ปฏิบัติงาน</th><th></th></tr>
+          <tr><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>สถานะ</th><th>จังหวัดที่ปฏิบัติงาน</th><th></th></tr>
         </thead>
-        <tbody id="rows"><tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr></tbody>
+        <tbody id="rows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
 
@@ -167,8 +169,7 @@ function matchesFilters(m) {
     String(m.national_id||'').includes(q) ||
     String(m.member_no||'').toLowerCase().includes(q) ||
     String(m.first_name_th||'').toLowerCase().includes(q) ||
-    String(m.last_name_th||'').toLowerCase().includes(q) ||
-    String(m.license_no||'').includes(q)
+    String(m.last_name_th||'').toLowerCase().includes(q)
   )) return false;
 
   const fStatus = document.getElementById('f_status').value;
@@ -193,7 +194,7 @@ function renderIndividual() {
   document.getElementById('countLine').textContent = 'รายชื่อสมาชิกทั้งหมด ' + rows.length + ' คน';
   const tbody = document.getElementById('rows');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่พบข้อมูลสมาชิก</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่พบข้อมูลสมาชิก</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(m => `
@@ -201,11 +202,9 @@ function renderIndividual() {
       <td>${m.member_no || '-'}</td>
       <td>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</td>
       <td>${statusBadge(m.member_status)}</td>
-      <td>${m.license_no || '-'}</td>
       <td>${m.work_province || '-'}</td>
       <td>
         <button class="btn small secondary" onclick="viewMember('${m.member_id}')">ดู/แก้ไขข้อมูล</button>
-        ${m.license_no ? `<button class="btn small secondary" onclick="printLicense('${m.member_id}')">พิมพ์ใบอนุญาต</button>` : ''}
       </td>
     </tr>
   `).join('');
@@ -284,15 +283,6 @@ function collectEditEducation() {
   })).filter(e => e.level || e.degree || e.institute);
 }
 
-async function printLicense(memberId) {
-  try {
-    const res = await apiCall('generateLicensePdf', { member_id: memberId });
-    window.open(res.url, '_blank');
-  } catch (err) {
-    alert('พิมพ์ใบอนุญาตไม่สำเร็จ: ' + err.message);
-  }
-}
-
 async function viewMember(memberId) {
   document.getElementById('detailBody').innerHTML = '<p class="empty-state">กำลังโหลด...</p>';
   document.getElementById('detailOverlay').style.display = 'flex';
@@ -322,6 +312,11 @@ function renderEditForm(data) {
       <div class="grid-2">
         ${fld('e_national_id', 'เลขประจำตัวประชาชน', m.national_id)}
         ${fld('e_dob', 'วัน/เดือน/ปีเกิด', m.dob, 'date')}
+        <div><label>เพศ</label>
+          <select id="e_gender">
+            ${['ชาย', 'หญิง', 'LGBTQ+', 'ไม่ระบุ'].map(g => `<option value="${g}" ${(m.gender || 'ไม่ระบุ') === g ? 'selected' : ''}>${g}</option>`).join('')}
+          </select>
+        </div>
         ${fld('e_prefix_th', 'คำนำหน้า (ไทย)', m.prefix_th)}
         ${fld('e_prefix_en', 'คำนำหน้า (อังกฤษ)', m.prefix_en)}
         ${fld('e_first_name_th', 'ชื่อ (ไทย)', m.first_name_th)}
@@ -349,23 +344,6 @@ function renderEditForm(data) {
         ${fld('e_applied_date', 'วันที่ออกบัตร', (m.applied_date || '').slice(0, 10), 'date')}
         ${fld('e_membership_expire_date', 'วันบัตรหมดอายุ', (m.membership_expire_date || '').slice(0, 10), 'date')}
       </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>ข้อมูลใบอนุญาต</legend>
-      <div class="grid-2">
-        ${fld('e_license_no', 'เลขที่ใบอนุญาต', lic.license_no || m.license_no)}
-        ${fld('e_license_issue_date', 'วันที่ออกใบอนุญาต', (lic.issue_date || '').slice(0, 10), 'date')}
-        ${fld('e_license_expire_date', 'วันที่ใบอนุญาตหมดอายุ', (lic.expire_date || '').slice(0, 10), 'date')}
-        <div><label>สถานะใบอนุญาต</label>
-          <select id="e_license_status">
-            ${['ปกติ', 'ใกล้หมดอายุ', 'หมดอายุ', 'อยู่ระหว่างต่ออายุ', 'พักใช้', 'เพิกถอน'].map(s => `<option value="${s}" ${(lic.status || m.license_status) === s ? 'selected' : ''}>${s}</option>`).join('')}
-          </select>
-        </div>
-        ${fld('e_ce_score_cat1', 'คะแนน CE หมวด 1 (เกณฑ์ 40)', m.ce_score_cat1, 'number')}
-        ${fld('e_ce_score_cat2', 'คะแนน CE หมวด 2 (เกณฑ์ 10)', m.ce_score_cat2, 'number')}
-      </div>
-      <p style="color:var(--muted); font-size:12px">รอบสะสม 5 ปี ต้องผ่านเกณฑ์ทั้ง 2 หมวด (หมวด 1 ≥40 และหมวด 2 ≥10) จึงจะต่ออายุใบอนุญาตด้วยวิธี CE ได้ — กรอกด้วยมือชั่วคราว เพราะยังไม่ได้เชื่อมต่อ API ระบบการศึกษาต่อเนื่องจริง (ดู LICENSE_SYSTEM.md)</p>
     </fieldset>
 
     <fieldset>
@@ -475,13 +453,12 @@ async function saveMemberEdit(memberId) {
   const v = id => document.getElementById(id).value;
   try {
     const memberPatch = {
-      national_id: v('e_national_id'), dob: v('e_dob'), prefix_th: v('e_prefix_th'), prefix_en: v('e_prefix_en'),
+      national_id: v('e_national_id'), dob: v('e_dob'), gender: v('e_gender'), prefix_th: v('e_prefix_th'), prefix_en: v('e_prefix_en'),
       first_name_th: v('e_first_name_th'), last_name_th: v('e_last_name_th'),
       first_name_en: v('e_first_name_en'), last_name_en: v('e_last_name_en'),
       religion: v('e_religion'), ethnicity: v('e_ethnicity'), nationality: v('e_nationality'),
       phone: v('e_phone'), email: v('e_email'), line_id: v('e_line_id'),
       member_status: v('e_member_status'), photo_url: currentEditPhotoUrl,
-      ce_score_cat1: v('e_ce_score_cat1'), ce_score_cat2: v('e_ce_score_cat2'),
       applied_date: v('e_applied_date'), membership_expire_date: v('e_membership_expire_date'),
       education_json: JSON.stringify(collectEditEducation()),
       work_status: v('e_work_status'), position: v('e_position'), agency: v('e_agency'),
@@ -499,13 +476,6 @@ async function saveMemberEdit(memberId) {
       mailing_address_type: v('e_mailing_type'), mailing_recipient_name: v('e_mail_name'), mailing_recipient_phone: v('e_mail_phone')
     };
     await apiCall('updateMember', { member_id: memberId, patch: memberPatch });
-    await apiCall('updateLicense', {
-      member_id: memberId,
-      patch: {
-        license_no: v('e_license_no'), issue_date: v('e_license_issue_date'),
-        expire_date: v('e_license_expire_date'), status: v('e_license_status')
-      }
-    });
     alert('บันทึกข้อมูลสำเร็จ');
     closeMemberDetail();
     load();
@@ -520,10 +490,10 @@ function closeMemberDetail() { document.getElementById('detailOverlay').style.di
 
 function exportCsv() {
   const rows = all.filter(m => m.member_type === currentTypeTab).filter(matchesFilters);
-  const headers = ['เลขสมาชิก', 'คำนำหน้า', 'ชื่อ', 'นามสกุล', 'เลขบัตรประชาชน', 'สถานะ', 'เลขใบอนุญาต', 'จังหวัดที่ปฏิบัติงาน', 'อีเมล', 'เบอร์โทรศัพท์'];
+  const headers = ['เลขสมาชิก', 'คำนำหน้า', 'ชื่อ', 'นามสกุล', 'เลขบัตรประชาชน', 'สถานะ', 'จังหวัดที่ปฏิบัติงาน', 'อีเมล', 'เบอร์โทรศัพท์'];
   const lines = [headers.join(',')].concat(rows.map(m => [
     m.member_no, m.prefix_th, m.first_name_th, m.last_name_th, m.national_id,
-    m.member_status, m.license_no, m.work_province, m.email, m.phone
+    m.member_status, m.work_province, m.email, m.phone
   ].map(v => '"' + String(v || '').replace(/"/g, '""') + '"').join(',')));
   const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);

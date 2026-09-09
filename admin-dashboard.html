@@ -6,6 +6,7 @@
 <title>แดชบอร์ด — ระบบแอดมิน</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -18,9 +19,11 @@
       <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
       <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
       <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
-      <a href="admin-licenses.html">ทะเบียนสมาชิก</a>
+      <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
       <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
       <a href="admin-payments.html">การชำระเงิน</a>
+      <a href="admin-refunds.html">คืนเงิน</a>
+      <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
       <a href="admin-reports.html">รายงาน</a>
       <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -28,11 +31,10 @@
   </aside>
 
   <main class="main">
-    <header>
-      <h1>ภาพรวมระบบ</h1>
-    </header>
+    <header><h1>ภาพรวมระบบ</h1></header>
 
-    <div class="stat-grid" id="stats">
+    <!-- 8.1 Dashboard ผู้บริหาร -->
+    <div class="stat-grid" id="execStats">
       <div class="empty-state">กำลังโหลดข้อมูล...</div>
     </div>
 
@@ -42,8 +44,39 @@
     </div>
 
     <div class="panel">
+      <h2>รายรับ 12 เดือนล่าสุด</h2>
+      <canvas id="chartMonthly" height="90"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>รายรับ 5 ปีล่าสุด</h2>
+      <canvas id="chartYearly" height="90"></canvas>
+    </div>
+
+    <!-- 8.2 Dashboard เพิ่มเติม -->
+    <div class="panel">
+      <h2>คำขอสมัครสมาชิก แยกตามประเภท</h2>
+      <table>
+        <thead><tr><th>ประเภท</th><th>รอตรวจสอบ/รออนุมัติ</th><th>รอชำระเงิน</th></tr></thead>
+        <tbody id="tbl-membership-apps"></tbody>
+      </table>
+    </div>
+
+    <div class="stat-grid" id="opStats"></div>
+
+    <div class="panel">
+      <h2>คำขอรับสวัสดิการที่รอดำเนินการ แยกตามประเภท</h2>
+      <table id="tbl-welfare-pending"><tbody></tbody></table>
+    </div>
+
+    <div class="panel">
       <h2>สรุปตามสถานะสมาชิก</h2>
       <table id="tbl-status"><tbody></tbody></table>
+    </div>
+
+    <div class="panel">
+      <h2>สรุปตามสถานะใบอนุญาต</h2>
+      <table id="tbl-license-status"><tbody></tbody></table>
     </div>
   </main>
 </div>
@@ -53,23 +86,77 @@
 Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
 
-async function load() {
+function fmtMoney(n) { return Number(n || 0).toLocaleString(); }
+
+async function loadExecutive() {
   try {
-    const s = await apiCall('dashboardSummary');
-    document.getElementById('stats').innerHTML = `
-      <div class="stat-card"><div class="num">${s.totalMembers}</div><div class="label">สมาชิกทั้งหมด</div></div>
-      <div class="stat-card"><div class="num">${s.pendingApplications}</div><div class="label">คำขอรอตรวจสอบ</div></div>
-      <div class="stat-card"><div class="num">${s.awaitingPayment}</div><div class="label">รอชำระเงิน</div></div>
+    const e = await apiCall('getExecutiveDashboard');
+    document.getElementById('execStats').innerHTML = `
+      <div class="stat-card"><div class="num">${e.totalMembers}</div><div class="label">สมาชิกทั้งหมด</div></div>
+      <div class="stat-card"><div class="num">${e.newMembersThisMonth}</div><div class="label">สมัครใหม่เดือนนี้</div></div>
+      <div class="stat-card"><div class="num">${e.newMembersThisYear}</div><div class="label">สมัครใหม่ปีนี้</div></div>
+      <div class="stat-card"><div class="num">${e.expiredMembers}</div><div class="label">สมาชิกหมดอายุ</div></div>
+      <div class="stat-card"><div class="num">${e.renewedThisMonth}</div><div class="label">ต่ออายุสมาชิกเดือนนี้</div></div>
+      <div class="stat-card"><div class="num">${e.totalLicenseHolders}</div><div class="label">ผู้ได้รับใบอนุญาตทั้งหมด</div></div>
+      <div class="stat-card"><div class="num">${e.newLicensesThisMonth}</div><div class="label">ขึ้นทะเบียนใหม่เดือนนี้</div></div>
+      <div class="stat-card"><div class="num">${e.expiredLicenses}</div><div class="label">ใบอนุญาตหมดอายุ</div></div>
+      <div class="stat-card"><div class="num">${e.renewedLicensesThisMonth}</div><div class="label">ต่อใบอนุญาตเดือนนี้</div></div>
+      <div class="stat-card"><div class="num">฿${fmtMoney(e.revenueThisMonth)}</div><div class="label">รายรับเดือนนี้</div></div>
     `;
-    const typeRows = Object.entries(s.byType).map(([k,v]) => `<tr><td>${k || '(ไม่ระบุ)'}</td><td>${v}</td></tr>`).join('');
+    const typeRows = Object.entries(e.byType).map(([k, v]) => `<tr><td>${k || '(ไม่ระบุ)'}</td><td>${v}</td></tr>`).join('');
     document.querySelector('#tbl-type tbody').innerHTML = typeRows || '<tr><td class="empty-state">ยังไม่มีข้อมูล</td></tr>';
-    const statusRows = Object.entries(s.byStatus).map(([k,v]) => `<tr><td>${k || '(ไม่ระบุ)'}</td><td>${v}</td></tr>`).join('');
-    document.querySelector('#tbl-status tbody').innerHTML = statusRows || '<tr><td class="empty-state">ยังไม่มีข้อมูล</td></tr>';
+
+    new Chart(document.getElementById('chartMonthly'), {
+      type: 'bar',
+      data: { labels: e.monthlyRevenueChart.labels, datasets: [{ label: 'รายรับ (บาท)', data: e.monthlyRevenueChart.values, backgroundColor: '#1d6f8c' }] },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+    new Chart(document.getElementById('chartYearly'), {
+      type: 'bar',
+      data: { labels: e.yearlyRevenueChart.labels, datasets: [{ label: 'รายรับ (บาท)', data: e.yearlyRevenueChart.values, backgroundColor: '#b8860b' }] },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
   } catch (err) {
-    document.getElementById('stats').innerHTML = `<div class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</div>`;
+    document.getElementById('execStats').innerHTML = `<div class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</div>`;
   }
 }
-load();
+
+async function loadOperational() {
+  try {
+    const o = await apiCall('getOperationalDashboard');
+    document.querySelector('#tbl-membership-apps').innerHTML = Object.entries(o.membershipAppsByType).map(([type, v]) =>
+      `<tr><td>${type}</td><td>${v.pending}</td><td>${v.awaitingPayment}</td></tr>`).join('');
+
+    document.getElementById('opStats').innerHTML = `
+      <div class="stat-card"><div class="num">${o.licenseRegPending}</div><div class="label">คำขอขึ้นทะเบียนรอดำเนินการ</div></div>
+      <div class="stat-card"><div class="num">${o.licenseRenewPending}</div><div class="label">คำขอต่อใบอนุญาตรอดำเนินการ</div></div>
+      <div class="stat-card"><div class="num">${o.slaMembershipAvgDays !== null ? o.slaMembershipAvgDays + ' วัน' : '-'}</div><div class="label">เฉลี่ยอนุมัติสมัครสมาชิก (SLA เป้าหมาย ${o.slaApprovalTargetDays} วัน)</div></div>
+      <div class="stat-card"><div class="num">${o.slaLicenseAvgDays !== null ? o.slaLicenseAvgDays + ' วัน' : '-'}</div><div class="label">เฉลี่ยอนุมัติขึ้นทะเบียน (SLA เป้าหมาย ${o.slaApprovalTargetDays} วัน)</div></div>
+      <div class="stat-card"><div class="num">${o.memberCardExpiring90}</div><div class="label">บัตรสมาชิกจะหมดอายุใน 90 วัน</div></div>
+      <div class="stat-card"><div class="num">${o.licenseExpiring180}</div><div class="label">ใบอนุญาตจะหมดอายุใน 180 วัน</div></div>
+      <div class="stat-card"><div class="num">${o.nameChangePending}</div><div class="label">คำขอเปลี่ยนชื่อ-นามสกุลรออนุมัติ</div></div>
+    `;
+
+    const welfareRows = Object.entries(o.welfarePendingByType).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+    document.querySelector('#tbl-welfare-pending tbody').innerHTML = welfareRows || '<tr><td class="empty-state">ไม่มีคำขอรอดำเนินการ</td></tr>';
+  } catch (err) {
+    document.getElementById('opStats').innerHTML = `<div class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</div>`;
+  }
+}
+
+async function loadLegacySummary() {
+  try {
+    const s = await apiCall('dashboardSummary');
+    const statusRows = Object.entries(s.byStatus).map(([k, v]) => `<tr><td>${k || '(ไม่ระบุ)'}</td><td>${v}</td></tr>`).join('');
+    document.querySelector('#tbl-status tbody').innerHTML = statusRows || '<tr><td class="empty-state">ยังไม่มีข้อมูล</td></tr>';
+    const licenseRows = Object.entries(s.licenseByStatus).map(([k, v]) => `<tr><td>${k || '(ไม่ระบุ)'}</td><td>${v}</td></tr>`).join('');
+    document.querySelector('#tbl-license-status tbody').innerHTML = licenseRows || '<tr><td class="empty-state">ยังไม่มีข้อมูล</td></tr>';
+  } catch (err) { /* ignore, non-critical secondary tables */ }
+}
+
+loadExecutive();
+loadOperational();
+loadLegacySummary();
 </script>
 </body>
 </html>

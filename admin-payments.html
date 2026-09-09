@@ -18,9 +18,11 @@
       <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
       <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
       <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
-      <a href="admin-licenses.html">ทะเบียนสมาชิก</a>
+      <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
       <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
       <a href="admin-payments.html" class="active">การชำระเงิน</a>
+      <a href="admin-refunds.html">คืนเงิน</a>
+      <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
       <a href="admin-reports.html">รายงาน</a>
       <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -40,7 +42,7 @@
     </div>
 
     <div class="panel">
-      <h2>รายการชำระเงินทั้งหมด (ทุกประเภท)</h2>
+      <h2>รายการชำระเงินทั้งหมด (ทุกประเภท) — Transaction Log</h2>
       <div class="list-toolbar">
         <select id="f_status" onchange="renderAll()">
           <option value="">สถานะทั้งหมด</option>
@@ -48,12 +50,13 @@
           <option value="รอตรวจสอบ">รอตรวจสอบ</option>
           <option value="ชำระแล้ว">ชำระแล้ว</option>
           <option value="ปฏิเสธ">ปฏิเสธ</option>
+          <option value="คืนเงินแล้ว">คืนเงินแล้ว</option>
         </select>
       </div>
       <p class="count-line" id="countLine">ทั้งหมด 0 รายการ</p>
       <table>
-        <thead><tr><th>เลขที่รายการ</th><th>อ้างอิง</th><th>จำนวนเงิน</th><th>วิธีชำระ</th><th>สถานะ</th><th>วันที่ชำระ</th></tr></thead>
-        <tbody id="allRows"><tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr></tbody>
+        <thead><tr><th>เลขที่รายการ</th><th>อ้างอิง</th><th>จำนวนเงิน</th><th>ช่องทาง</th><th>เลขอ้างอิง Gateway</th><th>เลขที่ใบเสร็จ</th><th>สถานะ</th><th>วันที่ชำระ</th><th></th></tr></thead>
+        <tbody id="allRows"><tr><td colspan="9" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
   </main>
@@ -74,7 +77,6 @@ async function loadRenewalQueue() {
       tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีรายการรอตรวจสอบ</td></tr>';
       return;
     }
-    const apps = await apiCall('listApplications'); // เผื่อ join ชื่อ (ต่ออายุสมาชิกไม่อยู่ในนี้ ใช้ ref_data_json ของ Applications โดยตรงแทน)
     tbody.innerHTML = payments.map(pm => `
       <tr>
         <td>${pm.ref_id}</td>
@@ -108,19 +110,49 @@ function renderAll() {
   document.getElementById('countLine').textContent = 'ทั้งหมด ' + rows.length + ' รายการ';
   const tbody = document.getElementById('allRows');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่พบข้อมูล</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">ไม่พบข้อมูล</td></tr>';
     return;
   }
-  const statusClass = s => s === 'ชำระแล้ว' ? 'ok' : (s === 'รอตรวจสอบ' ? 'pending' : (s === 'ปฏิเสธ' ? 'warn' : 'pending'));
+  const statusClass = s => s === 'ชำระแล้ว' ? 'ok' : (s === 'รอตรวจสอบ' ? 'pending' : (s === 'ปฏิเสธ' || s === 'คืนเงินแล้ว' ? 'warn' : 'pending'));
   tbody.innerHTML = rows.map(p => `
     <tr>
       <td>${p.payment_id}</td>
       <td>${p.ref_type} — ${p.ref_id}</td>
       <td>${p.amount} บาท</td>
-      <td>${p.method || '-'}</td>
+      <td>${p.channel || p.method || '-'}</td>
+      <td>${p.gateway_ref || '-'}</td>
+      <td>${p.receipt_no || '-'}</td>
       <td><span class="badge ${statusClass(p.status)}">${p.status}</span></td>
       <td>${p.paid_at ? new Date(p.paid_at).toLocaleDateString('th-TH') : '-'}</td>
+      <td>
+        ${p.status === 'ชำระแล้ว' ? `
+          ${p.receipt_url ? `<a class="btn small secondary" style="width:auto" href="${p.receipt_url}" target="_blank">ดูใบเสร็จ</a>` : ''}
+          <button class="btn small secondary" onclick="reissueReceipt('${p.payment_id}')">ออกใบเสร็จใหม่</button>
+          <button class="btn small secondary" onclick="requestRefund('${p.payment_id}')">ขอคืนเงิน</button>
+        ` : ''}
+      </td>
     </tr>`).join('');
+}
+
+async function reissueReceipt(paymentId) {
+  try {
+    const res = await apiCall('generateReceipt', { payment_id: paymentId });
+    window.open(res.receipt_url, '_blank');
+    loadAllPayments();
+  } catch (err) {
+    alert('ออกใบเสร็จไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function requestRefund(paymentId) {
+  const reason = prompt('ระบุเหตุผลการขอคืนเงิน (เช่น ชำระเงินซ้ำซ้อน, คำขอถูกปฏิเสธหลังชำระเงิน):');
+  if (!reason) return;
+  try {
+    const res = await apiCall('submitRefundRequest', { payment_id: paymentId, reason });
+    alert('ยื่นคำขอคืนเงินสำเร็จ เลขที่คำขอ ' + res.refund_id + ' — ไปที่เมนู "คืนเงิน" เพื่อตรวจสอบ/อนุมัติ');
+  } catch (err) {
+    alert('ยื่นคำขอไม่สำเร็จ: ' + err.message);
+  }
 }
 
 async function loadAllPayments() {
@@ -128,7 +160,7 @@ async function loadAllPayments() {
     allPayments = await apiCall('listPayments');
     renderAll();
   } catch (err) {
-    document.getElementById('allRows').innerHTML = `<tr><td colspan="6" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+    document.getElementById('allRows').innerHTML = `<tr><td colspan="9" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
   }
 }
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ทะเบียนสมาชิก — ระบบแอดมิน</title>
+<title>ข้อมูลใบอนุญาต — ระบบแอดมิน</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -18,9 +18,11 @@
       <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
       <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
       <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
-      <a href="admin-licenses.html" class="active">ทะเบียนสมาชิก</a>
+      <a href="admin-licenses.html" class="active">ข้อมูลใบอนุญาต</a>
       <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
       <a href="admin-payments.html">การชำระเงิน</a>
+      <a href="admin-refunds.html">คืนเงิน</a>
+      <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
       <a href="admin-reports.html">รายงาน</a>
       <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -29,7 +31,7 @@
 
   <main class="main">
     <header>
-      <h1>ทะเบียนสมาชิก</h1>
+      <h1>ข้อมูลใบอนุญาต</h1>
       <button class="btn small secondary" onclick="runCheckNow()">ตรวจสอบวันหมดอายุตอนนี้</button>
     </header>
 
@@ -51,9 +53,9 @@
       <p class="count-line" id="countLine">ทั้งหมด 0 รายการ</p>
       <table>
         <thead>
-          <tr><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>ประเภท</th><th>วันที่สมัคร</th><th>วันหมดอายุสมาชิก</th><th>เลขใบอนุญาต</th><th>สถานะใบอนุญาต</th><th></th></tr>
+          <tr><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>เลขใบอนุญาต</th><th>วันออกใบอนุญาต</th><th>วันหมดอายุใบอนุญาต</th><th>สถานะใบอนุญาต</th><th></th></tr>
         </thead>
-        <tbody id="rows"><tr><td colspan="8" class="empty-state">กำลังโหลด...</td></tr></tbody>
+        <tbody id="rows"><tr><td colspan="7" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
 
@@ -114,19 +116,18 @@ function renderRegistry() {
   document.getElementById('countLine').textContent = 'ทั้งหมด ' + rows.length + ' รายการ';
   const tbody = document.getElementById('rows');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">ไม่พบข้อมูล</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่พบข้อมูล</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td>${r.member_no || '-'}</td>
       <td>${r.name}</td>
-      <td>${r.member_type}</td>
-      <td>${fmtDate(r.applied_date)}</td>
-      <td>${fmtDate(r.membership_expire_date)} ${r.days_until_expire !== null && r.days_until_expire < 30 ? '<span class="badge ' + (r.days_until_expire < 0 ? 'warn' : 'pending') + '">' + (r.days_until_expire < 0 ? 'เกินกำหนด ' + Math.abs(r.days_until_expire) + ' วัน' : 'อีก ' + r.days_until_expire + ' วัน') + '</span>' : ''}</td>
       <td>${r.license_no || '-'}</td>
+      <td>${fmtDate(r.license_issue_date)}</td>
+      <td>${fmtDate(r.license_expire_date)} ${r.license_days_until_expire !== null && r.license_days_until_expire < 30 ? '<span class="badge ' + (r.license_days_until_expire < 0 ? 'warn' : 'pending') + '">' + (r.license_days_until_expire < 0 ? 'เกินกำหนด ' + Math.abs(r.license_days_until_expire) + ' วัน' : 'อีก ' + r.license_days_until_expire + ' วัน') + '</span>' : ''}</td>
       <td><span class="badge ${licBadgeClass(r.license_status)}">${r.license_status || '-'}</span></td>
-      <td><button class="btn small secondary" onclick="viewRegistry('${r.member_id}')">ดูทะเบียน</button></td>
+      <td><button class="btn small secondary" onclick="viewRegistry('${r.member_id}')">ดูรายละเอียด</button></td>
     </tr>
   `).join('');
 }
@@ -154,7 +155,7 @@ async function viewRegistry(memberId) {
       : '<p class="empty-state">ยังไม่เคยส่งแจ้งเตือน</p>';
 
     document.getElementById('detailBody').innerHTML = `
-      <h2>ทะเบียนสมาชิก — ${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
+      <h2>ข้อมูลใบอนุญาต — ${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
       <p>เลขสมาชิก <b>${m.member_no}</b> • สมาชิก${m.member_type} • <span class="badge ${m.member_status==='ปกติ'?'ok':'warn'}">${m.member_status}</span></p>
 
       <h3>ข้อมูลทะเบียน (TOR ข้อ 3.1)</h3>
@@ -162,12 +163,20 @@ async function viewRegistry(memberId) {
       <p><b>วันหมดอายุสมาชิกภาพ:</b> ${fmtDate(m.membership_expire_date)}</p>
 
       <h3>ข้อมูลใบอนุญาต (TOR ข้อ 3.2)</h3>
-      ${lic ? `
-        <p><b>เลขที่ใบอนุญาต:</b> ${lic.license_no}</p>
-        <p><b>วันที่ออกใบอนุญาต:</b> ${fmtDate(lic.issue_date)}</p>
-        <p><b>วันหมดอายุ:</b> ${fmtDate(lic.expire_date)}</p>
-        <p><b>สถานะ:</b> <span class="badge ${licBadgeClass(lic.status)}">${lic.status}</span></p>
-      ` : '<p class="empty-state">ยังไม่มีใบอนุญาต</p>'}
+      <div class="grid-2">
+        <div><label>เลขที่ใบอนุญาต</label><input type="text" id="lic_no" value="${lic ? lic.license_no : ''}"></div>
+        <div><label>วันที่ออกใบอนุญาต</label><input type="date" id="lic_issue" value="${lic ? (lic.issue_date || '').slice(0,10) : ''}"></div>
+        <div><label>วันหมดอายุ</label><input type="date" id="lic_expire" value="${lic ? (lic.expire_date || '').slice(0,10) : ''}"></div>
+        <div><label>สถานะใบอนุญาต</label>
+          <select id="lic_status">
+            ${['ปกติ', 'ใกล้หมดอายุ', 'หมดอายุ', 'อยู่ระหว่างต่ออายุ', 'พักใช้', 'เพิกถอน'].map(s => `<option value="${s}" ${lic && lic.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div><label>คะแนน CE หมวด 1 (เกณฑ์ 40)</label><input type="number" id="lic_ce1" value="${m.ce_score_cat1 || ''}"></div>
+        <div><label>คะแนน CE หมวด 2 (เกณฑ์ 10)</label><input type="number" id="lic_ce2" value="${m.ce_score_cat2 || ''}"></div>
+      </div>
+      <p style="color:var(--muted); font-size:12px">รอบสะสม 5 ปี ต้องผ่านเกณฑ์ทั้ง 2 หมวดจึงจะต่ออายุด้วยวิธี CE ได้ — กรอกด้วยมือชั่วคราว เพราะยังไม่ได้เชื่อมต่อ API ระบบการศึกษาต่อเนื่องจริง (ดู LICENSE_SYSTEM.md)</p>
+      <button class="btn small" onclick="saveLicenseInfo('${m.member_id}')">บันทึกข้อมูลใบอนุญาต</button>
 
       <h3>ประวัติการต่ออายุ</h3>
       ${renewalsHtml}
@@ -197,6 +206,25 @@ async function printLicense(memberId) {
     window.open(res.url, '_blank');
   } catch (err) {
     alert('พิมพ์ใบอนุญาตไม่สำเร็จ: ' + err.message);
+  }
+}
+
+async function saveLicenseInfo(memberId) {
+  const v = id => document.getElementById(id).value;
+  try {
+    await apiCall('updateLicense', {
+      member_id: memberId,
+      patch: { license_no: v('lic_no'), issue_date: v('lic_issue'), expire_date: v('lic_expire'), status: v('lic_status') }
+    });
+    await apiCall('updateMember', {
+      member_id: memberId,
+      patch: { ce_score_cat1: v('lic_ce1'), ce_score_cat2: v('lic_ce2') }
+    });
+    alert('บันทึกข้อมูลใบอนุญาตสำเร็จ');
+    closeDetail();
+    load();
+  } catch (err) {
+    alert('บันทึกไม่สำเร็จ: ' + err.message);
   }
 }
 
@@ -260,7 +288,7 @@ async function load() {
     renderStats();
     renderRegistry();
   } catch (err) {
-    document.getElementById('rows').innerHTML = `<tr><td colspan="8" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+    document.getElementById('rows').innerHTML = `<tr><td colspan="7" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
   }
   try {
     notifications = await apiCall('listNotifications');

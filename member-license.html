@@ -19,6 +19,8 @@
       <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
       <a href="member-license.html" id="navLicense" class="active">ใบอนุญาต</a>
       <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="member-receipts.html">ใบเสร็จของฉัน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -135,6 +137,7 @@ function statusBadgeClass(status) {
 }
 
 let currentData = null;
+let currentExamSubjects = ['วิชาที่ 1', 'วิชาที่ 2'];
 
 function showSide(side) {
   document.getElementById('cardFront').style.display = side === 'front' ? 'block' : 'none';
@@ -263,6 +266,8 @@ function renderRenewForm(eligibility) {
   const isAfter = eligibility.isAfterExpiry;
   const ceQualified = eligibility.ceQualified;
   const ceOptionLabel = isAfter ? 'ต่อหลังหมดอายุด้วยผลการศึกษาต่อเนื่อง (CE)' : 'ต่อก่อนหมดอายุด้วยผลการศึกษาต่อเนื่อง (CE)';
+  currentExamSubjects = eligibility.examSubjects || ['วิชาที่ 1', 'วิชาที่ 2'];
+  const examFeeTotal = (eligibility.examSubjectFee || 0) * currentExamSubjects.length;
 
   document.getElementById('renewForm').innerHTML = `
     <p>สถานะใบอนุญาต: ${isAfter ? '<span class="badge warn">หมดอายุแล้ว</span>' : '<span class="badge pending">เหลืออีก ' + eligibility.daysUntilExpire + ' วัน</span>'}</p>
@@ -271,7 +276,7 @@ function renderRenewForm(eligibility) {
     <label>เลือกวิธีต่ออายุ</label>
     <select id="renew_method" onchange="toggleRenewMethodUI()">
       ${ceQualified ? `<option value="${isAfter ? 'CE_after' : 'CE_before'}">${ceOptionLabel}</option>` : ''}
-      <option value="exam">ต่อด้วยผลสอบข้อเขียนใหม่</option>
+      <option value="exam">ต่อด้วยผลสอบข้อเขียนใหม่ (รวม ${examFeeTotal.toLocaleString()} บาท)</option>
     </select>
     ${!ceQualified ? `<p style="color:var(--warn); font-size:12px">ผู้ที่จะกดต่ออายุด้วยผล CE ได้ ต้องผ่านเกณฑ์ CE ครบทั้ง 2 หมวดแล้วเท่านั้น (ดูคะแนนสะสมด้านบน) — บัญชีนี้ยังไม่ผ่านเกณฑ์ จึงเลือกได้เฉพาะวิธีสอบข้อเขียนใหม่</p>` : ''}
 
@@ -281,9 +286,9 @@ function renderRenewForm(eligibility) {
     </div>
 
     <div id="examDocsBox" style="display:none">
-      <p style="color:var(--muted); font-size:12px">ต้องแนบผลสอบข้อเขียนครบ 2 วิชา และผลสอบสัมภาษณ์</p>
-      <div class="doc-row"><label>ผลสอบข้อเขียน วิชาที่ 1 *</label><input type="file" id="doc_subject1" accept=".pdf,.jpg,.jpeg,.png"></div>
-      <div class="doc-row"><label>ผลสอบข้อเขียน วิชาที่ 2 *</label><input type="file" id="doc_subject2" accept=".pdf,.jpg,.jpeg,.png"></div>
+      <p style="color:var(--muted); font-size:12px">ต้องแนบผลสอบข้อเขียนครบ 2 วิชา (วิชาละ ${(eligibility.examSubjectFee || 0).toLocaleString()} บาท) และผลสอบสัมภาษณ์</p>
+      <div class="doc-row"><label>ผลสอบข้อเขียน ${currentExamSubjects[0]} *</label><input type="file" id="doc_subject1" accept=".pdf,.jpg,.jpeg,.png"></div>
+      <div class="doc-row"><label>ผลสอบข้อเขียน ${currentExamSubjects[1]} *</label><input type="file" id="doc_subject2" accept=".pdf,.jpg,.jpeg,.png"></div>
       <div class="doc-row"><label>ผลสอบสัมภาษณ์ *</label><input type="file" id="doc_interview_exam" accept=".pdf,.jpg,.jpeg,.png"></div>
     </div>
 
@@ -314,8 +319,8 @@ async function submitRenewal(isAfter) {
       const f2 = document.getElementById('doc_subject2').files[0];
       const f3 = document.getElementById('doc_interview_exam').files[0];
       if (!f1 || !f2 || !f3) throw new Error('กรุณาแนบผลสอบข้อเขียนทั้ง 2 วิชา และผลสอบสัมภาษณ์ให้ครบ');
-      documents.push(await uploadDocument(f1, 'ผลสอบข้อเขียน วิชาที่ 1'));
-      documents.push(await uploadDocument(f2, 'ผลสอบข้อเขียน วิชาที่ 2'));
+      documents.push(await uploadDocument(f1, 'ผลสอบข้อเขียน ' + currentExamSubjects[0]));
+      documents.push(await uploadDocument(f2, 'ผลสอบข้อเขียน ' + currentExamSubjects[1]));
       documents.push(await uploadDocument(f3, 'ผลสอบสัมภาษณ์'));
     }
     const payload = { method, documents };
