@@ -84,6 +84,7 @@ function viewDetail(applicationId) {
     <div class="doc-grid">
       ${docItem(docs, 'วุฒิการศึกษา')}
       ${docItem(docs, 'ใบรับรองแพทย์')}
+      ${docItem(docs, 'ลายมือชื่อผู้ยื่นคำขอ (ดิจิทัล)')}
     </div>
     ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn)"><b>เหตุผลไม่อนุมัติ:</b> ' + a.reject_reason + '</p>' : ''}
     ${a.status === 'รอตรวจสอบ' ? `

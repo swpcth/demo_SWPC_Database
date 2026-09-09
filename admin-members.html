@@ -361,8 +361,8 @@ function renderEditForm(data) {
       <div class="grid-2">
         ${fld('e_work_status', 'สถานะการทำงาน', m.work_status)}
         ${fld('e_position', 'ตำแหน่งปัจจุบัน', m.position)}
-        ${fld('e_agency', 'ชื่อหน่วยงาน', m.agency)}
-        ${fld('e_affiliation', 'สังกัด', m.affiliation)}
+        <div><label>สังกัด</label><select id="e_affiliation"></select></div>
+        <div><label>ชื่อหน่วยงาน</label><input type="text" id="e_agency" value="${m.agency || ''}" placeholder="พิมพ์เอง หรือเลือกจากคำแนะนำถ้าสังกัดราชการ"></div>
         ${fld('e_work_province', 'จังหวัดที่ปฏิบัติงาน', m.work_province)}
         ${fld('e_expertise', 'ความเชี่ยวชาญด้านสังคมสงเคราะห์', m.expertise)}
       </div>
@@ -450,6 +450,7 @@ function renderEditForm(data) {
     province: m.workplace_province, district: m.workplace_district,
     subdistrict: m.workplace_subdistrict, zipcode: m.workplace_zipcode
   });
+  initAffiliationCascade('e', { affiliation: m.affiliation, agency: m.agency });
 
   document.getElementById('e_photo').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];

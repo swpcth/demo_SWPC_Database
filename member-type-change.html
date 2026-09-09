@@ -49,6 +49,15 @@
         <div class="doc-row"><label>วุฒิการศึกษา</label><input type="file" id="doc_education" accept=".pdf,.jpg,.jpeg,.png"></div>
         <div class="doc-row"><label>ใบรับรองแพทย์</label><input type="file" id="doc_medical" accept=".pdf,.jpg,.jpeg,.png"></div>
 
+        <label style="margin-top:12px">ลงลายมือชื่อผู้ยื่นคำขอ * <span style="color:var(--muted); font-weight:400">(วาดด้วยเมาส์หรือนิ้วในกรอบด้านล่าง)</span></label>
+        <div class="signature-pad-wrap">
+          <canvas id="tcSignaturePad" class="signature-pad-canvas" width="420" height="160"></canvas>
+          <div class="signature-pad-actions">
+            <span>ลงชื่อในกรอบด้านบน</span>
+            <button type="button" class="btn small secondary" onclick="tcSigPad.clear()">ล้างลายเซ็น</button>
+          </div>
+        </div>
+
         <button class="btn" type="submit" id="submitBtn" style="margin-top:16px">ส่งคำขอเปลี่ยนสถานภาพ</button>
       </form>
     </div>
@@ -73,7 +82,7 @@ function statusBadgeClass(status) {
 function renderPaySlipForm(a) {
   return `
     <div class="pay-box">
-      <p>ค่าธรรมเนียมเปลี่ยนสถานภาพ: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี [ระบุเลขบัญชีสภาฯ] แล้วแนบสลิปด้านล่าง</p>
+      <p>ค่าธรรมเนียมเปลี่ยนสถานภาพ: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี 021-0-15582-5 ธนาคารกรุงไทย ชื่อบัญชี "สภาวิชาชีพสังคมสงเคราะห์" แล้วแนบสลิปด้านล่าง</p>
       <input type="file" id="slip_${a.application_id}" accept=".pdf,.jpg,.jpeg,.png">
       <button type="button" class="btn small" onclick="submitSlip('${a.application_id}')">แนบสลิปการโอนเงิน</button>
     </div>`;
@@ -176,6 +185,11 @@ function showNotice(text) {
 
 async function submitTypeChange(e) {
   e.preventDefault();
+  if (tcSigPad.isEmpty()) {
+    document.getElementById('error').textContent = 'กรุณาลงลายมือชื่อผู้ยื่นคำขอในกรอบลายเซ็นก่อนส่งคำขอ';
+    document.getElementById('error').style.display = 'block';
+    return;
+  }
   const btn = document.getElementById('submitBtn');
   const errBox = document.getElementById('error');
   errBox.style.display = 'none';
@@ -186,6 +200,8 @@ async function submitTypeChange(e) {
     const medFile = document.getElementById('doc_medical').files[0];
     if (eduFile) documents.push(await uploadDocument(eduFile, 'วุฒิการศึกษา'));
     if (medFile) documents.push(await uploadDocument(medFile, 'ใบรับรองแพทย์'));
+    const sigFile = await tcSigPad.toFile('signature_' + Date.now() + '.png');
+    documents.push(await uploadDocument(sigFile, 'ลายมือชื่อผู้ยื่นคำขอ (ดิจิทัล)'));
 
     const res = await apiCall('submitTypeChange', { documents, duration: document.getElementById('tc_duration').value });
     showToast('ส่งคำขอเปลี่ยนสถานภาพสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ', 'success');    window.location.reload();
@@ -203,6 +219,7 @@ async function loadAll() {
   await loadProfile();
 }
 loadAll();
+let tcSigPad = createSignaturePad('tcSignaturePad');
 </script>
 </body>
 </html>

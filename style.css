@@ -1124,3 +1124,40 @@ fieldset legend {
 }
 .profile-info-grid span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
 .profile-info-grid b { font-size: 15px; }
+
+/* ---------- ระบบลายเซ็น/ประทับตราดิจิทัล ---------- */
+
+.signature-pad-wrap {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: #fdfdfb;
+  padding: 8px;
+  display: inline-block;
+}
+.signature-pad-canvas {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: 160px;
+  touch-action: none;
+  cursor: crosshair;
+  background: #fff;
+  border-radius: 6px;
+}
+.signature-pad-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.stamp-preview {
+  max-width: 140px;
+  max-height: 140px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px;
+  margin-top: 8px;
+  display: block;
+}

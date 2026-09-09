@@ -202,8 +202,8 @@ async function load() {
         <div class="grid-2">
           ${fld('s_work_status', 'สถานะการทำงาน', m.work_status)}
           ${fld('s_position', 'ตำแหน่ง', m.position)}
-          ${fld('s_agency', 'หน่วยงาน', m.agency)}
-          ${fld('s_affiliation', 'สังกัด', m.affiliation)}
+          <div><label>สังกัด</label><select id="s_affiliation"></select></div>
+          <div><label>หน่วยงาน</label><input type="text" id="s_agency" value="${m.agency || ''}" placeholder="พิมพ์เอง หรือเลือกจากคำแนะนำถ้าสังกัดราชการ"></div>
           ${fld('s_work_province', 'จังหวัดที่ปฏิบัติงาน', m.work_province)}
           ${fld('s_expertise', 'ความเชี่ยวชาญด้านสังคมสงเคราะห์', m.expertise)}
         </div>
@@ -290,6 +290,7 @@ async function load() {
       province: m.workplace_province, district: m.workplace_district,
       subdistrict: m.workplace_subdistrict, zipcode: m.workplace_zipcode
     });
+    initAffiliationCascade('s', { affiliation: m.affiliation, agency: m.agency });
 
     document.getElementById('s_photo').addEventListener('change', async (ev) => {
       const file = ev.target.files[0];

@@ -167,6 +167,7 @@ function individualDetailHtml(a, d, docs) {
       ${docItem(docs, 'รูปถ่าย')}
       ${docItem(docs, 'วุฒิการศึกษา')}
       ${docItem(docs, 'ใบรับรองแพทย์')}
+      ${docItem(docs, 'ลายมือชื่อผู้สมัคร (ดิจิทัล)')}
       ${docItem(docs, 'เอกสารอื่นๆ')}
     </div>
   `;
@@ -181,10 +182,13 @@ function orgDetailHtml(a, d, docs) {
     ${fieldRow('เลขทะเบียนนิติบุคคล', d.juristic_no)}
     ${fieldRow('เลขประจำตัวผู้เสียภาษี', d.tax_id)}
     ${fieldRow('วันที่ก่อตั้ง', d.founded_date)}
-    ${fieldRow('วัตถุประสงค์', d.purpose)}
+    ${fieldRow('ประเภทองค์กร', d.org_type)}
+    ${fieldRow('เป้าหมายและกิจกรรม', (d.purposes || []).map(p => '• ' + p).join('<br>'))}
 
     <h3>ข้อมูลผู้แทนองค์กร</h3>
     ${fieldRow('ชื่อ-นามสกุล', [d.rep_prefix, d.rep_name].filter(Boolean).join(' '))}
+    ${fieldRow('วันเกิด / เชื้อชาติ / สัญชาติ / ศาสนา', [d.rep_dob, d.rep_ethnicity, d.rep_nationality, d.rep_religion].filter(Boolean).join(' / '))}
+    ${fieldRow('สถานภาพการสมรส', d.rep_marital_status)}
     ${fieldRow('ตำแหน่ง', d.rep_position)}
     ${fieldRow('เลขประจำตัวประชาชน', d.rep_national_id)}
     ${fieldRow('เบอร์โทรศัพท์', d.rep_phone)}
@@ -198,9 +202,12 @@ function orgDetailHtml(a, d, docs) {
 
     <h3>เอกสารประกอบ</h3>
     <div class="doc-grid">
-      ${docItem(docs, 'หนังสือรับรองนิติบุคคล')}
+      ${docItem(docs, 'หนังสือรับรองการจัดตั้งองค์กร')}
+      ${docItem(docs, 'สำเนาหนังสือรับรองการจัดตั้งองค์กร')}
+      ${docItem(docs, 'สำเนาทะเบียนบ้านที่ตั้งองค์กร')}
       ${docItem(docs, 'หนังสือแต่งตั้งผู้แทนองค์กร')}
-      ${docItem(docs, 'หนังสือรับรองการจดทะเบียน')}
+      ${docItem(docs, 'ลายมือชื่อผู้ยื่นคำขอ (ดิจิทัล)')}
+      ${docItem(docs, 'ตราประทับองค์กร')}
       ${docItem(docs, 'เอกสารอื่นๆ')}
     </div>
   `;

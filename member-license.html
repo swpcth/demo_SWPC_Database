@@ -204,7 +204,7 @@ function renderCard(data) {
 function renderPaySlipForm(a) {
   return `
     <div class="pay-box">
-      <p>ค่าธรรมเนียม: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี [ระบุเลขบัญชีสภาฯ] แล้วแนบสลิปด้านล่าง</p>
+      <p>ค่าธรรมเนียม: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี 021-0-15582-5 ธนาคารกรุงไทย ชื่อบัญชี "สภาวิชาชีพสังคมสงเคราะห์" แล้วแนบสลิปด้านล่าง</p>
       <input type="file" id="slip_${a.application_id}" accept=".pdf,.jpg,.jpeg,.png">
       <button type="button" class="btn small" onclick="submitSlip('${a.application_id}')">แนบสลิปการโอนเงิน</button>
     </div>`;

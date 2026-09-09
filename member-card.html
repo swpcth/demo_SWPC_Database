@@ -201,7 +201,7 @@ async function loadRenewalPanel() {
     panel.innerHTML = `
       <h2>ต่ออายุสมาชิก</h2>
       <div class="pay-box">
-        <p>ค่าธรรมเนียม: <b>${pendingPayment.fee_amount} บาท</b> — โอนเข้าบัญชี [ระบุเลขบัญชีสภาฯ] แล้วแนบสลิปด้านล่าง</p>
+        <p>ค่าธรรมเนียม: <b>${pendingPayment.fee_amount} บาท</b> — โอนเข้าบัญชี 021-0-15582-5 ธนาคารกรุงไทย ชื่อบัญชี "สภาวิชาชีพสังคมสงเคราะห์" แล้วแนบสลิปด้านล่าง</p>
         <input type="file" id="renewSlip" accept=".pdf,.jpg,.jpeg,.png">
         <button type="button" class="btn small" onclick="submitRenewalSlip('${pendingPayment.application_id}')">แนบสลิปการโอนเงิน</button>
       </div>

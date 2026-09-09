@@ -128,8 +128,8 @@
           <div class="grid-2">
             <div><label>สถานะการทำงาน</label><input type="text" id="i_work_status"></div>
             <div><label>ตำแหน่ง</label><input type="text" id="i_position"></div>
-            <div><label>หน่วยงาน</label><input type="text" id="i_agency"></div>
-            <div><label>สังกัด</label><input type="text" id="i_affiliation"></div>
+            <div><label>สังกัด</label><select id="i_affiliation"></select></div>
+            <div><label>หน่วยงาน</label><input type="text" id="i_agency" placeholder="พิมพ์เอง หรือเลือกจากคำแนะนำถ้าสังกัดราชการ"></div>
             <div><label>จังหวัดที่ปฏิบัติงาน</label><input type="text" id="i_work_province"></div>
             <div><label>ความเชี่ยวชาญด้านสังคมสงเคราะห์</label><input type="text" id="i_expertise"></div>
           </div>
@@ -177,6 +177,18 @@
           <div class="doc-row"><label>เอกสารอื่นๆ (ถ้ามี)</label><input type="file" id="doc_other" accept=".pdf,.jpg,.jpeg,.png"></div>
         </fieldset>
 
+        <fieldset>
+          <legend>9) ลงลายมือชื่อผู้สมัคร</legend>
+          <label>ลงลายมือชื่อผู้สมัคร * <span style="color:var(--muted); font-weight:400">(วาดด้วยเมาส์หรือนิ้วในกรอบด้านล่าง)</span></label>
+          <div class="signature-pad-wrap">
+            <canvas id="indivSignaturePad" class="signature-pad-canvas" width="420" height="160"></canvas>
+            <div class="signature-pad-actions">
+              <span>ลงชื่อในกรอบด้านบน</span>
+              <button type="button" class="btn small secondary" onclick="indivSigPad.clear()">ล้างลายเซ็น</button>
+            </div>
+          </div>
+        </fieldset>
+
         <button class="btn" type="submit" id="submitIndividualBtn">ส่งใบสมัคร</button>
         <button type="button" class="btn secondary" onclick="cancelForm()">ยกเลิก</button>
       </form>
@@ -202,25 +214,47 @@
             <div class="grid-2">
               <div><label>ชื่อองค์กร (ไทย) *</label><input type="text" id="o_org_name_th" required></div>
               <div><label>ชื่อองค์กร (อังกฤษ)</label><input type="text" id="o_org_name_en"></div>
-              <div><label>ประเภทองค์กร *</label><input type="text" id="o_org_type" required placeholder="เช่น มูลนิธิ, สมาคม, บริษัท"></div>
               <div><label>เลขทะเบียนนิติบุคคล (ถ้ามี)</label><input type="text" id="o_juristic_no"></div>
               <div><label>เลขประจำตัวผู้เสียภาษี (ถ้ามี)</label><input type="text" id="o_tax_id"></div>
               <div><label>วันที่ก่อตั้ง</label><input type="date" id="o_founded_date"></div>
             </div>
-            <label>วัตถุประสงค์ขององค์กร</label>
-            <textarea id="o_purpose" rows="3"></textarea>
+            <label>ประเภทขององค์กร *</label>
+            <div class="doc-row">
+              <label style="width:auto; display:inline-flex; align-items:center; gap:6px; margin-right:20px"><input type="radio" name="o_org_type" value="องค์กรภาครัฐ" style="width:auto" required> องค์กรภาครัฐ</label>
+              <label style="width:auto; display:inline-flex; align-items:center; gap:6px"><input type="radio" name="o_org_type" value="องค์กรภาคเอกชน" style="width:auto"> องค์กรภาคเอกชน</label>
+            </div>
+            <label style="margin-top:10px">เป้าหมายและกิจกรรมขององค์กร * (เลือกได้มากกว่า 1 ข้อ)</label>
+            <div class="doc-row" style="flex-direction:column; align-items:flex-start; gap:8px">
+              <label style="width:auto; display:flex; align-items:flex-start; gap:6px"><input type="checkbox" class="o_purpose_cb" value="ป้องกันแก้ไขปัญหาให้แก่บุคคล ครอบครัว กลุ่มคนหรือชุมชน ให้กระทำหน้าที่ทางสังคมและดำรงชีวิตได้อย่างปกติสุข" style="width:auto; margin-top:3px"> ป้องกันแก้ไขปัญหาให้แก่บุคคล ครอบครัว กลุ่มคนหรือชุมชน ให้กระทำหน้าที่ทางสังคมและดำรงชีวิตได้อย่างปกติสุข</label>
+              <label style="width:auto; display:flex; align-items:flex-start; gap:6px"><input type="checkbox" class="o_purpose_cb" value="ให้ความช่วยเหลือทางสังคมหรือบริการทางสังคม" style="width:auto; margin-top:3px"> ให้ความช่วยเหลือทางสังคมหรือบริการทางสังคม</label>
+              <label style="width:auto; display:flex; align-items:flex-start; gap:6px"><input type="checkbox" class="o_purpose_cb" value="คุ้มครองสิทธิ ให้คำปรึกษาแนะนำ ส่งเสริม และการสนับสนุนเด็ก เยาวชน สตรี ผู้สูงอายุ คนพิการ และผู้ด้อยโอกาสในสังคม" style="width:auto; margin-top:3px"> คุ้มครองสิทธิ ให้คำปรึกษาแนะนำ ส่งเสริม และการสนับสนุนเด็ก เยาวชน สตรี ผู้สูงอายุ คนพิการ และผู้ด้อยโอกาสในสังคม</label>
+            </div>
           </fieldset>
         </div>
 
         <div class="org-step" data-step="2" style="display:none">
           <fieldset>
             <legend>2) ข้อมูลผู้แทนองค์กร</legend>
+            <p style="color:var(--muted); font-size:13px">ข้าพเจ้าในฐานะผู้บริหารขององค์กรมีความประสงค์สมัครเป็นสมาชิกวิสามัญสภาวิชาชีพสังคมสงเคราะห์ โดยมีคุณสมบัติตามมาตรา 12 แห่งพระราชบัญญัติวิชาชีพสังคมสงเคราะห์ พ.ศ. 2556</p>
             <div class="grid-2">
               <div><label>คำนำหน้า *</label><input type="text" id="o_rep_prefix" required></div>
               <div><label>ชื่อ-นามสกุล *</label><input type="text" id="o_rep_name" required></div>
+              <div><label>วันเกิด</label><input type="date" id="o_rep_dob"></div>
+              <div><label>เชื้อชาติ</label><input type="text" id="o_rep_ethnicity" value="ไทย"></div>
+              <div><label>สัญชาติ</label><input type="text" id="o_rep_nationality" value="ไทย"></div>
+              <div><label>ศาสนา</label><input type="text" id="o_rep_religion"></div>
+              <div><label>สถานภาพการสมรส</label>
+                <select id="o_rep_marital_status">
+                  <option value="โสด">โสด</option>
+                  <option value="สมรส">สมรส</option>
+                  <option value="หม้าย">หม้าย</option>
+                  <option value="หย่าร้าง">หย่าร้าง</option>
+                </select>
+              </div>
               <div><label>ตำแหน่ง *</label><input type="text" id="o_rep_position" required></div>
               <div><label>เลขประจำตัวประชาชน *</label><input type="text" id="o_rep_national_id" pattern="[0-9]{13}" required></div>
-              <div><label>เบอร์โทรศัพท์ *</label><input type="tel" id="o_rep_phone" required></div>
+              <div><label>เบอร์มือถือ *</label><input type="tel" id="o_rep_phone" required></div>
+              <div><label>เบอร์โทรศัพท์ (ถ้ามี)</label><input type="tel" id="o_rep_phone2"></div>
               <div><label>อีเมล *</label><input type="email" id="o_rep_email" required></div>
               <div><label>Line ID (ถ้ามี)</label><input type="text" id="o_rep_line_id"></div>
             </div>
@@ -250,17 +284,32 @@
         <div class="org-step" data-step="4" style="display:none">
           <fieldset>
             <legend>4) แนบเอกสารประกอบ (PDF, JPG, JPEG, PNG)</legend>
-            <div class="doc-row"><label>หนังสือรับรองนิติบุคคล</label><input type="file" id="odoc_juristic" accept=".pdf,.jpg,.jpeg,.png"></div>
+            <p style="color:var(--muted); font-size:13px">ตามแบบฟอร์ม สวชส.10 ต้องแนบเอกสารครบ 3 รายการดังนี้</p>
+            <div class="doc-row"><label>1. หนังสือรับรองการจัดตั้งองค์กร *</label><input type="file" id="odoc_juristic" accept=".pdf,.jpg,.jpeg,.png"></div>
+            <div class="doc-row"><label>2. สำเนาหนังสือรับรองการจัดตั้งองค์กร *</label><input type="file" id="odoc_registration" accept=".pdf,.jpg,.jpeg,.png"></div>
+            <div class="doc-row"><label>3. สำเนาทะเบียนบ้านที่ตั้งองค์กร *</label><input type="file" id="odoc_house_reg" accept=".pdf,.jpg,.jpeg,.png"></div>
             <div class="doc-row"><label>หนังสือแต่งตั้งผู้แทนองค์กร (ถ้ามี)</label><input type="file" id="odoc_appoint" accept=".pdf,.jpg,.jpeg,.png"></div>
-            <div class="doc-row"><label>หนังสือรับรองการจดทะเบียน</label><input type="file" id="odoc_registration" accept=".pdf,.jpg,.jpeg,.png"></div>
             <div class="doc-row"><label>เอกสารอื่นๆ (ถ้ามี)</label><input type="file" id="odoc_other" accept=".pdf,.jpg,.jpeg,.png"></div>
           </fieldset>
         </div>
 
         <div class="org-step" data-step="5" style="display:none">
           <fieldset>
-            <legend>5) ตรวจสอบและยืนยันข้อมูลก่อนส่งคำขอ</legend>
-            <div id="orgReview" class="review-box"></div>
+            <legend>5) ลงลายมือชื่อและตรวจสอบข้อมูลก่อนส่งคำขอ</legend>
+            <label>ลงลายมือชื่อผู้ยื่นคำขอ * <span style="color:var(--muted); font-weight:400">(วาดด้วยเมาส์หรือนิ้วในกรอบด้านล่าง)</span></label>
+            <div class="signature-pad-wrap">
+              <canvas id="orgSignaturePad" class="signature-pad-canvas" width="420" height="160"></canvas>
+              <div class="signature-pad-actions">
+                <span>ลงชื่อในกรอบด้านบน</span>
+                <button type="button" class="btn small secondary" onclick="orgSigPad.clear()">ล้างลายเซ็น</button>
+              </div>
+            </div>
+
+            <label style="margin-top:16px">ประทับตราองค์กร (ถ้ามี) <span style="color:var(--muted); font-weight:400">— แนบรูปตราประทับ (ไม่บังคับ)</span></label>
+            <input type="file" id="orgStampFile" accept=".jpg,.jpeg,.png" onchange="previewOrgStamp()">
+            <img id="orgStampPreview" class="stamp-preview" style="display:none">
+
+            <div id="orgReview" class="review-box" style="margin-top:16px"></div>
           </fieldset>
         </div>
 
@@ -291,6 +340,7 @@ const MEMBERSHIP_FEE_TABLE_CLIENT = {
 };
 const LIFETIME_MIN_AGE_CLIENT = 65;
 const MEMBERSHIP_ENTRANCE_FEE_CLIENT = 100;
+const CERTIFICATE_MAILING_FEE_CLIENT = 20;
 
 function populateDurationSelect(selectId, type, age) {
   const table = MEMBERSHIP_FEE_TABLE_CLIENT[type];
@@ -307,9 +357,12 @@ function updateFeeHint(form) {
   const hintEl = document.getElementById(isOrg ? 'org_feeHint' : 'i_feeHint');
   const duration = durationSel.value;
   const dues = MEMBERSHIP_FEE_TABLE_CLIENT[type][duration] || 0;
-  const entrance = isOrg ? 0 : MEMBERSHIP_ENTRANCE_FEE_CLIENT;
-  hintEl.textContent = 'ค่าธรรมเนียมรวม ' + (dues + entrance).toLocaleString() + ' บาท' +
-    (entrance ? ' (ค่าบำรุง ' + dues.toLocaleString() + ' + ค่าแรกเข้า ' + entrance + ' บาท)' : '');
+  const entrance = MEMBERSHIP_ENTRANCE_FEE_CLIENT;
+  const mailing = isOrg ? CERTIFICATE_MAILING_FEE_CLIENT : 0;
+  const total = dues + entrance + mailing;
+  hintEl.textContent = 'ค่าธรรมเนียมรวม ' + total.toLocaleString() + ' บาท' +
+    ' (ค่าบำรุง ' + dues.toLocaleString() + ' + ค่าแรกเข้า ' + entrance +
+    (mailing ? ' + ค่าจัดส่งหนังสือรับรอง ' + mailing : '') + ' บาท)';
 }
 
 function pickType(type) {
@@ -432,6 +485,10 @@ function showError(msg) {
 
 async function submitIndividual(e) {
   e.preventDefault();
+  if (indivSigPad.isEmpty()) {
+    showError('กรุณาลงลายมือชื่อผู้สมัครในกรอบลายเซ็นก่อนส่งใบสมัคร');
+    return;
+  }
   const btn = document.getElementById('submitIndividualBtn');
   btn.disabled = true; btn.textContent = 'กำลังส่ง...';
   try {
@@ -439,6 +496,8 @@ async function submitIndividual(e) {
       doc_national_id: 'บัตรประชาชน', doc_photo: 'รูปถ่าย', doc_education: 'วุฒิการศึกษา',
       doc_medical: 'ใบรับรองแพทย์', doc_other: 'เอกสารอื่นๆ'
     });
+    const sigFile = await indivSigPad.toFile('signature_' + Date.now() + '.png');
+    documents.push(await uploadDocument(sigFile, 'ลายมือชื่อผู้สมัคร (ดิจิทัล)'));
     const data = {
       national_id: document.getElementById('i_national_id').value,
       dob: document.getElementById('i_dob').value,
@@ -509,10 +568,13 @@ async function submitIndividual(e) {
 
 function orgFieldMap() {
   return {
-    org_name_th: 'o_org_name_th', org_name_en: 'o_org_name_en', org_type: 'o_org_type',
-    juristic_no: 'o_juristic_no', tax_id: 'o_tax_id', founded_date: 'o_founded_date', purpose: 'o_purpose',
-    rep_prefix: 'o_rep_prefix', rep_name: 'o_rep_name', rep_position: 'o_rep_position',
-    rep_national_id: 'o_rep_national_id', rep_phone: 'o_rep_phone', rep_email: 'o_rep_email', rep_line_id: 'o_rep_line_id',
+    org_name_th: 'o_org_name_th', org_name_en: 'o_org_name_en',
+    juristic_no: 'o_juristic_no', tax_id: 'o_tax_id', founded_date: 'o_founded_date',
+    rep_prefix: 'o_rep_prefix', rep_name: 'o_rep_name', rep_dob: 'o_rep_dob',
+    rep_ethnicity: 'o_rep_ethnicity', rep_nationality: 'o_rep_nationality', rep_religion: 'o_rep_religion',
+    rep_marital_status: 'o_rep_marital_status', rep_position: 'o_rep_position',
+    rep_national_id: 'o_rep_national_id', rep_phone: 'o_rep_phone', rep_phone2: 'o_rep_phone2',
+    rep_email: 'o_rep_email', rep_line_id: 'o_rep_line_id',
     addr_house_no: 'o_addr_house_no', addr_building: 'o_addr_building', addr_floor: 'o_addr_floor',
     addr_moo: 'o_addr_moo', addr_soi: 'o_addr_soi', addr_road: 'o_addr_road',
     addr_subdistrict: 'o_addr_subdistrict', addr_district: 'o_addr_district',
@@ -525,6 +587,9 @@ function collectOrgData() {
   const map = orgFieldMap();
   const data = {};
   Object.keys(map).forEach(k => { data[k] = document.getElementById(map[k]).value; });
+  const orgTypeEl = document.querySelector('input[name="o_org_type"]:checked');
+  data.org_type = orgTypeEl ? orgTypeEl.value : '';
+  data.purposes = Array.from(document.querySelectorAll('.o_purpose_cb:checked')).map(cb => cb.value);
   return data;
 }
 
@@ -543,7 +608,7 @@ function orgStep(delta) {
 
 function validateOrgStep(step) {
   const required = {
-    1: ['o_org_name_th', 'o_org_type'],
+    1: ['o_org_name_th'],
     2: ['o_rep_prefix', 'o_rep_name', 'o_rep_position', 'o_rep_national_id', 'o_rep_phone', 'o_rep_email'],
     3: [], 4: []
   }[step] || [];
@@ -551,6 +616,16 @@ function validateOrgStep(step) {
     if (!document.getElementById(id).value) {
       showError('กรุณากรอกข้อมูลที่จำเป็น (มีเครื่องหมาย *) ให้ครบก่อนไปขั้นตอนถัดไป');
       document.getElementById(id).focus();
+      return false;
+    }
+  }
+  if (step === 1) {
+    if (!document.querySelector('input[name="o_org_type"]:checked')) {
+      showError('กรุณาเลือกประเภทขององค์กร (ภาครัฐ/ภาคเอกชน)');
+      return false;
+    }
+    if (!document.querySelectorAll('.o_purpose_cb:checked').length) {
+      showError('กรุณาเลือกเป้าหมายและกิจกรรมขององค์กรอย่างน้อย 1 ข้อ');
       return false;
     }
   }
@@ -563,6 +638,7 @@ function renderOrgReview() {
   document.getElementById('orgReview').innerHTML = `
     <p><b>ชื่อองค์กร:</b> ${d.org_name_th} ${d.org_name_en ? '(' + d.org_name_en + ')' : ''}</p>
     <p><b>ประเภทองค์กร:</b> ${d.org_type}</p>
+    <p><b>เป้าหมายและกิจกรรม:</b> ${d.purposes && d.purposes.length ? d.purposes.map(p => '• ' + p).join('<br>') : '-'}</p>
     <p><b>ผู้แทนองค์กร:</b> ${d.rep_prefix} ${d.rep_name} — ${d.rep_position}</p>
     <p><b>ติดต่อผู้แทน:</b> ${d.rep_phone} / ${d.rep_email}</p>
     <p><b>ที่ตั้ง:</b> ${[d.addr_house_no, d.addr_building, d.addr_moo, d.addr_soi, d.addr_road, d.addr_subdistrict, d.addr_district, d.addr_province, d.addr_zipcode].filter(Boolean).join(' ')}</p>
@@ -571,13 +647,23 @@ function renderOrgReview() {
 }
 
 async function submitOrg() {
+  if (orgSigPad.isEmpty()) {
+    showError('กรุณาลงลายมือชื่อผู้ยื่นคำขอในกรอบลายเซ็นก่อนส่งคำขอ');
+    return;
+  }
   const btn = document.getElementById('orgSubmitBtn');
   btn.disabled = true; btn.textContent = 'กำลังส่ง...';
   try {
     const documents = await collectDocuments({
-      odoc_juristic: 'หนังสือรับรองนิติบุคคล', odoc_appoint: 'หนังสือแต่งตั้งผู้แทนองค์กร',
-      odoc_registration: 'หนังสือรับรองการจดทะเบียน', odoc_other: 'เอกสารอื่นๆ'
+      odoc_juristic: 'หนังสือรับรองการจัดตั้งองค์กร', odoc_registration: 'สำเนาหนังสือรับรองการจัดตั้งองค์กร',
+      odoc_house_reg: 'สำเนาทะเบียนบ้านที่ตั้งองค์กร',
+      odoc_appoint: 'หนังสือแต่งตั้งผู้แทนองค์กร', odoc_other: 'เอกสารอื่นๆ'
     });
+    const sigFile = await orgSigPad.toFile('signature_' + Date.now() + '.png');
+    documents.push(await uploadDocument(sigFile, 'ลายมือชื่อผู้ยื่นคำขอ (ดิจิทัล)'));
+    const stampFile = document.getElementById('orgStampFile').files[0];
+    if (stampFile) documents.push(await uploadDocument(stampFile, 'ตราประทับองค์กร'));
+
     const res = await apiCall('submitApplication', { applicant_type: 'วิสามัญ', data: collectOrgData(), documents, duration: document.getElementById('org_duration').value });
     showToast('ส่งคำขอสมัครสมาชิกวิสามัญสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ (จะแจ้งผลทางอีเมล)', 'success');    window.location.reload();
   } catch (err) {
@@ -617,7 +703,7 @@ async function loadMyApplications() {
 function renderPaySlipForm(a) {
   return `
     <div class="pay-box">
-      <p>ค่าธรรมเนียม: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี [ระบุเลขบัญชีสภาฯ] แล้วแนบสลิปด้านล่าง</p>
+      <p>ค่าธรรมเนียม: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี 021-0-15582-5 ธนาคารกรุงไทย ชื่อบัญชี "สภาวิชาชีพสังคมสงเคราะห์" แล้วแนบสลิปด้านล่าง</p>
       <input type="file" id="slip_${a.application_id}" accept=".pdf,.jpg,.jpeg,.png">
       <button type="button" class="btn small" onclick="submitSlip('${a.application_id}')">แนบสลิปการโอนเงิน</button>
     </div>`;
@@ -651,6 +737,17 @@ initThaiAddressCascade('i_cur');
 initThaiAddressCascade('i_reg');
 initThaiAddressCascade('i_wp');
 initThaiAddressCascade('o_addr');
+initAffiliationCascade('i');
+let orgSigPad = createSignaturePad('orgSignaturePad');
+let indivSigPad = createSignaturePad('indivSignaturePad');
+
+function previewOrgStamp() {
+  const file = document.getElementById('orgStampFile').files[0];
+  const img = document.getElementById('orgStampPreview');
+  if (!file) { img.style.display = 'none'; return; }
+  img.src = URL.createObjectURL(file);
+  img.style.display = 'block';
+}
 </script>
 </body>
 </html>
