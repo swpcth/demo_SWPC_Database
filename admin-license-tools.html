@@ -128,16 +128,14 @@ async function setWindow(open) {
     await apiCall('setRenewalWindow', { open });
     loadWindowStatus();
   } catch (err) {
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function pullFromCe() {
   try {
     await apiCall('pullCeEligibleList');
   } catch (err) {
-    alert(err.message);
-  }
+    showToast(err.message, 'error');  }
 }
 
 function parseCsv(text) {
@@ -149,12 +147,12 @@ async function importCsv() {
   const importType = document.getElementById('importType').value;
   const file = document.getElementById('csvFile').files[0];
   const resultBox = document.getElementById('importResult');
-  if (!batchName) { alert('กรุณาตั้งชื่อกลุ่ม'); return; }
-  if (!file) { alert('กรุณาเลือกไฟล์ CSV'); return; }
+  if (!batchName) { showToast('กรุณาตั้งชื่อกลุ่ม', 'info'); return; }
+  if (!file) { showToast('กรุณาเลือกไฟล์ CSV', 'info'); return; }
   try {
     const text = await file.text();
     const values = parseCsv(text);
-    if (!values.length) { alert('ไม่พบข้อมูลในไฟล์'); return; }
+    if (!values.length) { showToast('ไม่พบข้อมูลในไฟล์', 'info'); return; }
     const rows = values.map(v => ({ national_id: v, member_no: v }));
     const res = await apiCall('importRenewalEligibilityCsv', { rows, import_type: importType, batch_name: batchName });
     resultBox.innerHTML = `นำเข้าสำเร็จ ${res.matched} รายการ` + (res.notFound.length ? ` — ไม่พบข้อมูล ${res.notFound.length} รายการ: ${res.notFound.join(', ')}` : '');
@@ -199,25 +197,22 @@ async function viewBatch(batchName) {
     `;
     document.getElementById('detailOverlay').style.display = 'flex';
   } catch (err) {
-    alert('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
-  }
+    showToast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function decideBatch(batchName, decision) {
-  if (!confirm(decision === 'approve' ? 'ยืนยันอนุมัติและต่ออายุใบอนุญาตให้ทุกคนในกลุ่มนี้ทันที?' : 'ยืนยันไม่อนุมัติทั้งกลุ่มนี้?')) return;
+  if (!(await showConfirm(decision === 'approve' ? 'ยืนยันอนุมัติและต่ออายุใบอนุญาตให้ทุกคนในกลุ่มนี้ทันที?' : 'ยืนยันไม่อนุมัติทั้งกลุ่มนี้?'))) return;
   try {
     const res = await apiCall('decideRenewalBatch', { batch_name: batchName, decision });
-    alert(decision === 'approve' ? `ดำเนินการสำเร็จ ${res.successCount} คน (ล้มเหลว ${res.failCount} คน)` : 'ไม่อนุมัติทั้งกลุ่มเรียบร้อย');
-    loadBatches();
+    showToast(decision === 'approve' ? `ดำเนินการสำเร็จ ${res.successCount} คน (ล้มเหลว ${res.failCount} คน)` : 'ไม่อนุมัติทั้งกลุ่มเรียบร้อย', 'success');    loadBatches();
   } catch (err) {
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function printBatch() {
   const ids = document.getElementById('batchPrintIds').value.split(',').map(s => s.trim()).filter(Boolean);
   const box = document.getElementById('printResults');
-  if (!ids.length) { alert('กรุณากรอกเลขสมาชิกอย่างน้อย 1 คน'); return; }
+  if (!ids.length) { showToast('กรุณากรอกเลขสมาชิกอย่างน้อย 1 คน', 'info'); return; }
   box.innerHTML = 'กำลังสร้าง PDF...';
   try {
     const results = await apiCall('generateLicensePdfBatch', { member_ids: ids });

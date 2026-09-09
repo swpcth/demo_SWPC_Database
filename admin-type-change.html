@@ -126,15 +126,14 @@ function renderRequests() {
 async function review(applicationId, decision) {
   let reason = '';
   if (decision === 'reject') {
-    reason = prompt('ระบุเหตุผลที่ไม่อนุมัติ:') || '';
+    reason = (await showPrompt('ระบุเหตุผลที่ไม่อนุมัติ:')) || '';
     if (!reason) return;
   }
   try {
     await apiCall('reviewApplication', { application_id: applicationId, decision, reason });
     loadAll();
   } catch (err) {
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function loadPayments() {
@@ -168,14 +167,12 @@ async function loadPayments() {
 }
 
 async function verifyPayment(paymentId, decision) {
-  if (decision === 'approve' && !confirm('ยืนยันว่าตรวจสอบสลิปถูกต้อง และต้องการเปลี่ยนประเภทสมาชิกให้ทันที?')) return;
+  if (decision === 'approve' && !(await showConfirm('ยืนยันว่าตรวจสอบสลิปถูกต้อง และต้องการเปลี่ยนประเภทสมาชิกให้ทันที?'))) return;
   try {
     await apiCall('verifyTypeChangePayment', { payment_id: paymentId, decision });
-    if (decision === 'approve') alert('เปลี่ยนประเภทสมาชิกสำเร็จ');
-    loadAll();
+    if (decision === 'approve') showToast('เปลี่ยนประเภทสมาชิกสำเร็จ', 'success');    loadAll();
   } catch (err) {
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function loadAll() {

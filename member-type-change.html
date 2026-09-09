@@ -81,15 +81,13 @@ function renderPaySlipForm(a) {
 
 async function submitSlip(applicationId) {
   const input = document.getElementById('slip_' + applicationId);
-  if (!input.files[0]) { alert('กรุณาเลือกไฟล์สลิปก่อน'); return; }
+  if (!input.files[0]) { showToast('กรุณาเลือกไฟล์สลิปก่อน', 'info'); return; }
   try {
     const uploaded = await uploadDocument(input.files[0], 'สลิปการโอนเงิน');
     await apiCall('submitPaymentSlip', { application_id: applicationId, slip_url: uploaded.url, method: 'โอนเงิน' });
-    alert('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ');
-    loadAll();
+    showToast('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ', 'success');    loadAll();
   } catch (err) {
-    alert('แนบสลิปไม่สำเร็จ: ' + err.message);
-  }
+    showToast('แนบสลิปไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 let hasPendingRequest = false;
@@ -190,8 +188,7 @@ async function submitTypeChange(e) {
     if (medFile) documents.push(await uploadDocument(medFile, 'ใบรับรองแพทย์'));
 
     const res = await apiCall('submitTypeChange', { documents, duration: document.getElementById('tc_duration').value });
-    alert('ส่งคำขอเปลี่ยนสถานภาพสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ');
-    window.location.reload();
+    showToast('ส่งคำขอเปลี่ยนสถานภาพสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ', 'success');    window.location.reload();
   } catch (err) {
     errBox.textContent = err.message;
     errBox.style.display = 'block';

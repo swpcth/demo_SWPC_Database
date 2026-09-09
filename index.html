@@ -111,8 +111,7 @@ async function doRegister(e) {
       username: document.getElementById('r-username').value.trim(),
       password: document.getElementById('r-password').value
     });
-    alert('สร้างบัญชีสำเร็จ กรุณาเข้าสู่ระบบ แล้วยื่นใบสมัครสมาชิกในขั้นตอนถัดไป');
-    showTab('login');
+    showToast('สร้างบัญชีสำเร็จ กรุณาเข้าสู่ระบบ แล้วยื่นใบสมัครสมาชิกในขั้นตอนถัดไป', 'success');    showTab('login');
   } catch (err) {
     showError(err.message);
   }

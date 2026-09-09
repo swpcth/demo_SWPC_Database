@@ -264,26 +264,22 @@ function updateRenewFeeHint() {
 
 async function submitRenewalSlip(applicationId) {
   const input = document.getElementById('renewSlip');
-  if (!input.files[0]) { alert('กรุณาเลือกไฟล์สลิปก่อน'); return; }
+  if (!input.files[0]) { showToast('กรุณาเลือกไฟล์สลิปก่อน', 'info'); return; }
   try {
     const uploaded = await uploadDocument(input.files[0], 'สลิปการโอนเงิน');
     await apiCall('submitPaymentSlip', { application_id: applicationId, slip_url: uploaded.url, method: 'โอนเงิน' });
-    alert('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ');
-    load();
+    showToast('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ', 'success');    load();
   } catch (err) {
-    alert('แนบสลิปไม่สำเร็จ: ' + err.message);
-  }
+    showToast('แนบสลิปไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function submitRenewal() {
   try {
     const duration = document.getElementById('renew_duration').value;
     const res = await apiCall('submitMembershipRenewal', { duration });
-    alert('ยื่นต่ออายุสำเร็จ เลขที่คำขอ ' + res.application_id + ' กรุณาแนบสลิปการโอนเงินที่จะปรากฏด้านล่างนี้');
-    load();
+    showToast('ยื่นต่ออายุสำเร็จ เลขที่คำขอ ' + res.application_id + ' กรุณาแนบสลิปการโอนเงินที่จะปรากฏด้านล่างนี้', 'success');    load();
   } catch (err) {
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 function downloadCard() {

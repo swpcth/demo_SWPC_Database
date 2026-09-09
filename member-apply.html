@@ -93,10 +93,10 @@
             <div><label>หมู่บ้าน/คอนโด/อาคาร</label><input type="text" id="i_cur_building" oninput="copyCurrentToRegistered()"></div>
             <div><label>ซอย</label><input type="text" id="i_cur_soi" oninput="copyCurrentToRegistered()"></div>
             <div><label>ถนน</label><input type="text" id="i_cur_road" oninput="copyCurrentToRegistered()"></div>
-            <div><label>แขวง/ตำบล</label><input type="text" id="i_cur_subdistrict" oninput="copyCurrentToRegistered()"></div>
-            <div><label>เขต/อำเภอ</label><input type="text" id="i_cur_district" oninput="copyCurrentToRegistered()"></div>
-            <div><label>จังหวัด</label><input type="text" id="i_cur_province" oninput="copyCurrentToRegistered()"></div>
-            <div><label>รหัสไปรษณีย์</label><input type="text" id="i_cur_zipcode" oninput="copyCurrentToRegistered()"></div>
+            <div><label>แขวง/ตำบล</label><select id="i_cur_subdistrict" onchange="copyCurrentToRegistered()"></select></div>
+            <div><label>เขต/อำเภอ</label><select id="i_cur_district" onchange="copyCurrentToRegistered()"></select></div>
+            <div><label>จังหวัด</label><select id="i_cur_province" onchange="copyCurrentToRegistered()"></select></div>
+            <div><label>รหัสไปรษณีย์</label><input type="text" id="i_cur_zipcode" readonly oninput="copyCurrentToRegistered()"></div>
           </div>
           <label style="margin-top:8px"><input type="checkbox" id="sameAsRegistered" onchange="copyCurrentToRegistered()" style="width:auto; display:inline-block; margin-right:6px">
             ที่อยู่ตามทะเบียนราษฎร์เป็นที่อยู่เดียวกัน</label>
@@ -110,10 +110,10 @@
             <div><label>หมู่บ้าน/คอนโด/อาคาร</label><input type="text" id="i_reg_building"></div>
             <div><label>ซอย</label><input type="text" id="i_reg_soi"></div>
             <div><label>ถนน</label><input type="text" id="i_reg_road"></div>
-            <div><label>แขวง/ตำบล</label><input type="text" id="i_reg_subdistrict"></div>
-            <div><label>เขต/อำเภอ</label><input type="text" id="i_reg_district"></div>
-            <div><label>จังหวัด</label><input type="text" id="i_reg_province"></div>
-            <div><label>รหัสไปรษณีย์</label><input type="text" id="i_reg_zipcode"></div>
+            <div><label>แขวง/ตำบล</label><select id="i_reg_subdistrict"></select></div>
+            <div><label>เขต/อำเภอ</label><select id="i_reg_district"></select></div>
+            <div><label>จังหวัด</label><select id="i_reg_province"></select></div>
+            <div><label>รหัสไปรษณีย์</label><input type="text" id="i_reg_zipcode" readonly></div>
           </div>
         </fieldset>
 
@@ -145,10 +145,10 @@
             <div><label>หมู่</label><input type="text" id="i_wp_moo"></div>
             <div><label>ซอย</label><input type="text" id="i_wp_soi"></div>
             <div><label>ถนน</label><input type="text" id="i_wp_road"></div>
-            <div><label>แขวง/ตำบล</label><input type="text" id="i_wp_subdistrict"></div>
-            <div><label>เขต/อำเภอ</label><input type="text" id="i_wp_district"></div>
-            <div><label>จังหวัด</label><input type="text" id="i_wp_province"></div>
-            <div><label>รหัสไปรษณีย์</label><input type="text" id="i_wp_zipcode"></div>
+            <div><label>แขวง/ตำบล</label><select id="i_wp_subdistrict"></select></div>
+            <div><label>เขต/อำเภอ</label><select id="i_wp_district"></select></div>
+            <div><label>จังหวัด</label><select id="i_wp_province"></select></div>
+            <div><label>รหัสไปรษณีย์</label><input type="text" id="i_wp_zipcode" readonly></div>
             <div><label>อีเมลหน่วยงาน</label><input type="email" id="i_wp_email"></div>
             <div><label>เบอร์โทรศัพท์หน่วยงาน</label><input type="tel" id="i_wp_phone"></div>
           </div>
@@ -237,10 +237,10 @@
               <div><label>หมู่</label><input type="text" id="o_addr_moo"></div>
               <div><label>ซอย</label><input type="text" id="o_addr_soi"></div>
               <div><label>ถนน</label><input type="text" id="o_addr_road"></div>
-              <div><label>แขวง/ตำบล</label><input type="text" id="o_addr_subdistrict"></div>
-              <div><label>เขต/อำเภอ</label><input type="text" id="o_addr_district"></div>
-              <div><label>จังหวัด</label><input type="text" id="o_addr_province"></div>
-              <div><label>รหัสไปรษณีย์</label><input type="text" id="o_addr_zipcode"></div>
+              <div><label>แขวง/ตำบล</label><select id="o_addr_subdistrict"></select></div>
+              <div><label>เขต/อำเภอ</label><select id="o_addr_district"></select></div>
+              <div><label>จังหวัด</label><select id="o_addr_province"></select></div>
+              <div><label>รหัสไปรษณีย์</label><input type="text" id="o_addr_zipcode" readonly></div>
               <div><label>โทรศัพท์สำนักงาน</label><input type="tel" id="o_office_phone"></div>
               <div><label>เว็บไซต์ (ถ้ามี)</label><input type="text" id="o_website"></div>
             </div>
@@ -355,11 +355,10 @@ function updateAge() {
 
 const CUR_REG_FIELD_MAP = [
   ['i_cur_house_no', 'i_reg_house_no'], ['i_cur_moo', 'i_reg_moo'], ['i_cur_building', 'i_reg_building'],
-  ['i_cur_soi', 'i_reg_soi'], ['i_cur_road', 'i_reg_road'], ['i_cur_subdistrict', 'i_reg_subdistrict'],
-  ['i_cur_district', 'i_reg_district'], ['i_cur_province', 'i_reg_province'], ['i_cur_zipcode', 'i_reg_zipcode']
+  ['i_cur_soi', 'i_reg_soi'], ['i_cur_road', 'i_reg_road']
 ];
 
-function copyCurrentToRegistered() {
+async function copyCurrentToRegistered() {
   const checked = document.getElementById('sameAsRegistered').checked;
   CUR_REG_FIELD_MAP.forEach(([curId, regId]) => {
     const regInput = document.getElementById(regId);
@@ -370,6 +369,17 @@ function copyCurrentToRegistered() {
       regInput.disabled = false;
     }
   });
+  ['i_reg_province', 'i_reg_district', 'i_reg_subdistrict', 'i_reg_zipcode'].forEach(id => {
+    document.getElementById(id).disabled = checked;
+  });
+  if (checked) {
+    await setThaiAddressCascade('i_reg', {
+      province: document.getElementById('i_cur_province').value,
+      district: document.getElementById('i_cur_district').value,
+      subdistrict: document.getElementById('i_cur_subdistrict').value,
+      zipcode: document.getElementById('i_cur_zipcode').value
+    });
+  }
 }
 
 function addEduRow() {
@@ -488,8 +498,7 @@ async function submitIndividual(e) {
       mailing_recipient_phone: document.getElementById('i_mail_phone').value
     };
     const res = await apiCall('submitApplication', { applicant_type: currentType, data, documents, duration: document.getElementById('i_duration').value });
-    alert('ส่งใบสมัครสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ (จะแจ้งผลทางอีเมล)');
-    window.location.reload();
+    showToast('ส่งใบสมัครสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ (จะแจ้งผลทางอีเมล)', 'success');    window.location.reload();
   } catch (err) {
     showError(err.message);
   } finally {
@@ -570,8 +579,7 @@ async function submitOrg() {
       odoc_registration: 'หนังสือรับรองการจดทะเบียน', odoc_other: 'เอกสารอื่นๆ'
     });
     const res = await apiCall('submitApplication', { applicant_type: 'วิสามัญ', data: collectOrgData(), documents, duration: document.getElementById('org_duration').value });
-    alert('ส่งคำขอสมัครสมาชิกวิสามัญสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ (จะแจ้งผลทางอีเมล)');
-    window.location.reload();
+    showToast('ส่งคำขอสมัครสมาชิกวิสามัญสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ (จะแจ้งผลทางอีเมล)', 'success');    window.location.reload();
   } catch (err) {
     showError(err.message);
   } finally {
@@ -617,15 +625,13 @@ function renderPaySlipForm(a) {
 
 async function submitSlip(applicationId) {
   const input = document.getElementById('slip_' + applicationId);
-  if (!input.files[0]) { alert('กรุณาเลือกไฟล์สลิปก่อน'); return; }
+  if (!input.files[0]) { showToast('กรุณาเลือกไฟล์สลิปก่อน', 'info'); return; }
   try {
     const uploaded = await uploadDocument(input.files[0], 'สลิปการโอนเงิน');
     await apiCall('submitPaymentSlip', { application_id: applicationId, slip_url: uploaded.url, method: 'โอนเงิน' });
-    alert('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ');
-    loadMyApplications();
+    showToast('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ', 'success');    loadMyApplications();
   } catch (err) {
-    alert('แนบสลิปไม่สำเร็จ: ' + err.message);
-  }
+    showToast('แนบสลิปไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function checkAlreadyMemberAndAdjustPage() {
@@ -641,6 +647,10 @@ async function checkAlreadyMemberAndAdjustPage() {
 
 loadMyApplications();
 checkAlreadyMemberAndAdjustPage();
+initThaiAddressCascade('i_cur');
+initThaiAddressCascade('i_reg');
+initThaiAddressCascade('i_wp');
+initThaiAddressCascade('o_addr');
 </script>
 </body>
 </html>

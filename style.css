@@ -997,3 +997,130 @@ fieldset legend {
   font-size: 13px;
   color: rgba(255,255,255,0.85);
 }
+
+/* ---------- Toast notifications & Modal (แทน alert/confirm/prompt) ---------- */
+
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 360px;
+}
+
+.toast-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  padding: 14px 16px;
+  font-size: 14px;
+  opacity: 0;
+  transform: translateX(30px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  border-left: 4px solid var(--muted);
+}
+.toast-item.toast-show { opacity: 1; transform: translateX(0); }
+.toast-item.toast-success { border-left-color: var(--ok); }
+.toast-item.toast-error { border-left-color: var(--warn); }
+.toast-item.toast-info { border-left-color: var(--navy-deep); }
+
+.toast-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+.toast-success .toast-icon { background: var(--ok); }
+.toast-error .toast-icon { background: var(--warn); }
+.toast-info .toast-icon { background: var(--navy-deep); }
+.toast-text { line-height: 1.4; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20,26,46,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+  padding: 20px;
+}
+.modal-box {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.modal-message {
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  white-space: pre-line;
+}
+.modal-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ---------- Member profile header (หน้า "ข้อมูลของฉัน") ---------- */
+
+.profile-header-panel { padding-bottom: 20px; }
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.profile-photo {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--panel-alt, #f0f0f0);
+  border: 2px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-size: 36px;
+}
+.profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+.profile-header-main h2 { margin: 0 0 8px; }
+.profile-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.profile-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.profile-info-grid span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+.profile-info-grid b { font-size: 15px; }

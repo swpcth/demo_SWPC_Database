@@ -94,14 +94,12 @@ async function loadRenewalQueue() {
 }
 
 async function verifyRenewal(paymentId, decision) {
-  if (decision === 'approve' && !confirm('ยืนยันว่าตรวจสอบสลิปถูกต้อง และต้องการต่ออายุสมาชิกภาพทันที?')) return;
+  if (decision === 'approve' && !(await showConfirm('ยืนยันว่าตรวจสอบสลิปถูกต้อง และต้องการต่ออายุสมาชิกภาพทันที?'))) return;
   try {
     await apiCall('verifyMembershipRenewalPayment', { payment_id: paymentId, decision });
-    if (decision === 'approve') alert('ต่ออายุสมาชิกภาพสำเร็จ');
-    loadAll();
+    if (decision === 'approve') showToast('ต่ออายุสมาชิกภาพสำเร็จ', 'success');    loadAll();
   } catch (err) {
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 function renderAll() {
@@ -140,19 +138,16 @@ async function reissueReceipt(paymentId) {
     window.open(res.receipt_url, '_blank');
     loadAllPayments();
   } catch (err) {
-    alert('ออกใบเสร็จไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ออกใบเสร็จไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function requestRefund(paymentId) {
-  const reason = prompt('ระบุเหตุผลการขอคืนเงิน (เช่น ชำระเงินซ้ำซ้อน, คำขอถูกปฏิเสธหลังชำระเงิน):');
+  const reason = (await showPrompt('ระบุเหตุผลการขอคืนเงิน (เช่น ชำระเงินซ้ำซ้อน, คำขอถูกปฏิเสธหลังชำระเงิน):'));
   if (!reason) return;
   try {
     const res = await apiCall('submitRefundRequest', { payment_id: paymentId, reason });
-    alert('ยื่นคำขอคืนเงินสำเร็จ เลขที่คำขอ ' + res.refund_id + ' — ไปที่เมนู "คืนเงิน" เพื่อตรวจสอบ/อนุมัติ');
-  } catch (err) {
-    alert('ยื่นคำขอไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ยื่นคำขอคืนเงินสำเร็จ เลขที่คำขอ ' + res.refund_id + ' — ไปที่เมนู "คืนเงิน" เพื่อตรวจสอบ/อนุมัติ', 'success');  } catch (err) {
+    showToast('ยื่นคำขอไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function loadAllPayments() {

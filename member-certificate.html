@@ -81,8 +81,7 @@ async function downloadPdf() {
     const res = await apiCall('generateOrgCertificatePdf');
     window.open(res.url, '_blank');
   } catch (err) {
-    alert('สร้าง PDF ไม่สำเร็จ: ' + err.message);
-  }
+    showToast('สร้าง PDF ไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 load();

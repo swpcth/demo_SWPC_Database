@@ -97,8 +97,7 @@ async function toggleReconciled(paymentId, reconciled) {
     await apiCall('markPaymentReconciled', { payment_id: paymentId, reconciled });
     loadDayData();
   } catch (err) {
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 function parseGatewayCsv(text) {
@@ -118,12 +117,12 @@ async function importCsv() {
   const date = document.getElementById('reconDate').value;
   const file = document.getElementById('csvFile').files[0];
   const resultBox = document.getElementById('importResult');
-  if (!date) { alert('กรุณาเลือกวันที่ก่อน'); return; }
-  if (!file) { alert('กรุณาเลือกไฟล์ CSV'); return; }
+  if (!date) { showToast('กรุณาเลือกวันที่ก่อน', 'info'); return; }
+  if (!file) { showToast('กรุณาเลือกไฟล์ CSV', 'info'); return; }
   try {
     const text = await file.text();
     const rows = parseGatewayCsv(text);
-    if (!rows.length) { alert('ไม่พบข้อมูลที่อ่านได้ในไฟล์'); return; }
+    if (!rows.length) { showToast('ไม่พบข้อมูลที่อ่านได้ในไฟล์', 'info'); return; }
     const res = await apiCall('importGatewayStatementCsv', { date, rows, notes: document.getElementById('notes').value });
     resultBox.innerHTML = `จับคู่สำเร็จ ${res.matched} รายการ • ไม่พบคู่ในระบบ ${res.unmatchedFromGateway.length} รายการ • ยังไม่กระทบยอดในระบบ ${res.unreconciledInSystem} รายการ`;
     loadDayData();

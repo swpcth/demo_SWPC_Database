@@ -212,15 +212,13 @@ function renderPaySlipForm(a) {
 
 async function submitSlip(applicationId) {
   const input = document.getElementById('slip_' + applicationId);
-  if (!input.files[0]) { alert('กรุณาเลือกไฟล์สลิปก่อน'); return; }
+  if (!input.files[0]) { showToast('กรุณาเลือกไฟล์สลิปก่อน', 'info'); return; }
   try {
     const uploaded = await uploadDocument(input.files[0], 'สลิปการโอนเงิน');
     await apiCall('submitPaymentSlip', { application_id: applicationId, slip_url: uploaded.url, method: 'โอนเงิน' });
-    alert('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ');
-    loadAll();
+    showToast('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ', 'success');    loadAll();
   } catch (err) {
-    alert('แนบสลิปไม่สำเร็จ: ' + err.message);
-  }
+    showToast('แนบสลิปไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 function renderPaymentHistory(data) {
@@ -254,8 +252,7 @@ async function submitRegistration() {
     const file = document.getElementById('reg_doc').files[0];
     if (file) documents.push(await uploadDocument(file, 'เอกสารขึ้นทะเบียน'));
     const res = await apiCall('submitLicenseRegistration', { documents });
-    alert('ยื่นคำขอขึ้นทะเบียนสำเร็จ เลขที่คำขอ ' + res.application_id);
-    loadAll();
+    showToast('ยื่นคำขอขึ้นทะเบียนสำเร็จ เลขที่คำขอ ' + res.application_id, 'success');    loadAll();
   } catch (err) {
     errBox.textContent = err.message;
     errBox.style.display = 'block';
@@ -325,8 +322,7 @@ async function submitRenewal(isAfter) {
     }
     const payload = { method, documents };
     const res = await apiCall('submitLicenseRenewal', payload);
-    alert(res.status === 'รอชำระเงิน' ? 'ยื่นคำขอสำเร็จ กรุณาชำระเงินที่ด้านล่าง' : 'ยื่นคำขอสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ');
-    loadAll();
+    showToast(res.status === 'รอชำระเงิน' ? 'ยื่นคำขอสำเร็จ กรุณาชำระเงินที่ด้านล่าง' : 'ยื่นคำขอสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ', 'success');    loadAll();
   } catch (err) {
     errBox.textContent = err.message;
     errBox.style.display = 'block';
@@ -348,8 +344,7 @@ async function downloadPdf() {
     const res = await apiCall('generateLicensePdf');
     window.open(res.url, '_blank');
   } catch (err) {
-    alert('สร้าง PDF ไม่สำเร็จ: ' + err.message);
-  }
+    showToast('สร้าง PDF ไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function loadEligibilityPanels() {

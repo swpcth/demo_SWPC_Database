@@ -205,8 +205,7 @@ async function printLicense(memberId) {
     const res = await apiCall('generateLicensePdf', { member_id: memberId });
     window.open(res.url, '_blank');
   } catch (err) {
-    alert('พิมพ์ใบอนุญาตไม่สำเร็จ: ' + err.message);
-  }
+    showToast('พิมพ์ใบอนุญาตไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function saveLicenseInfo(memberId) {
@@ -220,36 +219,30 @@ async function saveLicenseInfo(memberId) {
       member_id: memberId,
       patch: { ce_score_cat1: v('lic_ce1'), ce_score_cat2: v('lic_ce2') }
     });
-    alert('บันทึกข้อมูลใบอนุญาตสำเร็จ');
-    closeDetail();
+    showToast('บันทึกข้อมูลใบอนุญาตสำเร็จ', 'success');    closeDetail();
     load();
   } catch (err) {
-    alert('บันทึกไม่สำเร็จ: ' + err.message);
-  }
+    showToast('บันทึกไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 function closeDetail() { document.getElementById('detailOverlay').style.display = 'none'; }
 
 async function renewMembership(memberId) {
-  const years = prompt('ต่ออายุกี่ปี? (ปล่อยว่างเพื่อใช้ค่ามาตรฐานตามประเภทสมาชิก)', '');
+  const years = (await showPrompt('ต่ออายุกี่ปี? (ปล่อยว่างเพื่อใช้ค่ามาตรฐานตามประเภทสมาชิก)', ''));
   try {
     const res = await apiCall('renewMembership', { member_id: memberId, years: years || undefined });
-    alert('ต่ออายุสำเร็จ วันหมดอายุใหม่: ' + fmtDate(res.new_expire_date));
-    closeDetail();
+    showToast('ต่ออายุสำเร็จ วันหมดอายุใหม่: ' + fmtDate(res.new_expire_date), 'success');    closeDetail();
     load();
   } catch (err) {
-    alert('ต่ออายุไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ต่ออายุไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function runCheckNow() {
   try {
     const res = await apiCall('runExpiryCheckNow');
-    alert('ตรวจสอบเสร็จสิ้น — ส่งอีเมลแจ้งเตือนไป ' + res.notifications_sent + ' ฉบับ');
-    load();
+    showToast('ตรวจสอบเสร็จสิ้น — ส่งอีเมลแจ้งเตือนไป ' + res.notifications_sent + ' ฉบับ', 'info');    load();
   } catch (err) {
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 function renderNotifications() {

@@ -140,15 +140,14 @@ function closeDetail() { document.getElementById('detailOverlay').style.display 
 
 async function addDocument(welfareId) {
   const input = document.getElementById('addDoc');
-  if (!input.files[0]) { alert('กรุณาเลือกไฟล์ก่อน'); return; }
-  const docType = prompt('ระบุประเภทเอกสาร เช่น "ใบรับรองแพทย์เพิ่มเติม"') || 'เอกสารเพิ่มเติม';
+  if (!input.files[0]) { showToast('กรุณาเลือกไฟล์ก่อน', 'info'); return; }
+  const docType = (await showPrompt('ระบุประเภทเอกสาร เช่น "ใบรับรองแพทย์เพิ่มเติม"')) || 'เอกสารเพิ่มเติม';
   try {
     const uploaded = await uploadDocument(input.files[0], docType);
     await apiCall('addWelfareDocument', { welfare_id: welfareId, doc_type: docType, url: uploaded.url });
     viewDetail(welfareId);
   } catch (err) {
-    alert('อัปโหลดไม่สำเร็จ: ' + err.message);
-  }
+    showToast('อัปโหลดไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 const WELFARE_MAX_AMOUNTS_CLIENT = {
@@ -160,53 +159,48 @@ async function approveRequest(welfareId) {
   const w = allWelfare.find(x => x.welfare_id === welfareId);
   const cap = w ? WELFARE_MAX_AMOUNTS_CLIENT[w.welfare_type] : null;
   const suggestedText = cap ? ' (วงเงินสูงสุดตามระเบียบ: ' + cap.toLocaleString() + ' บาท)' : '';
-  const amount = prompt('ระบุจำนวนเงินที่อนุมัติ (บาท)' + suggestedText + ':', cap || '');
-  if (!amount || isNaN(Number(amount))) { alert('กรุณาระบุจำนวนเงินเป็นตัวเลข'); return; }
-  const note = prompt('หมายเหตุ (ถ้ามี):') || '';
+  const amount = (await showPrompt('ระบุจำนวนเงินที่อนุมัติ (บาท)' + suggestedText + ':', cap || ''));
+  if (!amount || isNaN(Number(amount))) { showToast('กรุณาระบุจำนวนเงินเป็นตัวเลข', 'info'); return; }
+  const note = (await showPrompt('หมายเหตุ (ถ้ามี):')) || '';
   try {
     await apiCall('reviewWelfareRequest', { welfare_id: welfareId, decision: 'approve', approved_amount: amount, note });
     closeDetail();
     loadAll();
   } catch (err) {
     if (err.message.indexOf('เกินวงเงินสูงสุด') !== -1) {
-      if (confirm(err.message + '\n\nยืนยันอนุมัติเกินวงเงินหรือไม่?')) {
+      if ((await showConfirm(err.message + '\n\nยืนยันอนุมัติเกินวงเงินหรือไม่?'))) {
         try {
           await apiCall('reviewWelfareRequest', { welfare_id: welfareId, decision: 'approve', approved_amount: amount, note, override_cap: true });
           closeDetail();
           loadAll();
         } catch (err2) {
-          alert('ดำเนินการไม่สำเร็จ: ' + err2.message);
-        }
+          showToast('ดำเนินการไม่สำเร็จ: ' + err2.message, 'error');        }
       }
       return;
     }
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function rejectRequest(welfareId) {
-  const reason = prompt('ระบุเหตุผลที่ไม่อนุมัติ:');
+  const reason = (await showPrompt('ระบุเหตุผลที่ไม่อนุมัติ:'));
   if (!reason) return;
   try {
     await apiCall('reviewWelfareRequest', { welfare_id: welfareId, decision: 'reject', reject_reason: reason });
     closeDetail();
     loadAll();
   } catch (err) {
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function disburse(welfareId) {
-  if (!confirm('ยืนยันบันทึกการเบิกจ่ายเงิน และออกเอกสารยืนยันการจ่ายเงิน?')) return;
+  if (!(await showConfirm('ยืนยันบันทึกการเบิกจ่ายเงิน และออกเอกสารยืนยันการจ่ายเงิน?'))) return;
   try {
     const res = await apiCall('recordWelfareDisbursement', { welfare_id: welfareId });
-    alert('บันทึกการเบิกจ่ายสำเร็จ');
-    if (res.disbursement_doc_url) window.open(res.disbursement_doc_url, '_blank');
+    showToast('บันทึกการเบิกจ่ายสำเร็จ', 'success');    if (res.disbursement_doc_url) window.open(res.disbursement_doc_url, '_blank');
     viewDetail(welfareId);
     loadAll();
   } catch (err) {
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function loadAll() {

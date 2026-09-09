@@ -45,6 +45,10 @@ function fld(id, label, value, type) {
   return `<div><label>${label}</label><input type="${type}" id="${id}" value="${value != null ? value : ''}"></div>`;
 }
 
+function fldSelect(id, label) {
+  return `<div><label>${label}</label><select id="${id}"></select></div>`;
+}
+
 function addEduRow(edu) {
   edu = edu || {};
   editEduCount++;
@@ -77,17 +81,27 @@ function collectEducation() {
 
 const CUR_REG_MAP = [
   ['s_cur_house_no', 's_reg_house_no'], ['s_cur_moo', 's_reg_moo'], ['s_cur_building', 's_reg_building'],
-  ['s_cur_soi', 's_reg_soi'], ['s_cur_road', 's_reg_road'], ['s_cur_subdistrict', 's_reg_subdistrict'],
-  ['s_cur_district', 's_reg_district'], ['s_cur_province', 's_reg_province'], ['s_cur_zipcode', 's_reg_zipcode']
+  ['s_cur_soi', 's_reg_soi'], ['s_cur_road', 's_reg_road']
 ];
 
-function copyCurrentToRegistered() {
+async function copyCurrentToRegistered() {
   const checked = document.getElementById('sameAsRegistered').checked;
   CUR_REG_MAP.forEach(([curId, regId]) => {
     const regInput = document.getElementById(regId);
     if (checked) { regInput.value = document.getElementById(curId).value; regInput.disabled = true; }
     else { regInput.disabled = false; }
   });
+  ['s_reg_province', 's_reg_district', 's_reg_subdistrict', 's_reg_zipcode'].forEach(id => {
+    document.getElementById(id).disabled = checked;
+  });
+  if (checked) {
+    await setThaiAddressCascade('s_reg', {
+      province: document.getElementById('s_cur_province').value,
+      district: document.getElementById('s_cur_district').value,
+      subdistrict: document.getElementById('s_cur_subdistrict').value,
+      zipcode: document.getElementById('s_cur_zipcode').value
+    });
+  }
 }
 
 function updateNavVisibility(profile) {
@@ -129,13 +143,26 @@ async function load() {
     try { edu = JSON.parse(m.education_json || '[]'); } catch (e) {}
 
     el.innerHTML = `
-      <div class="panel">
-        <h2>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
-        <p>เลขสมาชิก: <b>${m.member_no || 'ยังไม่ออกเลข'}</b></p>
-        <p>ประเภทสมาชิก: ${m.member_type || '-'} &nbsp;•&nbsp; สถานะ: <span class="badge ${m.member_status==='ปกติ'?'ok':'pending'}">${m.member_status || '-'}</span></p>
-        <p>เลขใบอนุญาต: ${m.license_no || 'ยังไม่มี'} ${m.license_status ? '<span class="badge ' + (m.license_status==='ปกติ'?'ok':(m.license_status==='ใกล้หมดอายุ'?'pending':'warn')) + '">' + m.license_status + '</span>' : ''}</p>
-        <p>วันที่สมัครสมาชิก: ${m.applied_date ? new Date(m.applied_date).toLocaleDateString('th-TH') : '-'} &nbsp;•&nbsp; วันหมดอายุสมาชิกภาพ: ${m.membership_expire_date ? new Date(m.membership_expire_date).toLocaleDateString('th-TH') : '-'}</p>
-        <p style="color:var(--muted); font-size:13px">เลขบัตรประชาชนและชื่อ-นามสกุล (ภาษาไทย) แก้ไขไม่ได้ในหน้านี้ — เลขสมาชิก/ใบอนุญาตจัดการโดยเจ้าหน้าที่เท่านั้น</p>
+      <div class="panel profile-header-panel">
+        <div class="profile-header">
+          <div class="profile-photo">${m.photo_url ? `<img src="${m.photo_url}">` : '👤'}</div>
+          <div class="profile-header-main">
+            <h2>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
+            <div class="profile-badges">
+              <span class="badge pending">${m.member_type || '-'}</span>
+              <span class="badge ${m.member_status==='ปกติ'?'ok':'pending'}">${m.member_status || '-'}</span>
+              ${m.license_status ? '<span class="badge ' + (m.license_status==='ปกติ'?'ok':(m.license_status==='ใกล้หมดอายุ'?'pending':'warn')) + '">ใบอนุญาต ' + m.license_status + '</span>' : ''}
+            </div>
+          </div>
+        </div>
+        <div class="profile-info-grid">
+          <div><span>เลขประจำตัวประชาชน</span><b>${m.national_id || '-'}</b></div>
+          <div><span>เลขที่สมาชิก</span><b>${m.member_no || 'ยังไม่ออกเลข'}</b></div>
+          <div><span>เลขที่ใบอนุญาต</span><b>${m.license_no || 'ยังไม่มี'}</b></div>
+          <div><span>วันที่สมัครสมาชิก</span><b>${m.applied_date ? new Date(m.applied_date).toLocaleDateString('th-TH') : '-'}</b></div>
+          <div><span>วันหมดอายุสมาชิกภาพ</span><b>${m.membership_expire_date ? new Date(m.membership_expire_date).toLocaleDateString('th-TH') : '-'}</b></div>
+        </div>
+        <p style="color:var(--muted); font-size:13px; margin-top:10px">เลขบัตรประชาชนและชื่อ-นามสกุล (ภาษาไทย) แก้ไขไม่ได้ในหน้านี้ — เลขสมาชิก/ใบอนุญาตจัดการโดยเจ้าหน้าที่เท่านั้น</p>
       </div>
 
       <div id="editError" class="error-box"></div>
@@ -190,10 +217,10 @@ async function load() {
           ${fld('s_cur_building', 'หมู่บ้าน/คอนโด/อาคาร', m.addr_current_building)}
           ${fld('s_cur_soi', 'ซอย', m.addr_current_soi)}
           ${fld('s_cur_road', 'ถนน', m.addr_current_road)}
-          ${fld('s_cur_subdistrict', 'แขวง/ตำบล', m.addr_current_subdistrict)}
-          ${fld('s_cur_district', 'เขต/อำเภอ', m.addr_current_district)}
-          ${fld('s_cur_province', 'จังหวัด', m.addr_current_province)}
-          ${fld('s_cur_zipcode', 'รหัสไปรษณีย์', m.addr_current_zipcode)}
+          ${fldSelect('s_cur_subdistrict', 'แขวง/ตำบล')}
+          ${fldSelect('s_cur_district', 'เขต/อำเภอ')}
+          ${fldSelect('s_cur_province', 'จังหวัด')}
+          <div><label>รหัสไปรษณีย์</label><input type="text" id="s_cur_zipcode" value="${m.addr_current_zipcode || ''}" readonly></div>
         </div>
         <label style="margin-top:8px"><input type="checkbox" id="sameAsRegistered" onchange="copyCurrentToRegistered()" style="width:auto; display:inline-block; margin-right:6px">
           ที่อยู่ตามทะเบียนราษฎร์เป็นที่อยู่เดียวกัน</label>
@@ -207,10 +234,10 @@ async function load() {
           ${fld('s_reg_building', 'หมู่บ้าน/คอนโด/อาคาร', m.addr_registered_building)}
           ${fld('s_reg_soi', 'ซอย', m.addr_registered_soi)}
           ${fld('s_reg_road', 'ถนน', m.addr_registered_road)}
-          ${fld('s_reg_subdistrict', 'แขวง/ตำบล', m.addr_registered_subdistrict)}
-          ${fld('s_reg_district', 'เขต/อำเภอ', m.addr_registered_district)}
-          ${fld('s_reg_province', 'จังหวัด', m.addr_registered_province)}
-          ${fld('s_reg_zipcode', 'รหัสไปรษณีย์', m.addr_registered_zipcode)}
+          ${fldSelect('s_reg_subdistrict', 'แขวง/ตำบล')}
+          ${fldSelect('s_reg_district', 'เขต/อำเภอ')}
+          ${fldSelect('s_reg_province', 'จังหวัด')}
+          <div><label>รหัสไปรษณีย์</label><input type="text" id="s_reg_zipcode" value="${m.addr_registered_zipcode || ''}" readonly></div>
         </div>
       </fieldset>
 
@@ -224,10 +251,10 @@ async function load() {
           ${fld('s_wp_moo', 'หมู่', m.workplace_moo)}
           ${fld('s_wp_soi', 'ซอย', m.workplace_soi)}
           ${fld('s_wp_road', 'ถนน', m.workplace_road)}
-          ${fld('s_wp_subdistrict', 'แขวง/ตำบล', m.workplace_subdistrict)}
-          ${fld('s_wp_district', 'เขต/อำเภอ', m.workplace_district)}
-          ${fld('s_wp_province', 'จังหวัด', m.workplace_province)}
-          ${fld('s_wp_zipcode', 'รหัสไปรษณีย์', m.workplace_zipcode)}
+          ${fldSelect('s_wp_subdistrict', 'แขวง/ตำบล')}
+          ${fldSelect('s_wp_district', 'เขต/อำเภอ')}
+          ${fldSelect('s_wp_province', 'จังหวัด')}
+          <div><label>รหัสไปรษณีย์</label><input type="text" id="s_wp_zipcode" value="${m.workplace_zipcode || ''}" readonly></div>
           ${fld('s_wp_email', 'อีเมลหน่วยงาน', m.workplace_email, 'email')}
           ${fld('s_wp_phone', 'เบอร์โทรศัพท์หน่วยงาน', m.workplace_phone)}
         </div>
@@ -251,6 +278,19 @@ async function load() {
     edu.forEach(e => addEduRow(e));
     if (!edu.length) addEduRow();
 
+    initThaiAddressCascade('s_cur', {
+      province: m.addr_current_province, district: m.addr_current_district,
+      subdistrict: m.addr_current_subdistrict, zipcode: m.addr_current_zipcode
+    });
+    initThaiAddressCascade('s_reg', {
+      province: m.addr_registered_province, district: m.addr_registered_district,
+      subdistrict: m.addr_registered_subdistrict, zipcode: m.addr_registered_zipcode
+    });
+    initThaiAddressCascade('s_wp', {
+      province: m.workplace_province, district: m.workplace_district,
+      subdistrict: m.workplace_subdistrict, zipcode: m.workplace_zipcode
+    });
+
     document.getElementById('s_photo').addEventListener('change', async (ev) => {
       const file = ev.target.files[0];
       if (!file) return;
@@ -259,8 +299,7 @@ async function load() {
         currentPhotoUrl = uploaded.url;
         document.getElementById('photoPreview').innerHTML = `<img src="${uploaded.url}">`;
       } catch (err) {
-        alert('อัปโหลดรูปไม่สำเร็จ: ' + err.message);
-      }
+        showToast('อัปโหลดรูปไม่สำเร็จ: ' + err.message, 'error');      }
     });
   } catch (err) {
     el.innerHTML = `<div class="panel"><p>ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ — คุณอาจยังไม่ได้ยื่นใบสมัคร หรือใบสมัครยังไม่ได้รับอนุมัติและชำระเงิน</p>
@@ -295,9 +334,9 @@ async function saveProfile() {
       mailing_address_type: v('s_mailing_type'), mailing_recipient_name: v('s_mail_name'), mailing_recipient_phone: v('s_mail_phone')
     };
     const res = await apiCall('updateMember', { patch });
-    alert(res.nameChangePending
+    showToast(res.nameChangePending
       ? 'บันทึกข้อมูลสำเร็จ — คำขอเปลี่ยนชื่อ-นามสกุล (อังกฤษ) ถูกส่งไปรอเจ้าหน้าที่อนุมัติแล้ว'
-      : 'บันทึกข้อมูลสำเร็จ');
+      : 'บันทึกข้อมูลสำเร็จ', 'success');
     load();
   } catch (err) {
     errBox.textContent = 'บันทึกไม่สำเร็จ: ' + err.message;

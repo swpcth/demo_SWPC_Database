@@ -147,22 +147,20 @@ async function printLicense(memberId) {
     const res = await apiCall('generateLicensePdf', { member_id: memberId });
     window.open(res.url, '_blank');
   } catch (err) {
-    alert('พิมพ์ใบอนุญาตไม่สำเร็จ: ' + err.message);
-  }
+    showToast('พิมพ์ใบอนุญาตไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function review(applicationId, decision) {
   let reason = '';
   if (decision === 'reject') {
-    reason = prompt('ระบุเหตุผลที่ไม่อนุมัติ:') || '';
+    reason = (await showPrompt('ระบุเหตุผลที่ไม่อนุมัติ:')) || '';
     if (!reason) return;
   }
   try {
     await apiCall('reviewApplication', { application_id: applicationId, decision, reason });
     loadAll();
   } catch (err) {
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function loadApps() {
@@ -207,14 +205,12 @@ async function loadPayments() {
 async function verifyPayment(paymentId, isRenewalStr, decision) {
   const isRenewal = isRenewalStr === 'true';
   const action = isRenewal ? 'verifyLicenseRenewalPayment' : 'verifyRegistrationPayment';
-  if (decision === 'approve' && !confirm('ยืนยันว่าตรวจสอบสลิปถูกต้อง และต้องการออก/ต่ออายุใบอนุญาตทันที?')) return;
+  if (decision === 'approve' && !(await showConfirm('ยืนยันว่าตรวจสอบสลิปถูกต้อง และต้องการออก/ต่ออายุใบอนุญาตทันที?'))) return;
   try {
     await apiCall(action, { payment_id: paymentId, decision });
-    if (decision === 'approve') alert('ดำเนินการสำเร็จ');
-    loadAll();
+    if (decision === 'approve') showToast('ดำเนินการสำเร็จ', 'success');    loadAll();
   } catch (err) {
-    alert('ดำเนินการไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function loadAll() {

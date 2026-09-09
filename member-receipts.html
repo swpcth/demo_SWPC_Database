@@ -68,8 +68,7 @@ async function download(paymentId) {
     const res = await apiCall('downloadMyReceipt', { payment_id: paymentId });
     window.open(res.receipt_url, '_blank');
   } catch (err) {
-    alert('ดาวน์โหลดไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ดาวน์โหลดไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 loadReceipts();

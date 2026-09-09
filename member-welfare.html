@@ -156,18 +156,16 @@ async function saveBeneficiary() {
     hideAddBeneficiaryForm();
     loadBeneficiaries();
   } catch (err) {
-    alert('บันทึกไม่สำเร็จ: ' + err.message);
-  }
+    showToast('บันทึกไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 async function deleteBeneficiary(id) {
-  if (!confirm('ยืนยันลบข้อมูลผู้รับผลประโยชน์รายนี้?')) return;
+  if (!(await showConfirm('ยืนยันลบข้อมูลผู้รับผลประโยชน์รายนี้?'))) return;
   try {
     await apiCall('deleteBeneficiary', { beneficiary_id: id });
     loadBeneficiaries();
   } catch (err) {
-    alert('ลบไม่สำเร็จ: ' + err.message);
-  }
+    showToast('ลบไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
 let welfareTypesInfo = { types: [], maxAmounts: {}, claimDeadlineDays: 180 };
@@ -202,8 +200,7 @@ async function submitWelfareRequest() {
       incident_date: document.getElementById('w_incident_date').value,
       documents: documents
     });
-    alert('ยื่นคำขอสำเร็จ เลขที่คำขอ ' + res.welfare_id);
-    document.getElementById('w_description').value = '';
+    showToast('ยื่นคำขอสำเร็จ เลขที่คำขอ ' + res.welfare_id, 'success');    document.getElementById('w_description').value = '';
     document.getElementById('w_incident_date').value = '';
     document.getElementById('w_doc').value = '';
     loadMyRequests();

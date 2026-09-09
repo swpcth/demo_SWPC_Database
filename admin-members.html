@@ -253,6 +253,10 @@ function fld(id, label, value, type) {
   return `<div><label>${label}</label><input type="${type}" id="${id}" value="${value != null ? value : ''}"></div>`;
 }
 
+function fldSelect(id, label) {
+  return `<div><label>${label}</label><select id="${id}"></select></div>`;
+}
+
 function addEditEduRow(edu) {
   edu = edu || {};
   editEduCount++;
@@ -372,10 +376,10 @@ function renderEditForm(data) {
         ${fld('e_cur_building', 'หมู่บ้าน/คอนโด/อาคาร', m.addr_current_building)}
         ${fld('e_cur_soi', 'ซอย', m.addr_current_soi)}
         ${fld('e_cur_road', 'ถนน', m.addr_current_road)}
-        ${fld('e_cur_subdistrict', 'แขวง/ตำบล', m.addr_current_subdistrict)}
-        ${fld('e_cur_district', 'เขต/อำเภอ', m.addr_current_district)}
-        ${fld('e_cur_province', 'จังหวัด', m.addr_current_province)}
-        ${fld('e_cur_zipcode', 'รหัสไปรษณีย์', m.addr_current_zipcode)}
+        ${fldSelect('e_cur_subdistrict', 'แขวง/ตำบล')}
+        ${fldSelect('e_cur_district', 'เขต/อำเภอ')}
+        ${fldSelect('e_cur_province', 'จังหวัด')}
+        <div><label>รหัสไปรษณีย์</label><input type="text" id="e_cur_zipcode" value="${m.addr_current_zipcode || ''}" readonly></div>
       </div>
     </fieldset>
 
@@ -387,10 +391,10 @@ function renderEditForm(data) {
         ${fld('e_reg_building', 'หมู่บ้าน/คอนโด/อาคาร', m.addr_registered_building)}
         ${fld('e_reg_soi', 'ซอย', m.addr_registered_soi)}
         ${fld('e_reg_road', 'ถนน', m.addr_registered_road)}
-        ${fld('e_reg_subdistrict', 'แขวง/ตำบล', m.addr_registered_subdistrict)}
-        ${fld('e_reg_district', 'เขต/อำเภอ', m.addr_registered_district)}
-        ${fld('e_reg_province', 'จังหวัด', m.addr_registered_province)}
-        ${fld('e_reg_zipcode', 'รหัสไปรษณีย์', m.addr_registered_zipcode)}
+        ${fldSelect('e_reg_subdistrict', 'แขวง/ตำบล')}
+        ${fldSelect('e_reg_district', 'เขต/อำเภอ')}
+        ${fldSelect('e_reg_province', 'จังหวัด')}
+        <div><label>รหัสไปรษณีย์</label><input type="text" id="e_reg_zipcode" value="${m.addr_registered_zipcode || ''}" readonly></div>
       </div>
     </fieldset>
 
@@ -404,10 +408,10 @@ function renderEditForm(data) {
         ${fld('e_wp_moo', 'หมู่ที่', m.workplace_moo)}
         ${fld('e_wp_soi', 'ซอย', m.workplace_soi)}
         ${fld('e_wp_road', 'ถนน', m.workplace_road)}
-        ${fld('e_wp_subdistrict', 'แขวง/ตำบล', m.workplace_subdistrict)}
-        ${fld('e_wp_district', 'เขต/อำเภอ', m.workplace_district)}
-        ${fld('e_wp_province', 'จังหวัด', m.workplace_province)}
-        ${fld('e_wp_zipcode', 'รหัสไปรษณีย์', m.workplace_zipcode)}
+        ${fldSelect('e_wp_subdistrict', 'แขวง/ตำบล')}
+        ${fldSelect('e_wp_district', 'เขต/อำเภอ')}
+        ${fldSelect('e_wp_province', 'จังหวัด')}
+        <div><label>รหัสไปรษณีย์</label><input type="text" id="e_wp_zipcode" value="${m.workplace_zipcode || ''}" readonly></div>
         ${fld('e_wp_email', 'อีเมลหน่วยงาน', m.workplace_email, 'email')}
         ${fld('e_wp_phone', 'เบอร์โทรศัพท์หน่วยงาน', m.workplace_phone)}
       </div>
@@ -434,6 +438,19 @@ function renderEditForm(data) {
   edu.forEach(e => addEditEduRow(e));
   if (!edu.length) addEditEduRow();
 
+  initThaiAddressCascade('e_cur', {
+    province: m.addr_current_province, district: m.addr_current_district,
+    subdistrict: m.addr_current_subdistrict, zipcode: m.addr_current_zipcode
+  });
+  initThaiAddressCascade('e_reg', {
+    province: m.addr_registered_province, district: m.addr_registered_district,
+    subdistrict: m.addr_registered_subdistrict, zipcode: m.addr_registered_zipcode
+  });
+  initThaiAddressCascade('e_wp', {
+    province: m.workplace_province, district: m.workplace_district,
+    subdistrict: m.workplace_subdistrict, zipcode: m.workplace_zipcode
+  });
+
   document.getElementById('e_photo').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];
     if (!file) return;
@@ -442,8 +459,7 @@ function renderEditForm(data) {
       currentEditPhotoUrl = uploaded.url;
       document.getElementById('photoPreview').innerHTML = `<img src="${uploaded.url}">`;
     } catch (err) {
-      alert('อัปโหลดรูปไม่สำเร็จ: ' + err.message);
-    }
+      showToast('อัปโหลดรูปไม่สำเร็จ: ' + err.message, 'error');    }
   });
 }
 
@@ -476,8 +492,7 @@ async function saveMemberEdit(memberId) {
       mailing_address_type: v('e_mailing_type'), mailing_recipient_name: v('e_mail_name'), mailing_recipient_phone: v('e_mail_phone')
     };
     await apiCall('updateMember', { member_id: memberId, patch: memberPatch });
-    alert('บันทึกข้อมูลสำเร็จ');
-    closeMemberDetail();
+    showToast('บันทึกข้อมูลสำเร็จ', 'success');    closeMemberDetail();
     load();
   } catch (err) {
     errBox.textContent = 'บันทึกไม่สำเร็จ: ' + err.message;
