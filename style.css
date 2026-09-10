@@ -1171,7 +1171,16 @@ fieldset legend {
 
 /* ---------- หน้าตรวจสอบสถานะสาธารณะแบบใหม่ (public-search.html) ---------- */
 
-.public-shell-wide { max-width: 620px; }
+.public-shell-wide { max-width: 620px; margin: 0 auto; }
+.public-shell-wide .verify-banner,
+.public-shell-wide .public-card {
+  box-shadow: 0 10px 30px rgba(20,26,46,0.08);
+}
+.public-shell-wide .public-card {
+  border-radius: 0 0 var(--radius) var(--radius);
+  border-top: none;
+  max-width: none;
+}
 
 .verify-banner {
   display: flex;
@@ -1215,3 +1224,14 @@ fieldset legend {
 .verify-result-main { flex: 1; min-width: 0; }
 .verify-result-name { font-weight: 700; font-size: 15px; }
 .verify-result-status { text-align: right; flex-shrink: 0; }
+
+/* ---------- แบนเนอร์แจ้งเตือน Deploy backend ล้าสมัย ---------- */
+.backend-version-warning {
+  background: #fff3cd;
+  color: #664d03;
+  border-bottom: 2px solid #ffc107;
+  padding: 10px 16px;
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.5;
+}

@@ -134,7 +134,8 @@ if (Auth.isLoggedIn() && !Auth.getRole().startsWith('admin')) {
 async function loadPublicStatsWidget() {
   try {
     const s = await apiCall('publicStats');
-    const parts = Object.entries(s.byType).map(([k, v]) => `${k} ${v.toLocaleString()} คน`);
+    // กรอง key "วิสามัญ" ออกจาก byType เผื่อ backend เวอร์ชันเก่ายังไม่ได้อัปเดต (ป้องกันแสดงซ้ำกับบรรทัด "หน่วยงาน" ด้านล่าง)
+    const parts = Object.entries(s.byType).filter(([k]) => k !== 'วิสามัญ').map(([k, v]) => `${k} ${v.toLocaleString()} คน`);
     parts.push('วิสามัญ ' + (s.orgCount || 0).toLocaleString() + ' หน่วยงาน');
     document.getElementById('publicStatsWidget').innerHTML = `
       <div class="stats-widget-total"><b>${s.totalMembers.toLocaleString()}</b> สมาชิกทั้งหมด</div>
@@ -144,6 +145,7 @@ async function loadPublicStatsWidget() {
   } catch (err) { /* ไม่ต้องแสดง error ให้ผู้ใช้เห็น เป็นแค่ widget เสริม */ }
 }
 loadPublicStatsWidget();
+checkBackendVersionAndWarn();
 </script>
 </body>
 </html>
