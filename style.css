@@ -753,24 +753,47 @@ fieldset legend {
   width: 100%;
   max-width: 440px;
   aspect-ratio: 1.586 / 1;
-  border-radius: 14px;
+  border-radius: 22px;
   padding: 20px 22px;
   margin: 0 auto 20px;
   position: relative;
+  overflow: hidden;
+  background: #fffdf6;
   color: #2b2205;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  box-shadow: 0 10px 32px rgba(0,0,0,0.16);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
+/* คลื่นสีทแยงมุมด้านหลังบัตร — ใช้เทคนิค blob หมุนเอียงเพื่อให้ได้เส้นโค้งแบบธรรมชาติ ใกล้เคียงบัตรตัวอย่างจริง */
+.member-card::before {
+  content: '';
+  position: absolute;
+  top: -25%;
+  right: -30%;
+  width: 125%;
+  height: 165%;
+  border-radius: 46% 54% 52% 48% / 38% 44% 56% 62%;
+  transform: rotate(-16deg);
+  z-index: 0;
+}
+.member-card > * { position: relative; z-index: 1; }
+
 .card-gold {
-  background: linear-gradient(135deg, #f7e7a6 0%, #d4af37 45%, #b8860b 100%);
+  background: #fffdf6;
+  color: #2b2205;
+}
+.card-gold::before {
+  background: linear-gradient(135deg, #fcefb8 0%, #e8c158 42%, #cf9a24 75%, #a97914 100%);
 }
 
 .card-silver {
-  background: linear-gradient(135deg, #e8e8ec 0%, #b9b9c6 45%, #8f8fa3 100%);
+  background: #fbfbfc;
   color: #24242e;
+}
+.card-silver::before {
+  background: linear-gradient(135deg, #f3f3f6 0%, #d7d7e0 42%, #b3b3c2 75%, #8c8c9c 100%);
 }
 
 .card-top {
@@ -780,15 +803,16 @@ fieldset legend {
 }
 
 .card-logo {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: #fff;
-  padding: 2px;
+  padding: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
-.card-title-th { font-family: var(--font-display); font-size: 14px; font-weight: 700; line-height: 1.2; }
-.card-title-en { font-size: 10px; }
+.card-title-th { font-family: var(--font-display); font-size: 15px; font-weight: 800; line-height: 1.2; }
+.card-title-en { font-size: 10px; opacity: 0.85; }
 
 .card-body {
   display: flex;
@@ -797,22 +821,24 @@ fieldset legend {
 }
 
 .card-photo {
-  width: 64px;
-  height: 78px;
-  background: rgba(255,255,255,0.5);
-  border-radius: 6px;
+  width: 66px;
+  height: 82px;
+  background: rgba(255,255,255,0.6);
+  border-radius: 8px;
+  border: 2px solid rgba(0,0,0,0.55);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
   font-size: 28px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 .card-photo img { width: 100%; height: 100%; object-fit: cover; }
 
 .card-info { flex: 1; min-width: 0; }
-.card-name-th { font-size: 15px; font-weight: 700; }
-.card-name-en { font-size: 11px; margin-bottom: 4px; }
+.card-name-th { font-size: 16px; font-weight: 800; }
+.card-name-en { font-size: 11px; margin-bottom: 4px; opacity: 0.9; }
 .card-row { display: flex; justify-content: space-between; font-size: 10px; gap: 8px; }
 .card-row span { opacity: 0.75; }
 
@@ -931,8 +957,11 @@ fieldset legend {
 /* ---------- License card (TOR ข้อ 6) — blue-green theme ---------- */
 
 .card-license {
-  background: linear-gradient(135deg, #a8e0d4 0%, #4fa8b8 50%, #1d6f8c 100%);
+  background: #f5fdfc;
   color: #0d2b33;
+}
+.card-license::before {
+  background: linear-gradient(135deg, #bdeee5 0%, #5fbcc9 42%, #2a93a8 75%, #17677a 100%);
 }
 
 .ce-progress-track {
@@ -989,6 +1018,18 @@ fieldset legend {
   font-size: 11px;
   font-weight: 600;
   margin: 8px 0 0;
+}
+
+/* ลายน้ำโลโก้จางๆ ตรงกลางหลังบัตร — ให้ความรู้สึกเป็นเอกสารทางการเหมือนบัตรตัวอย่างจริง */
+#cardBack.member-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('logo.png') no-repeat center center;
+  background-size: 42%;
+  opacity: 0.09;
+  z-index: 0;
+  pointer-events: none;
 }
 
 /* ---------- Public stats widget (TOR ข้อ 8.8 ตัวอย่าง) ---------- */
