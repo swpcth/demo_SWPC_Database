@@ -1235,3 +1235,40 @@ fieldset legend {
   text-align: center;
   line-height: 1.5;
 }
+
+/* ---------- หน้าตรวจสอบสถานะสาธารณะ — polish เพิ่มเติม ---------- */
+
+.search-hint { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+.verify-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  padding: 30px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line);
+  border-top-color: var(--navy-deep);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.verify-empty-state {
+  text-align: center;
+  padding: 30px 10px;
+  color: var(--muted);
+}
+.verify-empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.5; }
+.verify-empty-state p { font-size: 14px; line-height: 1.6; max-width: 380px; margin: 0 auto; }
+
+.verify-result-card { transition: box-shadow 0.15s ease; }
+.verify-result-card:hover { box-shadow: 0 4px 14px rgba(20,26,46,0.08); }
+.verify-result-nolicense { opacity: 0.85; background: #fafafa; }
+.no-license-note { color: var(--warn); font-size: 12px; margin-top: 6px; font-weight: 600; }
+.photo-copyright-note { font-size: 11px; color: var(--muted); margin-top: 10px; }

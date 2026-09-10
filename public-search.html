@@ -29,7 +29,7 @@
         <div><label>ชื่อ</label><input type="text" id="q_first_name" placeholder="เช่น สมชาย" onkeydown="if(event.key==='Enter') doSearch()"></div>
         <div><label>นามสกุล</label><input type="text" id="q_last_name" placeholder="เช่น ใจดี" onkeydown="if(event.key==='Enter') doSearch()"></div>
       </div>
-      <p style="color:var(--muted); font-size:13px">กรุณากรอกให้ถูกต้องอย่างน้อย 1 ช่อง (กรอกทั้งสองช่องเพื่อผลลัพธ์ที่แม่นยำขึ้น)</p>
+      <p class="search-hint">กรุณากรอกให้ถูกต้องอย่างน้อย 1 ช่อง (กรอกทั้งสองช่องเพื่อผลลัพธ์ที่แม่นยำขึ้น)</p>
     </div>
 
     <div id="modeLicenseBox" style="display:none">
@@ -37,7 +37,7 @@
       <input type="text" id="q_license_no" placeholder="เช่น LC2568-00001" onkeydown="if(event.key==='Enter') doSearch()">
     </div>
 
-    <div class="search-row" style="margin-top:12px">
+    <div class="search-row" style="margin-top:14px">
       <button class="btn" style="width:auto" onclick="doSearch()">ค้นหา</button>
       <button class="btn secondary" style="width:auto" onclick="clearSearch()">ล้างข้อมูล</button>
     </div>
@@ -59,6 +59,7 @@ function switchMode(mode) {
   document.getElementById('tabLicense').classList.toggle('active', mode === 'license');
   document.getElementById('modeNameBox').style.display = mode === 'name' ? 'block' : 'none';
   document.getElementById('modeLicenseBox').style.display = mode === 'license' ? 'block' : 'none';
+  document.getElementById('results').innerHTML = '';
 }
 
 function clearSearch() {
@@ -70,46 +71,54 @@ function clearSearch() {
 
 function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
 
+function emptyState(message) {
+  return `<div class="verify-empty-state">
+    <div class="verify-empty-icon">🔍</div>
+    <p>${message}</p>
+  </div>`;
+}
+
 async function doSearch() {
   const box = document.getElementById('results');
   let payload;
   if (searchMode === 'license') {
     const licenseNo = document.getElementById('q_license_no').value.trim();
-    if (!licenseNo) { box.innerHTML = '<p class="empty-state">กรุณากรอกเลขที่ใบอนุญาต</p>'; return; }
+    if (!licenseNo) { box.innerHTML = emptyState('กรุณากรอกเลขที่ใบอนุญาต'); return; }
     payload = { license_no: licenseNo };
   } else {
     const firstName = document.getElementById('q_first_name').value.trim();
     const lastName = document.getElementById('q_last_name').value.trim();
-    if (!firstName && !lastName) { box.innerHTML = '<p class="empty-state">กรุณากรอกชื่อหรือนามสกุลอย่างน้อย 1 ช่อง</p>'; return; }
+    if (!firstName && !lastName) { box.innerHTML = emptyState('กรุณากรอกชื่อหรือนามสกุลอย่างน้อย 1 ช่อง'); return; }
     payload = { first_name: firstName, last_name: lastName };
   }
 
-  box.innerHTML = '<p class="empty-state">กำลังค้นหา...</p>';
+  box.innerHTML = '<div class="verify-loading"><div class="spinner"></div>กำลังค้นหา...</div>';
   try {
     const results = await apiCall('publicSearchMembers', payload);
     if (!results.length) {
-      box.innerHTML = '<p class="empty-state">ไม่พบข้อมูลผู้ประกอบวิชาชีพที่ตรงกับคำค้นหา</p>';
+      box.innerHTML = emptyState('ไม่พบข้อมูลที่ตรงกับคำค้นหา — ท่านอาจพิมพ์ชื่อผิด หรือบุคคลนี้ไม่มีใบอนุญาตประกอบวิชาชีพสังคมสงเคราะห์ในระบบ');
       return;
     }
-    box.innerHTML = `<p class="count-line">ค้นพบผู้ประกอบวิชาชีพ จำนวน ${results.length} รายการ</p>` +
+    box.innerHTML = `<p class="count-line">ค้นพบข้อมูล จำนวน ${results.length} รายการ</p>` +
       results.map(r => `
-      <div class="verify-result-card">
+      <div class="verify-result-card ${!r.hasActiveLicense ? 'verify-result-nolicense' : ''}">
         <div class="verify-result-photo">${r.photo_url ? `<img src="${r.photo_url}">` : '👤'}</div>
         <div class="verify-result-main">
           <div class="verify-result-name">${r.name} ${r.usedProfessionalTitle ? '<span style="color:var(--muted); font-weight:400; font-size:13px">(' + r.name_en + ')</span>' : ''}</div>
           <div style="color:var(--muted); font-size:13px">สมาชิก${r.member_type}${r.expertise ? ' • ความเชี่ยวชาญ: ' + r.expertise : ''}</div>
-          ${r.license_issue_date ? `<div style="font-size:13px; margin-top:4px">เป็นผู้ประกอบวิชาชีพสังคมสงเคราะห์รับอนุญาตตั้งแต่ พ.ศ. ${new Date(r.license_issue_date).getFullYear() + 543}<br><span style="color:var(--muted); font-size:12px">Permission to practice since ${new Date(r.license_issue_date).getFullYear()}</span></div>` : ''}
+          ${r.hasActiveLicense && r.license_issue_date ? `<div style="font-size:13px; margin-top:4px">เป็นผู้ประกอบวิชาชีพสังคมสงเคราะห์รับอนุญาตตั้งแต่ พ.ศ. ${new Date(r.license_issue_date).getFullYear() + 543}<br><span style="color:var(--muted); font-size:12px">Permission to practice since ${new Date(r.license_issue_date).getFullYear()}</span></div>` : ''}
+          ${!r.hasActiveLicense ? '<div class="no-license-note">⚠ ไม่มีใบอนุญาตประกอบวิชาชีพที่ใช้งานได้ในขณะนี้</div>' : ''}
         </div>
         <div class="verify-result-status">
-          <span class="badge ${r.status==='ปกติ'?'ok':(r.status==='ใกล้หมดอายุ'?'pending':'warn')}">${r.status || '-'}</span>
-          ${r.license_no !== '-' ? '<div style="font-size:12px; color:var(--muted); margin-top:6px">เลขที่ใบอนุญาต<br><b>' + r.license_no + '</b></div>' : ''}
-          ${r.expire_date ? '<div style="font-size:12px; color:var(--muted); margin-top:4px">ใช้ได้ถึง ' + fmtDate(r.expire_date) + '</div>' : ''}
+          <span class="badge ${r.status==='ปกติ'?'ok':(r.status==='ใกล้หมดอายุ'?'pending':'warn')}">${r.status || 'ไม่มีใบอนุญาต'}</span>
+          ${r.hasActiveLicense && r.license_no !== '-' ? '<div style="font-size:12px; color:var(--muted); margin-top:6px">เลขที่ใบอนุญาต<br><b>' + r.license_no + '</b></div>' : ''}
+          ${r.hasActiveLicense && r.expire_date ? '<div style="font-size:12px; color:var(--muted); margin-top:4px">ใช้ได้ถึง ' + fmtDate(r.expire_date) + '</div>' : ''}
         </div>
       </div>
     `).join('') +
-    `<p style="font-size:11px; color:var(--muted); margin-top:10px">* ภาพในหน้านี้เป็นกรรมสิทธิ์ของสภาวิชาชีพสังคมสงเคราะห์ ห้ามนำไปใช้ในทางที่ผิดกฎหมาย</p>`;
+    `<p class="photo-copyright-note">* ภาพในหน้านี้เป็นกรรมสิทธิ์ของสภาวิชาชีพสังคมสงเคราะห์ ห้ามนำไปใช้ในทางที่ผิดกฎหมาย</p>`;
   } catch (err) {
-    box.innerHTML = '<p class="empty-state">ค้นหาไม่สำเร็จ: ' + err.message + '</p>';
+    box.innerHTML = emptyState('ค้นหาไม่สำเร็จ: ' + err.message);
   }
 }
 checkBackendVersionAndWarn();

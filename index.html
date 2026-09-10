@@ -138,7 +138,7 @@ async function loadPublicStatsWidget() {
     const parts = Object.entries(s.byType).filter(([k]) => k !== 'วิสามัญ').map(([k, v]) => `${k} ${v.toLocaleString()} คน`);
     parts.push('วิสามัญ ' + (s.orgCount || 0).toLocaleString() + ' หน่วยงาน');
     document.getElementById('publicStatsWidget').innerHTML = `
-      <div class="stats-widget-total"><b>${s.totalMembers.toLocaleString()}</b> สมาชิกทั้งหมด</div>
+      <div class="stats-widget-total">สมาชิกทั้งหมด <b>${s.totalMembers.toLocaleString()}</b></div>
       <div class="stats-widget-breakdown">${parts.join(' · ')}</div>
       <div class="stats-widget-licensed">นักสังคมสงเคราะห์รับอนุญาต (สค.ร.) <b>${(s.licensedCount || 0).toLocaleString()}</b> คน</div>
     `;
