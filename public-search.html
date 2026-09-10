@@ -3,55 +3,111 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ตรวจสอบสมาชิก/ใบอนุญาต — สภาวิชาชีพสังคมสงเคราะห์</title>
+<title>ตรวจสอบสถานะสมาชิก/ผู้ได้รับใบอนุญาต — สภาวิชาชีพสังคมสงเคราะห์</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="public-shell">
-  <div class="public-header">
+<div class="public-shell public-shell-wide">
+  <div class="verify-banner">
     <img src="logo.png" alt="ตราสภาฯ" class="logo-mark">
     <div>
-      <div class="mark-text">สภาวิชาชีพสังคมสงเคราะห์</div>
-      <div class="mark-sub">ระบบตรวจสอบสถานะสมาชิก / ผู้ได้รับใบอนุญาตประกอบวิชาชีพ</div>
+      <div class="verify-banner-title">ตรวจสอบรายชื่อผู้ประกอบวิชาชีพสังคมสงเคราะห์รับอนุญาต</div>
+      <div class="verify-banner-sub">จากฐานข้อมูลสภาวิชาชีพสังคมสงเคราะห์</div>
     </div>
   </div>
 
   <div class="public-card">
-    <label>ค้นหาจากชื่อ-นามสกุล หรือเลขที่ใบอนุญาต</label>
-    <div class="search-row">
-      <input type="text" id="q" placeholder="เช่น สมชาย หรือ LC2568-00001" onkeydown="if(event.key==='Enter') doSearch()">
-      <button class="btn" style="width:auto" onclick="doSearch()">ค้นหา</button>
+    <div class="search-mode-tabs">
+      <button class="tab-chip active" id="tabName" onclick="switchMode('name')">ค้นหาจากชื่อ-นามสกุล</button>
+      <button class="tab-chip" id="tabLicense" onclick="switchMode('license')">ค้นหาจากเลขที่ใบอนุญาต</button>
     </div>
+
+    <div id="modeNameBox">
+      <div class="grid-2">
+        <div><label>ชื่อ</label><input type="text" id="q_first_name" placeholder="เช่น สมชาย" onkeydown="if(event.key==='Enter') doSearch()"></div>
+        <div><label>นามสกุล</label><input type="text" id="q_last_name" placeholder="เช่น ใจดี" onkeydown="if(event.key==='Enter') doSearch()"></div>
+      </div>
+      <p style="color:var(--muted); font-size:13px">กรุณากรอกให้ถูกต้องอย่างน้อย 1 ช่อง (กรอกทั้งสองช่องเพื่อผลลัพธ์ที่แม่นยำขึ้น)</p>
+    </div>
+
+    <div id="modeLicenseBox" style="display:none">
+      <label>เลขที่ใบอนุญาต</label>
+      <input type="text" id="q_license_no" placeholder="เช่น LC2568-00001" onkeydown="if(event.key==='Enter') doSearch()">
+    </div>
+
+    <div class="search-row" style="margin-top:12px">
+      <button class="btn" style="width:auto" onclick="doSearch()">ค้นหา</button>
+      <button class="btn secondary" style="width:auto" onclick="clearSearch()">ล้างข้อมูล</button>
+    </div>
+
     <div id="results"></div>
-    <p class="disclaimer">ระบบแสดงเฉพาะข้อมูลที่เปิดเผยได้ (ชื่อ-นามสกุล เลขใบอนุญาต สถานะ วันหมดอายุ) ตามข้อกำหนดคุ้มครองข้อมูลส่วนบุคคล</p>
+
+    <p class="disclaimer">ข้อมูลเหล่านี้เป็นข้อมูลข่าวสารของราชการที่สามารถเปิดเผยได้ เพื่อประโยชน์ในการตรวจสอบอันเป็นการคุ้มครองประชาชนและเป็นประโยชน์ต่อสังคมโดยรวม เฉพาะผู้ที่ได้รับใบอนุญาตให้ประกอบวิชาชีพสังคมสงเคราะห์รับอนุญาต และยังมีสถานะปกติเท่านั้น</p>
     <p class="back-link"><a href="index.html">← กลับหน้าหลัก</a></p>
   </div>
 </div>
 
 <script src="api.js"></script>
 <script>
+let searchMode = 'name';
+
+function switchMode(mode) {
+  searchMode = mode;
+  document.getElementById('tabName').classList.toggle('active', mode === 'name');
+  document.getElementById('tabLicense').classList.toggle('active', mode === 'license');
+  document.getElementById('modeNameBox').style.display = mode === 'name' ? 'block' : 'none';
+  document.getElementById('modeLicenseBox').style.display = mode === 'license' ? 'block' : 'none';
+}
+
+function clearSearch() {
+  document.getElementById('q_first_name').value = '';
+  document.getElementById('q_last_name').value = '';
+  document.getElementById('q_license_no').value = '';
+  document.getElementById('results').innerHTML = '';
+}
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+
 async function doSearch() {
-  const q = document.getElementById('q').value.trim();
   const box = document.getElementById('results');
-  if (q.length < 2) { box.innerHTML = '<p class="empty-state">กรุณากรอกคำค้นหาอย่างน้อย 2 ตัวอักษร</p>'; return; }
+  let payload;
+  if (searchMode === 'license') {
+    const licenseNo = document.getElementById('q_license_no').value.trim();
+    if (!licenseNo) { box.innerHTML = '<p class="empty-state">กรุณากรอกเลขที่ใบอนุญาต</p>'; return; }
+    payload = { license_no: licenseNo };
+  } else {
+    const firstName = document.getElementById('q_first_name').value.trim();
+    const lastName = document.getElementById('q_last_name').value.trim();
+    if (!firstName && !lastName) { box.innerHTML = '<p class="empty-state">กรุณากรอกชื่อหรือนามสกุลอย่างน้อย 1 ช่อง</p>'; return; }
+    payload = { first_name: firstName, last_name: lastName };
+  }
+
   box.innerHTML = '<p class="empty-state">กำลังค้นหา...</p>';
   try {
-    const results = await apiCall('publicSearchMembers', { q });
-    if (!results.length) { box.innerHTML = '<p class="empty-state">ไม่พบข้อมูลที่ตรงกับคำค้นหา</p>'; return; }
-    box.innerHTML = results.map(r => `
-      <div class="result-card">
-        <div>
-          <b>${r.name}</b> — สมาชิก${r.member_type}<br>
-          <span style="color:var(--muted); font-size:13px">เลขใบอนุญาต: ${r.license_no}</span>
+    const results = await apiCall('publicSearchMembers', payload);
+    if (!results.length) {
+      box.innerHTML = '<p class="empty-state">ไม่พบข้อมูลผู้ประกอบวิชาชีพที่ตรงกับคำค้นหา</p>';
+      return;
+    }
+    box.innerHTML = `<p class="count-line">ค้นพบผู้ประกอบวิชาชีพ จำนวน ${results.length} รายการ</p>` +
+      results.map(r => `
+      <div class="verify-result-card">
+        <div class="verify-result-photo">${r.photo_url ? `<img src="${r.photo_url}">` : '👤'}</div>
+        <div class="verify-result-main">
+          <div class="verify-result-name">${r.name} ${r.usedProfessionalTitle ? '<span style="color:var(--muted); font-weight:400; font-size:13px">(' + r.name_en + ')</span>' : ''}</div>
+          <div style="color:var(--muted); font-size:13px">สมาชิก${r.member_type}${r.expertise ? ' • ความเชี่ยวชาญ: ' + r.expertise : ''}</div>
+          ${r.license_issue_date ? `<div style="font-size:13px; margin-top:4px">เป็นผู้ประกอบวิชาชีพสังคมสงเคราะห์รับอนุญาตตั้งแต่ พ.ศ. ${new Date(r.license_issue_date).getFullYear() + 543}<br><span style="color:var(--muted); font-size:12px">Permission to practice since ${new Date(r.license_issue_date).getFullYear()}</span></div>` : ''}
         </div>
-        <div style="text-align:right">
-          <span class="badge ${r.status==='ปกติ'?'ok':(r.status==='ใกล้หมดอายุ'?'pending':'warn')}">${r.status || '-'}</span><br>
-          ${r.expire_date ? '<span style="font-size:12px; color:var(--muted)">หมดอายุ ' + new Date(r.expire_date).toLocaleDateString('th-TH') + '</span>' : ''}
+        <div class="verify-result-status">
+          <span class="badge ${r.status==='ปกติ'?'ok':(r.status==='ใกล้หมดอายุ'?'pending':'warn')}">${r.status || '-'}</span>
+          ${r.license_no !== '-' ? '<div style="font-size:12px; color:var(--muted); margin-top:6px">เลขที่ใบอนุญาต<br><b>' + r.license_no + '</b></div>' : ''}
+          ${r.expire_date ? '<div style="font-size:12px; color:var(--muted); margin-top:4px">ใช้ได้ถึง ' + fmtDate(r.expire_date) + '</div>' : ''}
         </div>
       </div>
-    `).join('');
+    `).join('') +
+    `<p style="font-size:11px; color:var(--muted); margin-top:10px">* ภาพในหน้านี้เป็นกรรมสิทธิ์ของสภาวิชาชีพสังคมสงเคราะห์ ห้ามนำไปใช้ในทางที่ผิดกฎหมาย</p>`;
   } catch (err) {
     box.innerHTML = '<p class="empty-state">ค้นหาไม่สำเร็จ: ' + err.message + '</p>';
   }

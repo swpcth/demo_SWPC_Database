@@ -79,6 +79,15 @@
         <div id="ceSection"></div>
       </div>
 
+      <div class="panel" id="professionalTitlePanel" style="display:none">
+        <h2>คำนำหน้าวิชาชีพ "สค.ร."</h2>
+        <p style="color:var(--muted); font-size:13px">นักสังคมสงเคราะห์รับอนุญาตที่มีใบอนุญาตสถานะปกติ เลือกใช้คำนำหน้าวิชาชีพ "สค.ร." (นักสังคมสงเคราะห์รับอนุญาต) แทนคำนำหน้าส่วนตัว (นาย/นาง/นางสาว) ในการแสดงผลชื่อต่อสาธารณะได้ (เช่น หน้าตรวจสอบสถานะใบอนุญาตสาธารณะ) — ไม่มีผลต่อเอกสารทางการที่ต้องตรงกับบัตรประชาชน</p>
+        <label style="display:flex; align-items:center; gap:8px; width:auto">
+          <input type="checkbox" id="useProfessionalPrefix" style="width:auto" onchange="toggleProfessionalPrefix()">
+          ใช้คำนำหน้า "สค.ร." แทนคำนำหน้าส่วนตัวในหน้าตรวจสอบสถานะสาธารณะ
+        </label>
+      </div>
+
       <div class="panel">
         <button class="btn small secondary" onclick="downloadCard()">ดาวน์โหลดบัตรใบอนุญาต (รูปภาพ)</button>
         <button class="btn small" onclick="downloadPdf()">ดาวน์โหลดใบอนุญาต (PDF ใช้แทนตัวจริงได้)</button>
@@ -374,6 +383,17 @@ async function loadEligibilityPanels() {
   }
 }
 
+async function toggleProfessionalPrefix() {
+  const checked = document.getElementById('useProfessionalPrefix').checked;
+  try {
+    await apiCall('updateMember', { patch: { use_professional_prefix: checked ? 'true' : 'false' } });
+    showToast(checked ? 'เปิดใช้คำนำหน้า "สค.ร." แล้ว' : 'ปิดใช้คำนำหน้า "สค.ร." แล้ว', 'success');
+  } catch (err) {
+    showToast('บันทึกไม่สำเร็จ: ' + err.message, 'error');
+    document.getElementById('useProfessionalPrefix').checked = !checked;
+  }
+}
+
 async function loadAll() {
   try {
     const data = await apiCall('getMyLicenseCard');
@@ -391,6 +411,14 @@ async function loadAll() {
     renderCard(data);
     renderPaymentHistory(data);
     await loadEligibilityPanels();
+
+    const panel = document.getElementById('professionalTitlePanel');
+    if (data.license && data.license.status === 'ปกติ') {
+      panel.style.display = 'block';
+      document.getElementById('useProfessionalPrefix').checked = data.member.use_professional_prefix === 'true';
+    } else {
+      panel.style.display = 'none';
+    }
   } catch (err) {
     document.getElementById('blockedPanel').style.display = 'block';
     document.getElementById('blockedText').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + err.message;

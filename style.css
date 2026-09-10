@@ -993,10 +993,17 @@ fieldset legend {
 
 /* ---------- Public stats widget (TOR ข้อ 8.8 ตัวอย่าง) ---------- */
 .public-stats-widget {
-  margin-top: 16px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.2);
   font-size: 13px;
   color: rgba(255,255,255,0.85);
+  line-height: 1.7;
 }
+.stats-widget-total { font-size: 15px; margin-bottom: 2px; }
+.stats-widget-breakdown { opacity: 0.85; }
+.stats-widget-licensed { margin-top: 4px; opacity: 0.85; }
+.stats-widget-licensed b { color: #fff; }
 
 /* ---------- Toast notifications & Modal (แทน alert/confirm/prompt) ---------- */
 
@@ -1161,3 +1168,50 @@ fieldset legend {
   margin-top: 8px;
   display: block;
 }
+
+/* ---------- หน้าตรวจสอบสถานะสาธารณะแบบใหม่ (public-search.html) ---------- */
+
+.public-shell-wide { max-width: 620px; }
+
+.verify-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--navy-deep);
+  color: #fff;
+  padding: 20px 24px;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.verify-banner .logo-mark { width: 52px; height: 52px; border-radius: 50%; background: #fff; padding: 4px; }
+.verify-banner-title { font-size: 17px; font-weight: 700; }
+.verify-banner-sub { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+
+.search-mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+
+.verify-result-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-top: 10px;
+}
+.verify-result-photo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--panel-alt, #f0f0f0);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-size: 26px;
+}
+.verify-result-photo img { width: 100%; height: 100%; object-fit: cover; }
+.verify-result-main { flex: 1; min-width: 0; }
+.verify-result-name { font-weight: 700; font-size: 15px; }
+.verify-result-status { text-align: right; flex-shrink: 0; }
