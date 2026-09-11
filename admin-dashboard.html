@@ -55,6 +55,9 @@
   <main class="main">
     <header><h1>ภาพรวมระบบ</h1></header>
 
+    <!-- สรุปจำนวนสมาชิก แยกเข้าสู่ระบบแล้ว/ยังไม่เข้าสู่ระบบ (ตามรูปแบบแดชบอร์ดเดิมที่สภาฯ ใช้อยู่) -->
+    <div id="memberStatusDashboard"><div class="panel"><p class="empty-state">กำลังโหลด...</p></div></div>
+
     <!-- 8.1 Dashboard ผู้บริหาร -->
     <div class="stat-grid" id="execStats">
       <div class="empty-state">กำลังโหลดข้อมูล...</div>
@@ -176,6 +179,45 @@ async function loadLegacySummary() {
   } catch (err) { /* ignore, non-critical secondary tables */ }
 }
 
+function renderStatusBlock(title, totalLabel, data) {
+  function col(label, iconClass, bucket) {
+    return `
+      <div class="member-status-col">
+        <div class="member-status-col-title">${iconClass} ${label} <span style="color:var(--muted); font-weight:400">(${bucket.total.toLocaleString()} คน)</span></div>
+        <div class="member-status-chips">
+          <div class="status-chip ok"><div class="n">${bucket.ปกติ.toLocaleString()}</div><div class="l">ปกติ</div></div>
+          <div class="status-chip warn"><div class="n">${bucket.หมดอายุ.toLocaleString()}</div><div class="l">หมดอายุ</div></div>
+          <div class="status-chip neutral"><div class="n">${bucket.ไม่มีข้อมูล.toLocaleString()}</div><div class="l">ไม่มีข้อมูล</div></div>
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="panel member-status-block">
+      <div class="member-status-title">👥 ${title} ทั้งหมด <b>${data.total.toLocaleString()}</b> ${totalLabel}</div>
+      <div class="member-status-cols">
+        ${col('เข้าสู่ระบบแล้ว', '➡️', data.loggedIn)}
+        ${col('ยังไม่เข้าสู่ระบบ', '➡️', data.notLoggedIn)}
+      </div>
+    </div>`;
+}
+
+async function loadMemberStatusDashboard() {
+  const el = document.getElementById('memberStatusDashboard');
+  try {
+    const d = await apiCall('getMemberStatusDashboard');
+    el.innerHTML =
+      renderStatusBlock('สมาชิกสามัญ', 'คน', d.ordinary) +
+      renderStatusBlock('นักสังคมสงเคราะห์ที่รับอนุญาต', 'คน', d.licensed) +
+      `<div class="stat-grid">
+        <div class="stat-card"><div class="num">${d.associateTotal.toLocaleString()}</div><div class="label">สมาชิกสมทบทั้งหมด</div></div>
+        <div class="stat-card"><div class="num">${d.typeChangeSuccessCount.toLocaleString()}</div><div class="label">เปลี่ยนสถานะสมทบไปสามัญ (สำเร็จแล้ว)</div></div>
+      </div>`;
+  } catch (err) {
+    el.innerHTML = `<div class="panel"><p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</p></div>`;
+  }
+}
+
+loadMemberStatusDashboard();
 loadExecutive();
 loadOperational();
 loadLegacySummary();

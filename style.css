@@ -1325,3 +1325,52 @@ fieldset legend {
 .verify-result-nolicense { opacity: 0.85; background: #fafafa; }
 .no-license-note { color: var(--warn); font-size: 12px; margin-top: 6px; font-weight: 600; }
 .photo-copyright-note { font-size: 11px; color: var(--muted); margin-top: 10px; }
+
+/* ---------- แดชบอร์ดสรุปจำนวนสมาชิก (เข้าสู่ระบบแล้ว/ยังไม่เข้าสู่ระบบ) ---------- */
+
+.member-status-block {
+  margin-bottom: 20px;
+}
+.member-status-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  margin-bottom: 12px;
+}
+.member-status-title b { color: var(--navy-deep); }
+
+.member-status-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+.member-status-col {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: var(--panel);
+}
+.member-status-col-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.member-status-chips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.status-chip {
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 4px;
+  background: #fff;
+}
+.status-chip .n { font-size: 18px; font-weight: 700; }
+.status-chip .l { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.status-chip.ok .n { color: var(--ok); }
+.status-chip.warn .n { color: var(--warn); }
+.status-chip.neutral .n { color: var(--muted); }

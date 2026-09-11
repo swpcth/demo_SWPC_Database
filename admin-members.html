@@ -460,19 +460,27 @@ function renderEditForm(data) {
   edu.forEach(e => addEditEduRow(e));
   if (!edu.length) addEditEduRow();
 
-  initThaiAddressCascade('e_cur', {
-    province: m.addr_current_province, district: m.addr_current_district,
-    subdistrict: m.addr_current_subdistrict, zipcode: m.addr_current_zipcode
-  });
-  initThaiAddressCascade('e_reg', {
-    province: m.addr_registered_province, district: m.addr_registered_district,
-    subdistrict: m.addr_registered_subdistrict, zipcode: m.addr_registered_zipcode
-  });
-  initThaiAddressCascade('e_wp', {
-    province: m.workplace_province, district: m.workplace_district,
-    subdistrict: m.workplace_subdistrict, zipcode: m.workplace_zipcode
-  });
-  initAffiliationCascade('e', { affiliation: m.affiliation, agency: m.agency });
+  if (typeof initThaiAddressCascade === 'function') {
+    initThaiAddressCascade('e_cur', {
+      province: m.addr_current_province, district: m.addr_current_district,
+      subdistrict: m.addr_current_subdistrict, zipcode: m.addr_current_zipcode
+    });
+    initThaiAddressCascade('e_reg', {
+      province: m.addr_registered_province, district: m.addr_registered_district,
+      subdistrict: m.addr_registered_subdistrict, zipcode: m.addr_registered_zipcode
+    });
+    initThaiAddressCascade('e_wp', {
+      province: m.workplace_province, district: m.workplace_district,
+      subdistrict: m.workplace_subdistrict, zipcode: m.workplace_zipcode
+    });
+  } else {
+    console.error('initThaiAddressCascade is not defined — api.js อาจเป็นเวอร์ชันเก่า กรุณาอัปโหลดไฟล์ api.js ล่าสุดและล้างแคชเบราว์เซอร์ (Ctrl+Shift+R)');
+  }
+  if (typeof initAffiliationCascade === 'function') {
+    initAffiliationCascade('e', { affiliation: m.affiliation, agency: m.agency });
+  } else {
+    console.error('initAffiliationCascade is not defined — api.js อาจเป็นเวอร์ชันเก่า กรุณาอัปโหลดไฟล์ api.js ล่าสุดและล้างแคชเบราว์เซอร์ (Ctrl+Shift+R)');
+  }
 
   document.getElementById('e_photo').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];

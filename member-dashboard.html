@@ -295,19 +295,29 @@ async function load() {
     edu.forEach(e => addEduRow(e));
     if (!edu.length) addEduRow();
 
-    initThaiAddressCascade('s_cur', {
-      province: m.addr_current_province, district: m.addr_current_district,
-      subdistrict: m.addr_current_subdistrict, zipcode: m.addr_current_zipcode
-    });
-    initThaiAddressCascade('s_reg', {
-      province: m.addr_registered_province, district: m.addr_registered_district,
-      subdistrict: m.addr_registered_subdistrict, zipcode: m.addr_registered_zipcode
-    });
-    initThaiAddressCascade('s_wp', {
-      province: m.workplace_province, district: m.workplace_district,
-      subdistrict: m.workplace_subdistrict, zipcode: m.workplace_zipcode
-    });
-    initAffiliationCascade('s', { affiliation: m.affiliation, agency: m.agency });
+    // เรียกแบบมีการ์ด (typeof check) กันกรณี api.js เป็นเวอร์ชันเก่า (แคชเบราว์เซอร์/ยังไม่ได้อัปโหลดไฟล์ใหม่)
+    // ไม่ให้ส่วนนี้พังจนกระทบการแสดงผลข้อมูลส่วนอื่นทั้งหน้า (เคยเป็นปัญหานี้มาก่อน)
+    if (typeof initThaiAddressCascade === 'function') {
+      initThaiAddressCascade('s_cur', {
+        province: m.addr_current_province, district: m.addr_current_district,
+        subdistrict: m.addr_current_subdistrict, zipcode: m.addr_current_zipcode
+      });
+      initThaiAddressCascade('s_reg', {
+        province: m.addr_registered_province, district: m.addr_registered_district,
+        subdistrict: m.addr_registered_subdistrict, zipcode: m.addr_registered_zipcode
+      });
+      initThaiAddressCascade('s_wp', {
+        province: m.workplace_province, district: m.workplace_district,
+        subdistrict: m.workplace_subdistrict, zipcode: m.workplace_zipcode
+      });
+    } else {
+      console.error('initThaiAddressCascade is not defined — api.js อาจเป็นเวอร์ชันเก่า กรุณาอัปโหลดไฟล์ api.js ล่าสุดและล้างแคชเบราว์เซอร์ (Ctrl+Shift+R)');
+    }
+    if (typeof initAffiliationCascade === 'function') {
+      initAffiliationCascade('s', { affiliation: m.affiliation, agency: m.agency });
+    } else {
+      console.error('initAffiliationCascade is not defined — api.js อาจเป็นเวอร์ชันเก่า กรุณาอัปโหลดไฟล์ api.js ล่าสุดและล้างแคชเบราว์เซอร์ (Ctrl+Shift+R)');
+    }
 
     document.getElementById('s_photo').addEventListener('change', async (ev) => {
       const file = ev.target.files[0];
