@@ -436,3 +436,14 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+/** แปลงลิงก์ไฟล์ Google Drive (แบบ "view" ที่ file.getUrl() คืนมา) ให้เป็นลิงก์รูปภาพที่ฝังแสดงผลตรงได้ (<img src>)
+ * ลิงก์ Drive ปกติ (drive.google.com/file/d/XXX/view) เป็นหน้าตัวดูไฟล์ ไม่ใช่ไฟล์รูปดิบ ใส่ใน <img src> ตรงๆ จะไม่ขึ้นรูป
+ * ต้องแปลงเป็นรูปแบบ lh3.googleusercontent.com ก่อนเสมอเวลาจะแสดงเป็นรูปภาพ (ไฟล์ต้องแชร์แบบ "ทุกคนที่มีลิงก์" ไว้แล้ว)
+ */
+function toEmbeddableImageUrl(url) {
+  if (!url) return '';
+  const m = url.match(/[-\w]{25,}/);
+  if (!m) return url;
+  return 'https://lh3.googleusercontent.com/d/' + m[0];
+}
