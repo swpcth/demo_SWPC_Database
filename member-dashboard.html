@@ -158,7 +158,7 @@ async function load() {
     el.innerHTML = `
       <div class="panel profile-header-panel">
         <div class="profile-header">
-          <div class="profile-photo">${m.photo_url ? `<img src="${m.photo_url}">` : '👤'}</div>
+          <div class="profile-photo">${m.photo_url ? `<img src="${toEmbeddableImageUrl(m.photo_url)}">` : '👤'}</div>
           <div class="profile-header-main">
             <h2>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
             <div class="profile-badges">
@@ -182,7 +182,7 @@ async function load() {
 
       <fieldset class="panel">
         <legend>ข้อมูลส่วนตัว</legend>
-        <div class="detail-photo" id="photoPreview">${currentPhotoUrl ? `<img src="${currentPhotoUrl}">` : '👤'}</div>
+        <div class="detail-photo" id="photoPreview">${currentPhotoUrl ? `<img src="${toEmbeddableImageUrl(currentPhotoUrl)}">` : '👤'}</div>
         <div class="doc-row"><label>เปลี่ยนรูปถ่าย</label><input type="file" id="s_photo" accept=".jpg,.jpeg,.png"></div>
         <label style="display:flex; align-items:flex-start; gap:8px; width:auto; margin-top:8px">
           <input type="checkbox" id="s_photo_consent" ${m.photo_public_consent === 'true' ? 'checked' : ''} style="width:auto; margin-top:3px">
@@ -325,7 +325,7 @@ async function load() {
       try {
         const uploaded = await uploadDocument(file, 'รูปถ่าย');
         currentPhotoUrl = uploaded.url;
-        document.getElementById('photoPreview').innerHTML = `<img src="${uploaded.url}">`;
+        document.getElementById('photoPreview').innerHTML = `<img src="${toEmbeddableImageUrl(uploaded.url)}">`;
       } catch (err) {
         showToast('อัปโหลดรูปไม่สำเร็จ: ' + err.message, 'error');      }
     });

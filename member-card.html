@@ -92,7 +92,7 @@ async function load() {
         </div>
         <div class="card-body">
           <div class="card-photo-col">
-            <div class="card-photo">${m.photo_url ? `<img src="${m.photo_url}">` : '👤'}</div>
+            <div class="card-photo">${m.photo_url ? `<img src="${toEmbeddableImageUrl(m.photo_url)}">` : '👤'}</div>
             <div class="card-no-label">เลขที่สมาชิก<br><b>${m.member_no || '-'}</b><br>Membership No.</div>
           </div>
           <div class="card-info">

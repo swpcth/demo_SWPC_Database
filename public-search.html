@@ -102,7 +102,7 @@ async function doSearch() {
     box.innerHTML = `<p class="count-line">ค้นพบข้อมูล จำนวน ${results.length} รายการ</p>` +
       results.map(r => `
       <div class="verify-result-card ${!r.hasActiveLicense ? 'verify-result-nolicense' : ''}">
-        <div class="verify-result-photo">${r.photo_url ? `<img src="${r.photo_url}">` : '👤'}</div>
+        <div class="verify-result-photo">${r.photo_url ? `<img src="${toEmbeddableImageUrl(r.photo_url)}">` : '👤'}</div>
         <div class="verify-result-main">
           <div class="verify-result-name">${escapeHtml(r.name)} ${r.usedProfessionalTitle ? '<span style="color:var(--muted); font-weight:400; font-size:13px">(' + escapeHtml(r.name_en) + ')</span>' : ''}</div>
           <div style="color:var(--muted); font-size:13px">สมาชิก${escapeHtml(r.member_type)}${r.expertise ? ' • ความเชี่ยวชาญ: ' + escapeHtml(r.expertise) : ''}</div>

@@ -333,7 +333,7 @@ function renderEditForm(data) {
 
     <fieldset>
       <legend>ข้อมูลส่วนตัว</legend>
-      <div class="detail-photo" id="photoPreview">${currentEditPhotoUrl ? `<img src="${currentEditPhotoUrl}">` : '👤'}</div>
+      <div class="detail-photo" id="photoPreview">${currentEditPhotoUrl ? `<img src="${toEmbeddableImageUrl(currentEditPhotoUrl)}">` : '👤'}</div>
       <div class="doc-row"><label>เปลี่ยนรูปถ่าย</label><input type="file" id="e_photo" accept=".jpg,.jpeg,.png"></div>
       <div class="grid-2">
         ${fld('e_national_id', 'เลขประจำตัวประชาชน', m.national_id)}
@@ -488,7 +488,7 @@ function renderEditForm(data) {
     try {
       const uploaded = await uploadDocument(file, 'รูปถ่าย');
       currentEditPhotoUrl = uploaded.url;
-      document.getElementById('photoPreview').innerHTML = `<img src="${uploaded.url}">`;
+      document.getElementById('photoPreview').innerHTML = `<img src="${toEmbeddableImageUrl(uploaded.url)}">`;
     } catch (err) {
       showToast('อัปโหลดรูปไม่สำเร็จ: ' + err.message, 'error');    }
   });

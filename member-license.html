@@ -159,7 +159,7 @@ function renderCard(data) {
   const m = data.member, lic = data.license;
   document.getElementById('cardBodyFront').innerHTML = `
     <div class="card-photo-col">
-      <div class="card-photo">${m.photo_url ? `<img src="${m.photo_url}">` : '👤'}</div>
+      <div class="card-photo">${m.photo_url ? `<img src="${toEmbeddableImageUrl(m.photo_url)}">` : '👤'}</div>
       <div class="card-no-label">เลขที่ใบอนุญาต<br><b>${lic ? lic.license_no : 'ยังไม่มี'}</b><br>License No.</div>
     </div>
     <div class="card-info">
