@@ -40,6 +40,7 @@ document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + A
 
 let editEduCount = 0;
 let currentPhotoUrl = '';
+let photoUploadPromise = null; // เก็บ Promise ของการอัปโหลดรูปที่กำลังทำอยู่ กันปัญหากดบันทึกเร็วเกินไปก่อนอัปโหลดเสร็จ (ทำให้บันทึกรูปเก่าทับ)
 
 function fld(id, label, value, type) {
   type = type || 'text';
@@ -185,8 +186,8 @@ async function load() {
         <div class="detail-photo" id="photoPreview">${currentPhotoUrl ? `<img src="${toEmbeddableImageUrl(currentPhotoUrl)}">` : '👤'}</div>
         <div class="doc-row"><label>เปลี่ยนรูปถ่าย</label><input type="file" id="s_photo" accept=".jpg,.jpeg,.png"></div>
         <label style="display:flex; align-items:flex-start; gap:8px; width:auto; margin-top:8px">
-          <input type="checkbox" id="s_photo_consent" ${m.photo_public_consent === 'true' ? 'checked' : ''} style="width:auto; margin-top:3px">
-          <span>ยินยอมให้แสดงรูปถ่ายของฉันในหน้าตรวจสอบสถานะสมาชิก/ใบอนุญาตแบบสาธารณะ (ไม่ต้องเข้าสู่ระบบ) — ถ้าไม่ติ๊ก จะแสดงเฉพาะไอคอนแทนรูปจริง ยกเลิกความยินยอมได้ตลอดเวลา</span>
+          <input type="checkbox" id="s_photo_consent" ${m.photo_public_consent === 'true' ? 'checked' : ''} style="width:auto; margin-top:3px" onchange="togglePhotoConsent()">
+          <span>ยินยอมให้แสดงรูปถ่ายของฉันในหน้าตรวจสอบสถานะสมาชิก/ใบอนุญาตแบบสาธารณะ (ไม่ต้องเข้าสู่ระบบ) — ถ้าไม่ติ๊ก จะแสดงเฉพาะไอคอนแทนรูปจริง ยกเลิกความยินยอมได้ตลอดเวลา (บันทึกทันทีที่ติ๊ก ไม่ต้องกดปุ่มบันทึกข้อมูล)</span>
         </label>
         <div class="grid-2" style="margin-top:12px">
           ${fld('s_prefix_en', 'คำนำหน้า (อังกฤษ)', m.prefix_en)}
@@ -322,16 +323,35 @@ async function load() {
     document.getElementById('s_photo').addEventListener('change', async (ev) => {
       const file = ev.target.files[0];
       if (!file) return;
-      try {
+      const uploadTask = (async () => {
         const uploaded = await uploadDocument(file, 'รูปถ่าย');
         currentPhotoUrl = uploaded.url;
         document.getElementById('photoPreview').innerHTML = `<img src="${toEmbeddableImageUrl(uploaded.url)}">`;
+      })();
+      photoUploadPromise = uploadTask;
+      try {
+        await uploadTask;
+        showToast('อัปโหลดรูปสำเร็จ — กด "บันทึกข้อมูล" ด้านล่างเพื่อบันทึกการเปลี่ยนแปลง', 'success');
       } catch (err) {
-        showToast('อัปโหลดรูปไม่สำเร็จ: ' + err.message, 'error');      }
+        showToast('อัปโหลดรูปไม่สำเร็จ: ' + err.message, 'error');
+      } finally {
+        photoUploadPromise = null;
+      }
     });
   } catch (err) {
     el.innerHTML = `<div class="panel"><p style="color:var(--warn)">เกิดข้อผิดพลาดในการแสดงข้อมูลโปรไฟล์: ${err.message}</p>
       <p style="color:var(--muted); font-size:13px">ข้อมูลสมาชิกของท่านมีอยู่ในระบบ แต่หน้าเว็บแสดงผลไม่สำเร็จ กรุณาลองรีเฟรชหน้านี้ หรือแจ้งผู้ดูแลระบบพร้อมข้อความข้อผิดพลาดด้านบน</p></div>`;
+  }
+}
+
+async function togglePhotoConsent() {
+  const checked = document.getElementById('s_photo_consent').checked;
+  try {
+    await apiCall('updateMember', { patch: { photo_public_consent: checked ? 'true' : 'false' } });
+    showToast(checked ? 'เปิดความยินยอมแสดงรูปสาธารณะแล้ว' : 'ปิดความยินยอมแสดงรูปสาธารณะแล้ว', 'success');
+  } catch (err) {
+    showToast('บันทึกไม่สำเร็จ: ' + err.message, 'error');
+    document.getElementById('s_photo_consent').checked = !checked;
   }
 }
 
@@ -340,6 +360,11 @@ async function saveProfile() {
   errBox.style.display = 'none';
   const v = id => document.getElementById(id).value;
   try {
+    // ถ้ามีการอัปโหลดรูปค้างอยู่ ต้องรอให้เสร็จก่อนเสมอ กัน currentPhotoUrl ยังเป็นค่าเก่าตอนบันทึก
+    if (photoUploadPromise) {
+      showToast('กำลังรอการอัปโหลดรูปให้เสร็จก่อน...', 'info');
+      try { await photoUploadPromise; } catch (e) { /* error ของการอัปโหลดถูกแจ้งไปแล้วที่ handler เดิม ที่นี่แค่รอให้จบ */ }
+    }
     const patch = {
       prefix_en: v('s_prefix_en'), first_name_en: v('s_first_name_en'), last_name_en: v('s_last_name_en'),
       dob: v('s_dob'), gender: v('s_gender'), religion: v('s_religion'), ethnicity: v('s_ethnicity'), nationality: v('s_nationality'),
