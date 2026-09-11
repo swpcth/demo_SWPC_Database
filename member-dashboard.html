@@ -186,7 +186,7 @@ async function load() {
         <div class="detail-photo" id="photoPreview">${currentPhotoUrl ? `<img src="${toEmbeddableImageUrl(currentPhotoUrl)}">` : '👤'}</div>
         <div class="doc-row"><label>เปลี่ยนรูปถ่าย</label><input type="file" id="s_photo" accept=".jpg,.jpeg,.png"></div>
         <label style="display:flex; align-items:flex-start; gap:8px; width:auto; margin-top:8px">
-          <input type="checkbox" id="s_photo_consent" ${m.photo_public_consent === 'true' ? 'checked' : ''} style="width:auto; margin-top:3px" onchange="togglePhotoConsent()">
+          <input type="checkbox" id="s_photo_consent" ${isTrueVal(m.photo_public_consent) ? 'checked' : ''} style="width:auto; margin-top:3px" onchange="togglePhotoConsent()">
           <span>ยินยอมให้แสดงรูปถ่ายของฉันในหน้าตรวจสอบสถานะสมาชิก/ใบอนุญาตแบบสาธารณะ (ไม่ต้องเข้าสู่ระบบ) — ถ้าไม่ติ๊ก จะแสดงเฉพาะไอคอนแทนรูปจริง ยกเลิกความยินยอมได้ตลอดเวลา (บันทึกทันทีที่ติ๊ก ไม่ต้องกดปุ่มบันทึกข้อมูล)</span>
         </label>
         <div class="grid-2" style="margin-top:12px">

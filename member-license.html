@@ -416,7 +416,7 @@ async function loadAll() {
     const panel = document.getElementById('professionalTitlePanel');
     if (data.license && data.license.status === 'ปกติ') {
       panel.style.display = 'block';
-      document.getElementById('useProfessionalPrefix').checked = data.member.use_professional_prefix === 'true';
+      document.getElementById('useProfessionalPrefix').checked = isTrueVal(data.member.use_professional_prefix);
     } else {
       panel.style.display = 'none';
     }

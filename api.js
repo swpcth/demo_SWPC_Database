@@ -389,7 +389,7 @@ function createSignaturePad(canvasId) {
 // ---------- ตรวจสอบว่า Deploy เวอร์ชันล่าสุดของ backend แล้วหรือยัง ----------
 // ต้องตรงกับ BACKEND_VERSION ใน Code.gs — อัปเดตทุกครั้งที่ส่งมอบไฟล์ Code.gs ชุดใหม่
 // ป้องกันปัญหา "อัปโหลดไฟล์เว็บแล้วแต่ลืม Deploy Apps Script ใหม่" ซึ่งทำให้ฟีเจอร์ใหม่ไม่ทำงานโดยไม่รู้ตัว
-const EXPECTED_BACKEND_VERSION = '2026-09-11-license-layout-v2';
+const EXPECTED_BACKEND_VERSION = '2026-09-11-boolean-field-fix';
 
 async function checkBackendVersionAndWarn() {
   try {
@@ -446,4 +446,11 @@ function toEmbeddableImageUrl(url) {
   const m = url.match(/[-\w]{25,}/);
   if (!m) return url;
   return 'https://lh3.googleusercontent.com/d/' + m[0];
+}
+
+/** ตรวจสอบค่า boolean ที่มาจากฐานข้อมูล (ตรงกับ isTrue_ ฝั่ง backend) — Google Sheets อาจแปลง "true"/"false" ที่เก็บไว้
+ * ให้กลายเป็นชนิด Boolean จริงโดยอัตโนมัติ ทำให้เทียบด้วย === 'true' ตรงๆ พลาดได้ ฟังก์ชันนี้รองรับทั้งสองรูปแบบ
+ */
+function isTrueVal(val) {
+  return val === true || val === 'true' || val === 'TRUE' || val === 1;
 }
