@@ -381,7 +381,11 @@ function renderEditForm(data) {
     <fieldset>
       <legend>ข้อมูลการทำงาน</legend>
       <div class="grid-2">
-        ${fld('e_work_status', 'สถานะการทำงาน', m.work_status)}
+        <div><label>สถานะการทำงาน</label>
+          <select id="e_work_status">
+            ${['ปฏิบัติงาน', 'ว่างงาน', 'เกษียณอายุ'].map(s => `<option value="${s}" ${m.work_status === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
         ${fld('e_position', 'ตำแหน่งปัจจุบัน', m.position)}
         <div><label>สังกัด</label><select id="e_affiliation"></select></div>
         <div><label>ชื่อหน่วยงาน</label><input type="text" id="e_agency" value="${m.agency || ''}" placeholder="พิมพ์เอง หรือเลือกจากคำแนะนำถ้าสังกัดราชการ"></div>

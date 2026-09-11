@@ -105,14 +105,16 @@ async function doSearch() {
         <div class="verify-result-photo">${r.photo_url ? `<img src="${toEmbeddableImageUrl(r.photo_url)}">` : '👤'}</div>
         <div class="verify-result-main">
           <div class="verify-result-name">${escapeHtml(r.name)} ${r.usedProfessionalTitle ? '<span style="color:var(--muted); font-weight:400; font-size:13px">(' + escapeHtml(r.name_en) + ')</span>' : ''}</div>
-          <div style="color:var(--muted); font-size:13px">สมาชิก${escapeHtml(r.member_type)}${r.expertise ? ' • ความเชี่ยวชาญ: ' + escapeHtml(r.expertise) : ''}</div>
-          ${r.hasActiveLicense && r.license_issue_date ? `<div style="font-size:13px; margin-top:4px">เป็นผู้ประกอบวิชาชีพสังคมสงเคราะห์รับอนุญาตตั้งแต่ พ.ศ. ${new Date(r.license_issue_date).getFullYear() + 543}<br><span style="color:var(--muted); font-size:12px">Permission to practice since ${new Date(r.license_issue_date).getFullYear()}</span></div>` : ''}
-          ${!r.hasActiveLicense ? '<div class="no-license-note">⚠ ไม่มีใบอนุญาตประกอบวิชาชีพที่ใช้งานได้ในขณะนี้</div>' : ''}
-        </div>
-        <div class="verify-result-status">
-          <span class="badge ${r.status==='ปกติ'?'ok':(r.status==='ใกล้หมดอายุ'?'pending':'warn')}">${escapeHtml(r.status) || 'ไม่มีใบอนุญาต'}</span>
-          ${r.hasActiveLicense && r.license_no !== '-' ? '<div style="font-size:12px; color:var(--muted); margin-top:6px">เลขที่ใบอนุญาต<br><b>' + escapeHtml(r.license_no) + '</b></div>' : ''}
-          ${r.hasActiveLicense && r.expire_date ? '<div style="font-size:12px; color:var(--muted); margin-top:4px">ใช้ได้ถึง ' + fmtDate(r.expire_date) + '</div>' : ''}
+          <div class="verify-result-type">สมาชิก${escapeHtml(r.member_type)}${r.expertise ? ' • ความเชี่ยวชาญ: ' + escapeHtml(r.expertise) : ''}</div>
+          ${!r.hasActiveLicense ? '<div class="no-license-note">⚠ ไม่มีใบอนุญาตประกอบวิชาชีพที่ใช้งานได้ในขณะนี้</div>' : `
+          <div class="verify-info-grid">
+            <div><span>สถานะใบอนุญาต</span><b><span class="badge ${r.status==='ปกติ'?'ok':(r.status==='ใกล้หมดอายุ'?'pending':'warn')}">${escapeHtml(r.status) || '-'}</span></b></div>
+            ${r.license_no !== '-' ? `<div><span>เลขที่ใบอนุญาต</span><b>${escapeHtml(r.license_no)}</b></div>` : ''}
+            ${r.license_issue_date ? `<div><span>วันที่ออกใบอนุญาต</span><b>${fmtDate(r.license_issue_date)}</b></div>` : ''}
+            ${r.expire_date ? `<div><span>วันที่ใบอนุญาตหมดอายุ</span><b>${fmtDate(r.expire_date)}</b></div>` : ''}
+          </div>
+          ${r.license_issue_date ? `<div style="font-size:12px; color:var(--muted); margin-top:10px">เป็นผู้ประกอบวิชาชีพสังคมสงเคราะห์รับอนุญาตตั้งแต่ พ.ศ. ${new Date(r.license_issue_date).getFullYear() + 543} (Permission to practice since ${new Date(r.license_issue_date).getFullYear()})</div>` : ''}
+          `}
         </div>
       </div>
     `).join('') +

@@ -734,6 +734,7 @@ fieldset legend {
   padding: 28px;
   max-width: 560px;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .search-row { display: flex; gap: 10px; margin-bottom: 16px; }
@@ -1243,6 +1244,8 @@ fieldset legend {
   color: #fff;
   padding: 20px 24px;
   border-radius: var(--radius) var(--radius) 0 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 .verify-banner .logo-mark { width: 52px; height: 52px; border-radius: 50%; background: #fff; padding: 4px; }
 .verify-banner-title { font-size: 17px; font-weight: 700; }
@@ -1252,31 +1255,45 @@ fieldset legend {
 
 .verify-result-card {
   display: flex;
-  align-items: center;
-  gap: 14px;
+  align-items: flex-start;
+  gap: 16px;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 14px;
-  margin-top: 10px;
+  padding: 18px;
+  margin-top: 12px;
 }
 .verify-result-photo {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+  width: 84px;
+  height: 104px;
+  border-radius: 8px;
   background: var(--panel-alt, #f0f0f0);
-  border: 1px solid var(--line);
+  border: 2px solid rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  font-size: 26px;
+  font-size: 34px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 .verify-result-photo img { width: 100%; height: 100%; object-fit: cover; }
 .verify-result-main { flex: 1; min-width: 0; }
-.verify-result-name { font-weight: 700; font-size: 15px; }
+.verify-result-name { font-weight: 800; font-size: 18px; margin-bottom: 4px; }
+.verify-result-type { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
 .verify-result-status { text-align: right; flex-shrink: 0; }
+.verify-result-status .badge { font-size: 13px; padding: 5px 12px; }
+
+.verify-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px 20px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.verify-info-grid > div span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.verify-info-grid > div b { font-size: 14px; }
 
 /* ---------- แบนเนอร์แจ้งเตือน Deploy backend ล้าสมัย ---------- */
 .backend-version-warning {

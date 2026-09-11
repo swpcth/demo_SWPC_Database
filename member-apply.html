@@ -127,7 +127,13 @@
         <fieldset>
           <legend>5) ข้อมูลการทำงาน</legend>
           <div class="grid-2">
-            <div><label>สถานะการทำงาน</label><input type="text" id="i_work_status"></div>
+            <div><label>สถานะการทำงาน</label>
+              <select id="i_work_status">
+                <option value="ปฏิบัติงาน">ปฏิบัติงาน</option>
+                <option value="ว่างงาน">ว่างงาน</option>
+                <option value="เกษียณอายุ">เกษียณอายุ</option>
+              </select>
+            </div>
             <div><label>ตำแหน่ง</label><input type="text" id="i_position"></div>
             <div><label>สังกัด</label><select id="i_affiliation"></select></div>
             <div><label>หน่วยงาน</label><input type="text" id="i_agency" placeholder="พิมพ์เอง หรือเลือกจากคำแนะนำถ้าสังกัดราชการ"></div>

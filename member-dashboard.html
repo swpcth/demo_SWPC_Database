@@ -218,7 +218,11 @@ async function load() {
       <fieldset class="panel">
         <legend>ข้อมูลการทำงาน</legend>
         <div class="grid-2">
-          ${fld('s_work_status', 'สถานะการทำงาน', m.work_status)}
+          <div><label>สถานะการทำงาน</label>
+            <select id="s_work_status">
+              ${['ปฏิบัติงาน', 'ว่างงาน', 'เกษียณอายุ'].map(s => `<option value="${s}" ${m.work_status === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+          </div>
           ${fld('s_position', 'ตำแหน่ง', m.position)}
           <div><label>สังกัด</label><select id="s_affiliation"></select></div>
           <div><label>หน่วยงาน</label><input type="text" id="s_agency" value="${m.agency || ''}" placeholder="พิมพ์เอง หรือเลือกจากคำแนะนำถ้าสังกัดราชการ"></div>
