@@ -21,6 +21,7 @@
       <a href="member-card.html" id="navCard" class="active">บัตรสมาชิก</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -153,7 +154,12 @@ async function load() {
     renderPaymentHistory(data);
     loadRenewalPanel();
   } catch (err) {
-    el.innerHTML = '<div class="panel"><p class="empty-state">ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ หรือโหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p></div>';
+    if (String(err.message).includes('ยังไม่ผูกกับข้อมูลสมาชิก')) {
+      el.innerHTML = `<div class="panel"><p class="empty-state">เมนูนี้ใช้ได้เมื่อใบสมัครของท่านได้รับอนุมัติและชำระเงินแล้วเท่านั้น</p>
+        <a class="btn" style="width:auto; display:inline-block" href="member-apply.html">ไปที่หน้าสมัครสมาชิก</a></div>`;
+    } else {
+      el.innerHTML = '<div class="panel"><p class="empty-state">โหลดข้อมูลบัตรสมาชิกไม่สำเร็จ: ' + err.message + '</p></div>';
+    }
   }
 }
 

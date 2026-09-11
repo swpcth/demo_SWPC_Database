@@ -21,6 +21,7 @@
       <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -420,8 +421,13 @@ async function loadAll() {
       panel.style.display = 'none';
     }
   } catch (err) {
+    document.getElementById('cardSection').style.display = 'none';
     document.getElementById('blockedPanel').style.display = 'block';
-    document.getElementById('blockedText').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + err.message;
+    if (String(err.message).includes('ยังไม่ผูกกับข้อมูลสมาชิก')) {
+      document.getElementById('blockedText').innerHTML = 'เมนูนี้ใช้ได้เมื่อใบสมัครของท่านได้รับอนุมัติและชำระเงินแล้วเท่านั้น<br><a class="btn small" style="width:auto; display:inline-block; margin-top:10px" href="member-apply.html">ไปที่หน้าสมัครสมาชิก</a>';
+    } else {
+      document.getElementById('blockedText').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + err.message;
+    }
   }
 }
 

@@ -247,6 +247,17 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 .sidebar nav a:hover { background: rgba(255,255,255,0.06); color: #fff; }
 .sidebar nav a.active { color: #fff; border-left-color: var(--red); background: rgba(255,255,255,0.06); }
 
+.nav-group-label {
+  padding: 16px 24px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+}
+.nav-group-label:first-child { padding-top: 6px; }
+.nav-group a { padding-left: 32px; }
+
 .sidebar .footer {
   margin-top: auto;
   padding: 16px 24px 0;
@@ -1020,8 +1031,9 @@ fieldset legend {
   margin: 8px 0 0;
 }
 
-/* ลายน้ำโลโก้จางๆ ตรงกลางหลังบัตร — ให้ความรู้สึกเป็นเอกสารทางการเหมือนบัตรตัวอย่างจริง */
-#cardBack.member-card::after {
+/* ลายน้ำโลโก้จางๆ กลางบัตร (ทั้งหน้าและหลัง) — ให้ความรู้สึกเป็นเอกสารทางการเหมือนบัตรตัวอย่างจริง */
+#cardBack.member-card::after,
+#cardFront.member-card::after {
   content: '';
   position: absolute;
   inset: 0;

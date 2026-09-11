@@ -49,10 +49,10 @@ async function doVerify() {
       </div>
       <div class="result-card" style="margin-top:16px">
         <div>
-          <b>${res.name}</b><br>
-          <span style="color:var(--muted); font-size:13px">เลขที่ใบเสร็จ: ${res.receipt_no}</span><br>
-          <span style="color:var(--muted); font-size:13px">รายการ: ${res.ref_type}</span><br>
-          <span style="color:var(--muted); font-size:13px">ช่องทาง: ${res.channel || '-'}</span>
+          <b>${escapeHtml(res.name)}</b><br>
+          <span style="color:var(--muted); font-size:13px">เลขที่ใบเสร็จ: ${escapeHtml(res.receipt_no)}</span><br>
+          <span style="color:var(--muted); font-size:13px">รายการ: ${escapeHtml(res.ref_type)}</span><br>
+          <span style="color:var(--muted); font-size:13px">ช่องทาง: ${escapeHtml(res.channel) || '-'}</span>
         </div>
         <div style="text-align:right">
           <b>${res.amount} บาท</b><br>

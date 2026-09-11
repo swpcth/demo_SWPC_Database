@@ -54,13 +54,13 @@ async function verify() {
       </div>
       <div class="result-card" style="margin-top:16px">
         <div>
-          <b>${res.name}</b> ${res.org_name_en ? '(' + res.org_name_en + ')' : ''} — ${res.kind === 'organization' ? 'สมาชิกวิสามัญ' : 'สมาชิก' + res.member_type}<br>
-          ${res.member_no ? '<span style="color:var(--muted); font-size:13px">เลขที่สมาชิก: ' + res.member_no + '</span><br>' : ''}
-          ${res.reg_no ? '<span style="color:var(--muted); font-size:13px">เลขทะเบียน: ' + res.reg_no + '</span><br>' : ''}
-          ${res.license_no ? '<span style="color:var(--muted); font-size:13px">เลขใบอนุญาต: ' + res.license_no + ' (' + (res.license_status || '-') + ')</span>' : ''}
+          <b>${escapeHtml(res.name)}</b> ${res.org_name_en ? '(' + escapeHtml(res.org_name_en) + ')' : ''} — ${res.kind === 'organization' ? 'สมาชิกวิสามัญ' : 'สมาชิก' + escapeHtml(res.member_type)}<br>
+          ${res.member_no ? '<span style="color:var(--muted); font-size:13px">เลขที่สมาชิก: ' + escapeHtml(res.member_no) + '</span><br>' : ''}
+          ${res.reg_no ? '<span style="color:var(--muted); font-size:13px">เลขทะเบียน: ' + escapeHtml(res.reg_no) + '</span><br>' : ''}
+          ${res.license_no ? '<span style="color:var(--muted); font-size:13px">เลขใบอนุญาต: ' + escapeHtml(res.license_no) + ' (' + escapeHtml(res.license_status || '-') + ')</span>' : ''}
         </div>
         <div style="text-align:right">
-          <span class="badge ${statusClass}">${res.status || '-'}</span><br>
+          <span class="badge ${statusClass}">${escapeHtml(res.status) || '-'}</span><br>
           ${res.expire_date ? '<span style="font-size:12px; color:var(--muted)">หมดอายุ ' + new Date(res.expire_date).toLocaleDateString('th-TH') + '</span>' : ''}
         </div>
       </div>

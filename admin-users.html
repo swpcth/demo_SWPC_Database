@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ผู้ใช้งานระบบ — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+
+      <div class="nav-group-label">สมาชิก</div>
+      <div class="nav-group">
+        <a href="admin-members.html">ข้อมูลสมาชิก</a>
+        <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+        <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      </div>
+
+      <div class="nav-group-label">ใบอนุญาต</div>
+      <div class="nav-group">
+        <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+        <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+        <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
+      </div>
+
+      <div class="nav-group-label">การเงิน</div>
+      <div class="nav-group">
+        <a href="admin-payments.html">การชำระเงิน</a>
+        <a href="admin-refunds.html">คืนเงิน</a>
+        <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
+      </div>
+
+      <div class="nav-group-label">สวัสดิการและรายงาน</div>
+      <div class="nav-group">
+        <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+        <a href="admin-reports.html">รายงาน</a>
+      </div>
+
+      <div class="nav-group-label">ระบบ</div>
+      <div class="nav-group">
+        <a href="admin-users.html" class="active">ผู้ใช้งานระบบ</a>
+        <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
+      </div>
+
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>ผู้ใช้งานระบบ (Role &amp; Permission)</h1></header>
+    <p style="color:var(--muted); font-size:13px">จัดการบัญชีเจ้าหน้าที่และสิทธิ์การเข้าถึงระบบ — เมนูนี้ใช้ได้เฉพาะผู้ดูแลระบบ (admin_super) เท่านั้น (TOR ข้อ 9)</p>
+
+    <div class="panel">
+      <div class="list-toolbar">
+        <button class="btn small" onclick="showCreateForm()">+ สร้างบัญชีเจ้าหน้าที่ใหม่</button>
+        <button class="btn small secondary" onclick="downloadBackup()">ดาวน์โหลดข้อมูลสำรองทั้งระบบ (Backup)</button>
+      </div>
+
+      <div id="createForm" class="panel" style="display:none; background:var(--paper); margin-top:12px">
+        <h2>สร้างบัญชีเจ้าหน้าที่ใหม่</h2>
+        <div class="error-box" id="createError"></div>
+        <div class="grid-2">
+          <div><label>ชื่อผู้ใช้งาน *</label><input type="text" id="new_username"></div>
+          <div><label>รหัสผ่าน * (อย่างน้อย 8 ตัวอักษร มีทั้งตัวอักษรและตัวเลข)</label><input type="password" id="new_password"></div>
+          <div><label>ชื่อ-นามสกุลที่แสดงผล</label><input type="text" id="new_display_name" placeholder="เช่น สมชาย ฝ่ายทะเบียน"></div>
+          <div><label>บทบาท *</label>
+            <select id="new_role">
+              <option value="admin_staff">เจ้าหน้าที่ฝ่ายทะเบียน/การเงิน</option>
+              <option value="admin_welfare">เจ้าหน้าที่สวัสดิการ</option>
+              <option value="admin_super">ผู้ดูแลระบบ (สิทธิ์สูงสุด)</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn small" onclick="createUser()">สร้างบัญชี</button>
+        <button class="btn small secondary" onclick="hideCreateForm()">ยกเลิก</button>
+      </div>
+
+      <table>
+        <thead><tr><th>ชื่อผู้ใช้งาน</th><th>ชื่อแสดงผล</th><th>บทบาท</th><th>สถานะ</th><th>เข้าระบบล่าสุด</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super"], "admin-login.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleString('th-TH') : '-'; }
+
+function showCreateForm() { document.getElementById('createForm').style.display = 'block'; }
+function hideCreateForm() {
+  document.getElementById('createForm').style.display = 'none';
+  document.getElementById('new_username').value = '';
+  document.getElementById('new_password').value = '';
+  document.getElementById('new_display_name').value = '';
+  document.getElementById('createError').style.display = 'none';
+}
+
+async function loadUsers() {
+  const tbody = document.getElementById('rows');
+  try {
+    const rows = await apiCall('listAdminUsers');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่พบบัญชีเจ้าหน้าที่</td></tr>'; return; }
+    tbody.innerHTML = rows.map(u => `
+      <tr>
+        <td>${u.username}</td>
+        <td>${u.display_name || '-'}</td>
+        <td>${u.role_label}</td>
+        <td>
+          <span class="badge ${u.status==='active'?'ok':'warn'}">${u.status === 'active' ? 'ใช้งานอยู่' : 'ถูกระงับ'}</span>
+          ${u.is_locked ? '<span class="badge warn">ถูกล็อกชั่วคราว</span>' : ''}
+        </td>
+        <td>${fmtDate(u.last_login)}</td>
+        <td>
+          <select onchange="changeRole('${u.user_id}', this.value)" style="width:auto; display:inline-block; margin-right:6px">
+            <option value="">เปลี่ยนบทบาท...</option>
+            <option value="admin_staff">เจ้าหน้าที่ฝ่ายทะเบียน/การเงิน</option>
+            <option value="admin_welfare">เจ้าหน้าที่สวัสดิการ</option>
+            <option value="admin_super">ผู้ดูแลระบบ</option>
+          </select>
+          <button class="btn small secondary" onclick="toggleStatus('${u.user_id}', '${u.status}')">${u.status === 'active' ? 'ระงับบัญชี' : 'เปิดใช้งาน'}</button>
+          ${u.is_locked ? `<button class="btn small secondary" onclick="unlockUser('${u.user_id}')">ปลดล็อก</button>` : ''}
+          <button class="btn small secondary" onclick="resetPassword('${u.user_id}')">ตั้งรหัสผ่านใหม่</button>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+async function createUser() {
+  const errBox = document.getElementById('createError');
+  errBox.style.display = 'none';
+  try {
+    await apiCall('createAdminUser', {
+      username: document.getElementById('new_username').value,
+      password: document.getElementById('new_password').value,
+      display_name: document.getElementById('new_display_name').value,
+      role: document.getElementById('new_role').value
+    });
+    showToast('สร้างบัญชีเจ้าหน้าที่สำเร็จ', 'success');
+    hideCreateForm();
+    loadUsers();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  }
+}
+
+async function changeRole(userId, role) {
+  if (!role) return;
+  if (!(await showConfirm('ยืนยันเปลี่ยนบทบาทบัญชีนี้เป็น "' + role + '" ?'))) { loadUsers(); return; }
+  try {
+    await apiCall('updateAdminUser', { user_id: userId, role });
+    showToast('เปลี่ยนบทบาทสำเร็จ', 'success');
+    loadUsers();
+  } catch (err) {
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function toggleStatus(userId, currentStatus) {
+  const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+  const confirmMsg = newStatus === 'inactive' ? 'ยืนยันระงับบัญชีนี้? ผู้ใช้งานจะเข้าสู่ระบบไม่ได้ทันที' : 'ยืนยันเปิดใช้งานบัญชีนี้อีกครั้ง?';
+  if (!(await showConfirm(confirmMsg))) return;
+  try {
+    await apiCall('updateAdminUser', { user_id: userId, status: newStatus });
+    showToast('ดำเนินการสำเร็จ', 'success');
+    loadUsers();
+  } catch (err) {
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function unlockUser(userId) {
+  try {
+    await apiCall('updateAdminUser', { user_id: userId, unlock: true });
+    showToast('ปลดล็อกบัญชีสำเร็จ', 'success');
+    loadUsers();
+  } catch (err) {
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function resetPassword(userId) {
+  const newPassword = await showPrompt('ระบุรหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร มีทั้งตัวอักษรและตัวเลข):');
+  if (!newPassword) return;
+  try {
+    await apiCall('resetAdminUserPassword', { user_id: userId, new_password: newPassword });
+    showToast('ตั้งรหัสผ่านใหม่สำเร็จ กรุณาแจ้งเจ้าของบัญชี', 'success');
+  } catch (err) {
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function downloadBackup() {
+  if (!(await showConfirm('ยืนยันสร้างไฟล์ข้อมูลสำรองทั้งระบบ? ไฟล์นี้มีข้อมูลส่วนบุคคลของสมาชิกทั้งหมด ควรเก็บรักษาอย่างปลอดภัย'))) return;
+  try {
+    showToast('กำลังสร้างไฟล์สำรองข้อมูล อาจใช้เวลาสักครู่...', 'info');
+    const res = await apiCall('exportFullBackup');
+    window.open(res.url, '_blank');
+  } catch (err) {
+    showToast('สร้างไฟล์สำรองไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+loadUsers();
+</script>
+</body>
+</html>

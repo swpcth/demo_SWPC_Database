@@ -19,6 +19,7 @@
       <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
       <a href="member-welfare.html" class="active">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -27,6 +28,11 @@
   <main class="main">
     <header><h1>สวัสดิการสมาชิก</h1></header>
 
+    <div class="panel" id="blockedPanel" style="display:none">
+      <p class="empty-state" id="blockedText"></p>
+    </div>
+
+    <div id="welfareContent">
     <div class="panel">
       <h2>ข้อมูลผู้รับผลประโยชน์</h2>
       <p style="color:var(--muted); font-size:13px">บันทึกไว้ล่วงหน้าได้หลายรายการ เพื่อเลือกใช้ตอนยื่นคำขอรับสวัสดิการ</p>
@@ -73,6 +79,7 @@
     <div class="panel">
       <h2>ประวัติการขอรับสวัสดิการของฉัน</h2>
       <div id="myRequests"><p class="empty-state">กำลังโหลด...</p></div>
+    </div>
     </div>
   </main>
 </div>
@@ -232,9 +239,28 @@ async function loadMyRequests() {
   }
 }
 
-loadBeneficiaries();
-loadWelfareTypes();
-loadMyRequests();
+async function initWelfarePage() {
+  try {
+    // เช็คสิทธิ์ก่อนโหลดเนื้อหาหลัก — ถ้าบัญชีนี้ยังไม่ผูกกับข้อมูลสมาชิก (เช่น ใบสมัครยังไม่อนุมัติ) จะได้แจ้งข้อความเดียวที่ชัดเจน
+    // แทนที่จะให้แต่ละส่วนของหน้า (ผู้รับผลประโยชน์/แบบฟอร์ม/ประวัติ) ขึ้น error ซ้ำกันหลายจุด
+    await apiCall('getMyProfile');
+  } catch (err) {
+    document.getElementById('welfareContent').style.display = 'none';
+    const panel = document.getElementById('blockedPanel');
+    panel.style.display = 'block';
+    if (String(err.message).includes('ยังไม่ผูกกับข้อมูลสมาชิก')) {
+      document.getElementById('blockedText').innerHTML = 'เมนูนี้ใช้ได้เมื่อใบสมัครของท่านได้รับอนุมัติและชำระเงินแล้วเท่านั้น<br><a class="btn small" style="width:auto; display:inline-block; margin-top:10px" href="member-apply.html">ไปที่หน้าสมัครสมาชิก</a>';
+    } else {
+      document.getElementById('blockedText').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + err.message;
+    }
+    return;
+  }
+  loadBeneficiaries();
+  loadWelfareTypes();
+  loadMyRequests();
+}
+
+initWelfarePage();
 applyMemberNavVisibility();
 </script>
 </body>

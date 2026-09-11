@@ -20,6 +20,7 @@
       <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -122,8 +123,20 @@ function updateNavVisibility(profile) {
 
 async function load() {
   const el = document.getElementById('content');
+  let m;
   try {
-    const m = await apiCall('getMyProfile');
+    m = await apiCall('getMyProfile');
+  } catch (err) {
+    el.innerHTML = `<div class="panel"><p>ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ — คุณอาจยังไม่ได้ยื่นใบสมัคร หรือใบสมัครยังไม่ได้รับอนุมัติและชำระเงิน</p>
+      <a class="btn" style="width:auto; display:inline-block" href="member-apply.html">ไปที่หน้าสมัครสมาชิก</a></div>`;
+    const navTypeChange = document.getElementById('navTypeChange');
+    if (navTypeChange) navTypeChange.style.display = 'none';
+    return;
+  }
+
+  // แยก try/catch การ "หาโปรไฟล์ไม่เจอ" ออกจาก "แสดงผลโปรไฟล์" — ถ้าโค้ดส่วนแสดงผลพัง จะได้เห็น error จริง
+  // ไม่ใช่ข้อความ "ไม่พบข้อมูลสมาชิก" ที่ทำให้เข้าใจผิดว่าบัญชีนี้ไม่มีข้อมูลสมาชิกทั้งที่จริงๆ มีข้อมูลอยู่แล้ว
+  try {
     if (m.profile_kind === 'organization') {
       el.innerHTML = `
         <div class="panel">
@@ -307,10 +320,8 @@ async function load() {
         showToast('อัปโหลดรูปไม่สำเร็จ: ' + err.message, 'error');      }
     });
   } catch (err) {
-    el.innerHTML = `<div class="panel"><p>ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ — คุณอาจยังไม่ได้ยื่นใบสมัคร หรือใบสมัครยังไม่ได้รับอนุมัติและชำระเงิน</p>
-      <a class="btn" style="width:auto; display:inline-block" href="member-apply.html">ไปที่หน้าสมัครสมาชิก</a></div>`;
-    const navTypeChange = document.getElementById('navTypeChange');
-    if (navTypeChange) navTypeChange.style.display = 'none';
+    el.innerHTML = `<div class="panel"><p style="color:var(--warn)">เกิดข้อผิดพลาดในการแสดงข้อมูลโปรไฟล์: ${err.message}</p>
+      <p style="color:var(--muted); font-size:13px">ข้อมูลสมาชิกของท่านมีอยู่ในระบบ แต่หน้าเว็บแสดงผลไม่สำเร็จ กรุณาลองรีเฟรชหน้านี้ หรือแจ้งผู้ดูแลระบบพร้อมข้อความข้อผิดพลาดด้านบน</p></div>`;
   }
 }
 

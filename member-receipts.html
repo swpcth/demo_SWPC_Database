@@ -19,6 +19,7 @@
       <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html" class="active">ใบเสร็จของฉัน</a>
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
@@ -59,7 +60,12 @@ async function loadReceipts() {
         </div>
       </div>`).join('');
   } catch (err) {
-    box.innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
+    if (String(err.message).includes('ยังไม่ผูกกับข้อมูลสมาชิก')) {
+      box.innerHTML = `<p class="empty-state">เมนูนี้ใช้ได้เมื่อใบสมัครของท่านได้รับอนุมัติและชำระเงินแล้วเท่านั้น</p>
+        <a class="btn" style="width:auto; display:inline-block" href="member-apply.html">ไปที่หน้าสมัครสมาชิก</a>`;
+    } else {
+      box.innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
+    }
   }
 }
 
