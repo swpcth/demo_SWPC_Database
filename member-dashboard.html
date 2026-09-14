@@ -165,12 +165,14 @@ async function load() {
               </div>
             </div>
           </div>
-          <div class="profile-info-grid">
-            <div><span>เลขทะเบียนสมาชิกวิสามัญ</span><b>${m.reg_no || 'ยังไม่ออกเลข'}</b></div>
-            <div><span>ประเภทองค์กร</span><b>${m.org_type || '-'}</b></div>
-            <div><span>เลขทะเบียนนิติบุคคล</span><b>${m.juristic_no || '-'}</b></div>
-            <div><span>วันที่อนุมัติ</span><b>${m.approved_date ? new Date(m.approved_date).toLocaleDateString('th-TH') : '-'}</b></div>
-            <div><span>วันหมดอายุสมาชิกภาพ</span><b>${m.end_date ? new Date(m.end_date).toLocaleDateString('th-TH') : '-'}</b></div>
+          <div class="profile-info-section">
+            <div class="profile-info-grid">
+              <div><span>เลขทะเบียนสมาชิกวิสามัญ</span><b>${m.reg_no || 'ยังไม่ออกเลข'}</b></div>
+              <div><span>ประเภทองค์กร</span><b>${m.org_type || '-'}</b></div>
+              <div><span>เลขทะเบียนนิติบุคคล</span><b>${m.juristic_no || '-'}</b></div>
+              <div><span>วันที่อนุมัติ</span><b>${m.approved_date ? new Date(m.approved_date).toLocaleDateString('th-TH') : '-'}</b></div>
+              <div><span>วันหมดอายุสมาชิกภาพ</span><b>${m.end_date ? new Date(m.end_date).toLocaleDateString('th-TH') : '-'}</b></div>
+            </div>
           </div>
           <p style="color:var(--muted); font-size:13px; margin-top:10px">ชื่อองค์กร เลขทะเบียน และข้อมูลผู้แทน (ชื่อ-ตำแหน่ง) แก้ไขไม่ได้ในหน้านี้ — ติดต่อเจ้าหน้าที่หากต้องแก้ไข</p>
         </div>
@@ -246,17 +248,30 @@ async function load() {
             </div>
           </div>
         </div>
-        <div class="profile-info-grid">
-          <div><span>เลขประจำตัวประชาชน</span><b>${m.national_id || '-'}</b></div>
-          <div><span>เลขที่สมาชิก</span><b>${m.member_no || 'ยังไม่ออกเลข'}</b></div>
-          <div><span>เลขที่ใบอนุญาต</span><b>${m.license_no || 'ยังไม่มี'}</b></div>
-          <div><span>วันที่สมัครสมาชิก</span><b>${m.applied_date ? new Date(m.applied_date).toLocaleDateString('th-TH') : '-'}</b></div>
-          <div><span>วันหมดอายุสมาชิกภาพ</span><b>${m.membership_expire_date ? new Date(m.membership_expire_date).toLocaleDateString('th-TH') : '-'}</b></div>
-          ${m.license_no ? `
-          <div><span>วันที่ออกใบอนุญาต</span><b>${m.license_issue_date ? new Date(m.license_issue_date).toLocaleDateString('th-TH') : '-'}</b></div>
-          <div><span>วันที่ใบอนุญาตหมดอายุ</span><b>${m.license_expire_date ? new Date(m.license_expire_date).toLocaleDateString('th-TH') : '-'}</b></div>
-          ` : ''}
+        <div class="profile-info-section">
+          <div class="profile-info-section-title">ข้อมูลสมาชิกภาพ</div>
+          <div class="profile-info-grid">
+            <div><span>เลขประจำตัวประชาชน</span><b>${m.national_id || '-'}</b></div>
+            <div><span>เลขที่สมาชิก</span><b>${m.member_no || 'ยังไม่ออกเลข'}</b></div>
+            <div><span>วันที่สมัครสมาชิก</span><b>${m.applied_date ? new Date(m.applied_date).toLocaleDateString('th-TH') : '-'}</b></div>
+            <div><span>วันหมดอายุสมาชิกภาพ</span><b>${m.membership_expire_date ? new Date(m.membership_expire_date).toLocaleDateString('th-TH') : '-'}</b></div>
+          </div>
         </div>
+        ${m.license_no ? `
+        <div class="profile-info-section">
+          <div class="profile-info-section-title">ข้อมูลใบอนุญาต</div>
+          <div class="profile-info-grid">
+            <div><span>เลขที่ใบอนุญาต</span><b>${m.license_no}</b></div>
+            <div><span>วันที่ออกใบอนุญาต</span><b>${m.license_issue_date ? new Date(m.license_issue_date).toLocaleDateString('th-TH') : '-'}</b></div>
+            <div><span>วันที่ใบอนุญาตหมดอายุ</span><b>${m.license_expire_date ? new Date(m.license_expire_date).toLocaleDateString('th-TH') : '-'}</b></div>
+          </div>
+        </div>
+        ` : `
+        <div class="profile-info-section">
+          <div class="profile-info-section-title">ข้อมูลใบอนุญาต</div>
+          <p class="profile-info-empty">ยังไม่มีใบอนุญาต — ยื่นขอได้ที่เมนู "ใบอนุญาตของฉัน"</p>
+        </div>
+        `}
         <p style="color:var(--muted); font-size:13px; margin-top:10px">เลขบัตรประชาชนและชื่อ-นามสกุล (ภาษาไทย) แก้ไขไม่ได้ในหน้านี้ — เลขสมาชิก/ใบอนุญาตจัดการโดยเจ้าหน้าที่เท่านั้น</p>
       </div>
 
