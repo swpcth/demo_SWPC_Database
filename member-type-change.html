@@ -69,6 +69,7 @@
   </main>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="api.js"></script>
 <script>
 Auth.requireRole(['member'], 'index.html');
@@ -83,18 +84,48 @@ function statusBadgeClass(status) {
 function renderPaySlipForm(a) {
   return `
     <div class="pay-box">
-      <p>ค่าธรรมเนียมเปลี่ยนสถานภาพ: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี 021-0-15582-5 ธนาคารกรุงไทย ชื่อบัญชี "สภาวิชาชีพสังคมสงเคราะห์" แล้วแนบสลิปด้านล่าง</p>
+      <p>ค่าธรรมเนียมเปลี่ยนสถานภาพ: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี 021-0-15582-5 ธนาคารกรุงไทย ชื่อบัญชี "สภาวิชาชีพสังคมสงเคราะห์" หรือชำระผ่านช่องทางอื่นด้านล่าง แล้วแนบสลิป/หลักฐานการชำระเงิน</p>
+      <label>ช่องทางการชำระเงิน</label>
+      <select id="channel_${a.application_id}" onchange="onChannelChange('${a.application_id}', ${a.fee_amount})">
+        ${PAYMENT_CHANNELS_CLIENT.map(c => `<option value="${c}">${c}</option>`).join('')}
+      </select>
+      <div id="qrBox_${a.application_id}" style="display:none; text-align:center; margin:10px 0">
+        <div id="qr_${a.application_id}"></div>
+        <p style="color:var(--muted); font-size:12px">สแกนด้วยแอปธนาคารเพื่อชำระเงิน ${a.fee_amount} บาท แล้วแนบสลิปยืนยันด้านล่าง</p>
+      </div>
       <input type="file" id="slip_${a.application_id}" accept=".pdf,.jpg,.jpeg,.png">
-      <button type="button" class="btn small" onclick="submitSlip('${a.application_id}')">แนบสลิปการโอนเงิน</button>
+      <button type="button" class="btn small" onclick="submitSlip('${a.application_id}')">แนบสลิป/หลักฐานการชำระเงิน</button>
     </div>`;
+}
+
+const PAYMENT_CHANNELS_CLIENT = ['โอนเงินผ่านธนาคาร (ตรวจสอบสลิปด้วยมือ)', 'พร้อมเพย์ (QR PromptPay)', 'บัตรเครดิต/เดบิต', 'Mobile Banking', 'เคาน์เตอร์เซอร์วิส/Bill Payment'];
+
+async function onChannelChange(applicationId, amount) {
+  const channel = document.getElementById('channel_' + applicationId).value;
+  const qrBox = document.getElementById('qrBox_' + applicationId);
+  if (channel !== 'พร้อมเพย์ (QR PromptPay)') { qrBox.style.display = 'none'; return; }
+  try {
+    const cfg = await apiCall('getPromptPayConfig');
+    qrBox.style.display = 'block';
+    if (!cfg.promptPayId) {
+      document.getElementById('qr_' + applicationId).innerHTML = '<p style="color:var(--muted); font-size:13px">ยังไม่ได้ตั้งค่าเลขพร้อมเพย์ของสภาฯ ในระบบ กรุณาโอนเข้าบัญชีธนาคารแทน</p>';
+      return;
+    }
+    renderPromptPayQr('qr_' + applicationId, cfg.promptPayId, amount);
+  } catch (err) {
+    qrBox.style.display = 'block';
+    document.getElementById('qr_' + applicationId).innerHTML = '<p style="color:var(--warn); font-size:13px">สร้าง QR ไม่สำเร็จ: ' + err.message + '</p>';
+  }
 }
 
 async function submitSlip(applicationId) {
   const input = document.getElementById('slip_' + applicationId);
   if (!input.files[0]) { showToast('กรุณาเลือกไฟล์สลิปก่อน', 'info'); return; }
+  const channelSel = document.getElementById('channel_' + applicationId);
+  const channel = channelSel ? channelSel.value : 'โอนเงินผ่านธนาคาร (ตรวจสอบสลิปด้วยมือ)';
   try {
     const uploaded = await uploadDocument(input.files[0], 'สลิปการโอนเงิน');
-    await apiCall('submitPaymentSlip', { application_id: applicationId, slip_url: uploaded.url, method: 'โอนเงิน' });
+    await apiCall('submitPaymentSlip', { application_id: applicationId, slip_url: uploaded.url, method: 'โอนเงิน', channel });
     showToast('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ', 'success');    loadAll();
   } catch (err) {
     showToast('แนบสลิปไม่สำเร็จ: ' + err.message, 'error');  }

@@ -46,7 +46,8 @@
         <a href="admin-users.html">ผู้ใช้งานระบบ</a>
         <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
       </div>
-<a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+<a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
     </nav>
     <div class="footer" id="who"></div>
   </aside>
@@ -288,8 +289,13 @@ function addEditEduRow(edu) {
   div.id = 'editEdu' + id;
   div.innerHTML = `
     <div class="grid-2">
-      <div><label>ระดับการศึกษา</label><input type="text" class="edu-level" value="${edu.level || ''}"></div>
-      <div><label>ปีที่สำเร็จการศึกษา</label><input type="text" class="edu-year" value="${edu.year || ''}"></div>
+      <div><label>ระดับการศึกษา</label>${dropdownWithOtherHtmlClass('edu-level', EDU_LEVEL_OPTIONS, edu.level, "toggleOtherInputClass(this)")}</div>
+      <div><label>ปีที่สำเร็จการศึกษา (พ.ศ.)</label>
+        <select class="edu-year">
+          <option value="">— เลือกปี —</option>
+          ${buildYearOptionsBE(60).map(y => `<option value="${y}" ${String(edu.year) === String(y) ? 'selected' : ''}>${y}</option>`).join('')}
+        </select>
+      </div>
       <div><label>วุฒิการศึกษา</label><input type="text" class="edu-degree" value="${edu.degree || ''}"></div>
       <div><label>สาขาวิชา</label><input type="text" class="edu-major" value="${edu.major || ''}"></div>
       <div><label>สถาบันการศึกษา</label><input type="text" class="edu-institute" value="${edu.institute || ''}"></div>
@@ -299,14 +305,23 @@ function addEditEduRow(edu) {
   document.getElementById('editEduRows').appendChild(div);
 }
 
+function toggleOtherInputClass(selectEl) {
+  const otherInput = selectEl.parentElement.querySelector('.' + selectEl.className + '-other');
+  if (otherInput) otherInput.style.display = selectEl.value === OTHER_OPTION_LABEL ? 'block' : 'none';
+}
+
 function collectEditEducation() {
-  return Array.from(document.querySelectorAll('#editEduRows .edu-row')).map(row => ({
-    level: row.querySelector('.edu-level').value,
-    year: row.querySelector('.edu-year').value,
-    degree: row.querySelector('.edu-degree').value,
-    major: row.querySelector('.edu-major').value,
-    institute: row.querySelector('.edu-institute').value
-  })).filter(e => e.level || e.degree || e.institute);
+  return Array.from(document.querySelectorAll('#editEduRows .edu-row')).map(row => {
+    const levelSelect = row.querySelector('.edu-level');
+    const level = levelSelect.value === OTHER_OPTION_LABEL ? row.querySelector('.edu-level-other').value : levelSelect.value;
+    return {
+      level: level,
+      year: row.querySelector('.edu-year').value,
+      degree: row.querySelector('.edu-degree').value,
+      major: row.querySelector('.edu-major').value,
+      institute: row.querySelector('.edu-institute').value
+    };
+  }).filter(e => e.level || e.degree || e.institute);
 }
 
 async function viewMember(memberId) {
@@ -349,9 +364,9 @@ function renderEditForm(data) {
         ${fld('e_last_name_th', 'นามสกุล (ไทย)', m.last_name_th)}
         ${fld('e_first_name_en', 'ชื่อ (อังกฤษ)', m.first_name_en)}
         ${fld('e_last_name_en', 'นามสกุล (อังกฤษ)', m.last_name_en)}
-        ${fld('e_religion', 'ศาสนา', m.religion)}
-        ${fld('e_ethnicity', 'เชื้อชาติ', m.ethnicity)}
-        ${fld('e_nationality', 'สัญชาติ', m.nationality)}
+        <div><label>ศาสนา</label>${dropdownWithOtherHtml('e_religion', RELIGION_OPTIONS, m.religion)}</div>
+        <div><label>เชื้อชาติ</label>${dropdownWithOtherHtml('e_ethnicity', ETHNICITY_OPTIONS, m.ethnicity)}</div>
+        <div><label>สัญชาติ</label>${dropdownWithOtherHtml('e_nationality', NATIONALITY_OPTIONS, m.nationality)}</div>
         ${fld('e_phone', 'เบอร์โทรศัพท์', m.phone)}
         ${fld('e_email', 'อีเมล', m.email, 'email')}
         ${fld('e_line_id', 'Line ID', m.line_id)}
@@ -386,7 +401,7 @@ function renderEditForm(data) {
             ${['ปฏิบัติงาน', 'ว่างงาน', 'เกษียณอายุ'].map(s => `<option value="${s}" ${m.work_status === s ? 'selected' : ''}>${s}</option>`).join('')}
           </select>
         </div>
-        ${fld('e_position', 'ตำแหน่งปัจจุบัน', m.position)}
+        <div><label>ตำแหน่งปัจจุบัน</label>${dropdownWithOtherHtml('e_position', POSITION_OPTIONS, m.position)}</div>
         <div><label>สังกัด</label><select id="e_affiliation"></select></div>
         <div><label>ชื่อหน่วยงาน</label><input type="text" id="e_agency" value="${m.agency || ''}" placeholder="พิมพ์เอง หรือเลือกจากคำแนะนำถ้าสังกัดราชการ"></div>
         ${fld('e_work_province', 'จังหวัดที่ปฏิบัติงาน', m.work_province)}
@@ -507,12 +522,12 @@ async function saveMemberEdit(memberId) {
       national_id: v('e_national_id'), dob: v('e_dob'), gender: v('e_gender'), prefix_th: v('e_prefix_th'), prefix_en: v('e_prefix_en'),
       first_name_th: v('e_first_name_th'), last_name_th: v('e_last_name_th'),
       first_name_en: v('e_first_name_en'), last_name_en: v('e_last_name_en'),
-      religion: v('e_religion'), ethnicity: v('e_ethnicity'), nationality: v('e_nationality'),
+      religion: getDropdownWithOtherValue('e_religion'), ethnicity: getDropdownWithOtherValue('e_ethnicity'), nationality: getDropdownWithOtherValue('e_nationality'),
       phone: v('e_phone'), email: v('e_email'), line_id: v('e_line_id'),
       member_status: v('e_member_status'), photo_url: currentEditPhotoUrl,
       applied_date: v('e_applied_date'), membership_expire_date: v('e_membership_expire_date'),
       education_json: JSON.stringify(collectEditEducation()),
-      work_status: v('e_work_status'), position: v('e_position'), agency: v('e_agency'),
+      work_status: v('e_work_status'), position: getDropdownWithOtherValue('e_position'), agency: v('e_agency'),
       affiliation: v('e_affiliation'), work_province: v('e_work_province'), expertise: v('e_expertise'),
       addr_current_house_no: v('e_cur_house_no'), addr_current_moo: v('e_cur_moo'), addr_current_building: v('e_cur_building'),
       addr_current_soi: v('e_cur_soi'), addr_current_road: v('e_cur_road'), addr_current_subdistrict: v('e_cur_subdistrict'),

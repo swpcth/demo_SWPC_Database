@@ -389,7 +389,7 @@ function createSignaturePad(canvasId) {
 // ---------- ตรวจสอบว่า Deploy เวอร์ชันล่าสุดของ backend แล้วหรือยัง ----------
 // ต้องตรงกับ BACKEND_VERSION ใน Code.gs — อัปเดตทุกครั้งที่ส่งมอบไฟล์ Code.gs ชุดใหม่
 // ป้องกันปัญหา "อัปโหลดไฟล์เว็บแล้วแต่ลืม Deploy Apps Script ใหม่" ซึ่งทำให้ฟีเจอร์ใหม่ไม่ทำงานโดยไม่รู้ตัว
-const EXPECTED_BACKEND_VERSION = '2026-09-11-boolean-field-fix';
+const EXPECTED_BACKEND_VERSION = '2026-09-11-promptpay-qr-channels';
 
 async function checkBackendVersionAndWarn() {
   try {
@@ -453,4 +453,123 @@ function toEmbeddableImageUrl(url) {
  */
 function isTrueVal(val) {
   return val === true || val === 'true' || val === 'TRUE' || val === 1;
+}
+
+// ---------- QR พร้อมเพย์ (PromptPay) — สร้างตามมาตรฐาน EMVCo/Thai QR Payment จริง ไม่ต้องพึ่ง Payment Gateway ภายนอก ----------
+// (ยังไม่ใช่การเชื่อมต่อ Payment Gateway อัตโนมัติเต็มรูปแบบ — สมาชิกสแกนจ่ายเองผ่านแอปธนาคาร แล้วยังต้องแนบสลิปให้เจ้าหน้าที่ตรวจสอบเหมือนช่องทางอื่น)
+
+function _pp_tlv(id, value) {
+  return id + String(value.length).padStart(2, '0') + value;
+}
+
+function _pp_crc16(str) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+/** สร้าง payload ข้อความสำหรับ QR พร้อมเพย์ ตามมาตรฐาน EMVCo — promptPayId เป็นเบอร์มือถือ (10 หลัก ขึ้นต้น 0) หรือเลขประจำตัว/นิติบุคคล (13 หลัก) */
+function buildPromptPayPayload(promptPayId, amount) {
+  const digits = String(promptPayId || '').replace(/[^0-9]/g, '');
+  let proxyType, proxyValue;
+  if (digits.length === 10 && digits.startsWith('0')) {
+    proxyType = '01';
+    proxyValue = '66' + digits.substring(1);
+  } else if (digits.length === 13) {
+    proxyType = '02';
+    proxyValue = digits;
+  } else {
+    throw new Error('รูปแบบ PromptPay ID ไม่ถูกต้อง (ต้องเป็นเบอร์มือถือ 10 หลัก หรือเลขประจำตัว/นิติบุคคล 13 หลัก)');
+  }
+  const merchantInfo = _pp_tlv('00', 'A000000677010111') + _pp_tlv(proxyType, proxyValue);
+  let payload = _pp_tlv('00', '01') +
+    _pp_tlv('01', amount ? '12' : '11') +
+    _pp_tlv('29', merchantInfo) +
+    _pp_tlv('52', '0000') +
+    _pp_tlv('53', '764') +
+    (amount ? _pp_tlv('54', Number(amount).toFixed(2)) : '') +
+    _pp_tlv('58', 'TH');
+  payload += '6304';
+  return payload + _pp_crc16(payload);
+}
+
+/** วาด QR พร้อมเพย์ลงในไอดี container ที่ระบุ (ต้องโหลด qrcodejs ไว้ในหน้าแล้ว) คืนค่า true ถ้าวาดสำเร็จ */
+function renderPromptPayQr(containerId, promptPayId, amount) {
+  const el = document.getElementById(containerId);
+  if (!el) return false;
+  el.innerHTML = '';
+  try {
+    const payload = buildPromptPayPayload(promptPayId, amount);
+    new QRCode(el, { text: payload, width: 180, height: 180 });
+    return true;
+  } catch (err) {
+    el.innerHTML = '<p style="color:var(--warn); font-size:13px">' + err.message + '</p>';
+    return false;
+  }
+}
+
+// ---------- Dropdown ตัวเลือกสำเร็จรูป + "อื่นๆ (ระบุ)" — ใช้กับเชื้อชาติ/สัญชาติ/ศาสนา/ตำแหน่ง/ระดับการศึกษา ----------
+
+const OTHER_OPTION_LABEL = 'อื่นๆ (ระบุ)';
+const ETHNICITY_OPTIONS = ['ไทย', 'จีน', 'ลาว', 'เขมร', 'มอญ', 'กะเหรี่ยง', 'ม้ง'];
+const NATIONALITY_OPTIONS = ['ไทย', 'พม่า', 'ลาว', 'กัมพูชา', 'เวียดนาม', 'จีน'];
+const RELIGION_OPTIONS = ['พุทธ', 'อิสลาม', 'คริสต์', 'ฮินดู', 'ซิกข์', 'ไม่ระบุ'];
+const POSITION_OPTIONS = [
+  'นักสังคมสงเคราะห์', 'นักสังคมสงเคราะห์ปฏิบัติการ', 'นักสังคมสงเคราะห์ชำนาญการ',
+  'นักสังคมสงเคราะห์ชำนาญการพิเศษ', 'นักสังคมสงเคราะห์เชี่ยวชาญ', 'นักสังคมสงเคราะห์ผู้ทรงคุณวุฒิ',
+  'ผู้ช่วยนักสังคมสงเคราะห์'
+];
+const EDU_LEVEL_OPTIONS = ['ต่ำกว่าปริญญาตรี', 'ปริญญาตรี', 'ประกาศนียบัตรบัณฑิต', 'ปริญญาโท', 'ปริญญาเอก'];
+
+/** สร้าง HTML ของ dropdown ตัวเลือกสำเร็จรูป + ช่องระบุเอง (แสดงเมื่อเลือก "อื่นๆ (ระบุ)") — ใช้ id เดียวคู่กับ id+"_other" */
+function dropdownWithOtherHtml(id, options, currentValue) {
+  const isOther = !!currentValue && options.indexOf(currentValue) === -1;
+  return `<select id="${id}" onchange="toggleOtherInput('${id}')">
+      <option value="">— เลือก —</option>
+      ${options.map(o => `<option value="${o}" ${currentValue === o ? 'selected' : ''}>${o}</option>`).join('')}
+      <option value="${OTHER_OPTION_LABEL}" ${isOther ? 'selected' : ''}>${OTHER_OPTION_LABEL}</option>
+    </select>
+    <input type="text" id="${id}_other" placeholder="ระบุ..." style="margin-top:6px; ${isOther ? '' : 'display:none'}" value="${isOther ? escapeHtml(currentValue) : ''}">`;
+}
+
+/** เหมือน dropdownWithOtherHtml แต่ใช้ class แทน id (สำหรับแถวที่ทำซ้ำได้ เช่น รายการวุฒิการศึกษา) ต้องส่ง onchange handler เอง */
+function dropdownWithOtherHtmlClass(cls, options, currentValue, onchangeExpr) {
+  const isOther = !!currentValue && options.indexOf(currentValue) === -1;
+  return `<select class="${cls}" onchange="${onchangeExpr}">
+      <option value="">— เลือก —</option>
+      ${options.map(o => `<option value="${o}" ${currentValue === o ? 'selected' : ''}>${o}</option>`).join('')}
+      <option value="${OTHER_OPTION_LABEL}" ${isOther ? 'selected' : ''}>${OTHER_OPTION_LABEL}</option>
+    </select>
+    <input type="text" class="${cls}-other" placeholder="ระบุ..." style="margin-top:6px; ${isOther ? '' : 'display:none'}" value="${isOther ? escapeHtml(currentValue) : ''}">`;
+}
+
+function toggleOtherInput(id) {
+  const select = document.getElementById(id);
+  const other = document.getElementById(id + '_other');
+  if (select && other) other.style.display = select.value === OTHER_OPTION_LABEL ? 'block' : 'none';
+}
+
+/** อ่านค่าจริงจาก dropdown+ช่องระบุเอง (คืนค่าช่องระบุเองถ้าเลือก "อื่นๆ") */
+function getDropdownWithOtherValue(id) {
+  const select = document.getElementById(id);
+  if (!select) return '';
+  if (select.value === OTHER_OPTION_LABEL) {
+    const other = document.getElementById(id + '_other');
+    return other ? other.value : '';
+  }
+  return select.value;
+}
+
+/** สร้างรายการปี พ.ศ. ย้อนหลังจากปีปัจจุบัน ใช้กับ dropdown ปีที่สำเร็จการศึกษา */
+function buildYearOptionsBE(yearsBack) {
+  const currentBE = new Date().getFullYear() + 543;
+  const years = [];
+  for (let y = currentBE; y >= currentBE - (yearsBack || 60); y--) years.push(y);
+  return years;
 }

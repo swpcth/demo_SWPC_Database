@@ -207,9 +207,17 @@ async function loadRenewalPanel() {
     panel.innerHTML = `
       <h2>ต่ออายุสมาชิก</h2>
       <div class="pay-box">
-        <p>ค่าธรรมเนียม: <b>${pendingPayment.fee_amount} บาท</b> — โอนเข้าบัญชี 021-0-15582-5 ธนาคารกรุงไทย ชื่อบัญชี "สภาวิชาชีพสังคมสงเคราะห์" แล้วแนบสลิปด้านล่าง</p>
+        <p>ค่าธรรมเนียม: <b>${pendingPayment.fee_amount} บาท</b> — โอนเข้าบัญชี 021-0-15582-5 ธนาคารกรุงไทย ชื่อบัญชี "สภาวิชาชีพสังคมสงเคราะห์" หรือชำระผ่านช่องทางอื่นด้านล่าง แล้วแนบสลิป/หลักฐานการชำระเงิน</p>
+        <label>ช่องทางการชำระเงิน</label>
+        <select id="renewChannel" onchange="onRenewChannelChange(${pendingPayment.fee_amount})">
+          ${PAYMENT_CHANNELS_CLIENT.map(c => `<option value="${c}">${c}</option>`).join('')}
+        </select>
+        <div id="renewQrBox" style="display:none; text-align:center; margin:10px 0">
+          <div id="renewQr"></div>
+          <p style="color:var(--muted); font-size:12px">สแกนด้วยแอปธนาคารเพื่อชำระเงิน ${pendingPayment.fee_amount} บาท แล้วแนบสลิปยืนยันด้านล่าง</p>
+        </div>
         <input type="file" id="renewSlip" accept=".pdf,.jpg,.jpeg,.png">
-        <button type="button" class="btn small" onclick="submitRenewalSlip('${pendingPayment.application_id}')">แนบสลิปการโอนเงิน</button>
+        <button type="button" class="btn small" onclick="submitRenewalSlip('${pendingPayment.application_id}')">แนบสลิป/หลักฐานการชำระเงิน</button>
       </div>
     `;
     return;
@@ -268,12 +276,34 @@ function updateRenewFeeHint() {
   document.getElementById('renew_feeHint').textContent = 'ค่าธรรมเนียม ' + (table[duration] || 0).toLocaleString() + ' บาท';
 }
 
+const PAYMENT_CHANNELS_CLIENT = ['โอนเงินผ่านธนาคาร (ตรวจสอบสลิปด้วยมือ)', 'พร้อมเพย์ (QR PromptPay)', 'บัตรเครดิต/เดบิต', 'Mobile Banking', 'เคาน์เตอร์เซอร์วิส/Bill Payment'];
+
+async function onRenewChannelChange(amount) {
+  const channel = document.getElementById('renewChannel').value;
+  const qrBox = document.getElementById('renewQrBox');
+  if (channel !== 'พร้อมเพย์ (QR PromptPay)') { qrBox.style.display = 'none'; return; }
+  try {
+    const cfg = await apiCall('getPromptPayConfig');
+    qrBox.style.display = 'block';
+    if (!cfg.promptPayId) {
+      document.getElementById('renewQr').innerHTML = '<p style="color:var(--muted); font-size:13px">ยังไม่ได้ตั้งค่าเลขพร้อมเพย์ของสภาฯ ในระบบ กรุณาโอนเข้าบัญชีธนาคารแทน</p>';
+      return;
+    }
+    renderPromptPayQr('renewQr', cfg.promptPayId, amount);
+  } catch (err) {
+    qrBox.style.display = 'block';
+    document.getElementById('renewQr').innerHTML = '<p style="color:var(--warn); font-size:13px">สร้าง QR ไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+
 async function submitRenewalSlip(applicationId) {
   const input = document.getElementById('renewSlip');
   if (!input.files[0]) { showToast('กรุณาเลือกไฟล์สลิปก่อน', 'info'); return; }
+  const channelSel = document.getElementById('renewChannel');
+  const channel = channelSel ? channelSel.value : 'โอนเงินผ่านธนาคาร (ตรวจสอบสลิปด้วยมือ)';
   try {
     const uploaded = await uploadDocument(input.files[0], 'สลิปการโอนเงิน');
-    await apiCall('submitPaymentSlip', { application_id: applicationId, slip_url: uploaded.url, method: 'โอนเงิน' });
+    await apiCall('submitPaymentSlip', { application_id: applicationId, slip_url: uploaded.url, method: 'โอนเงิน', channel });
     showToast('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ', 'success');    load();
   } catch (err) {
     showToast('แนบสลิปไม่สำเร็จ: ' + err.message, 'error');  }

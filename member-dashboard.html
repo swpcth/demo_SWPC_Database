@@ -60,8 +60,13 @@ function addEduRow(edu) {
   div.id = 'edu' + id;
   div.innerHTML = `
     <div class="grid-2">
-      <div><label>ระดับการศึกษา</label><input type="text" class="edu-level" value="${edu.level || ''}"></div>
-      <div><label>ปีที่สำเร็จการศึกษา</label><input type="text" class="edu-year" value="${edu.year || ''}"></div>
+      <div><label>ระดับการศึกษา</label>${dropdownWithOtherHtmlClass('edu-level', EDU_LEVEL_OPTIONS, edu.level, "toggleOtherInputClass(this)")}</div>
+      <div><label>ปีที่สำเร็จการศึกษา (พ.ศ.)</label>
+        <select class="edu-year">
+          <option value="">— เลือกปี —</option>
+          ${buildYearOptionsBE(60).map(y => `<option value="${y}" ${String(edu.year) === String(y) ? 'selected' : ''}>${y}</option>`).join('')}
+        </select>
+      </div>
       <div><label>วุฒิการศึกษา</label><input type="text" class="edu-degree" value="${edu.degree || ''}"></div>
       <div><label>สาขาวิชา</label><input type="text" class="edu-major" value="${edu.major || ''}"></div>
       <div><label>สถาบันการศึกษา</label><input type="text" class="edu-institute" value="${edu.institute || ''}"></div>
@@ -71,14 +76,23 @@ function addEduRow(edu) {
   document.getElementById('eduRows').appendChild(div);
 }
 
+function toggleOtherInputClass(selectEl) {
+  const otherInput = selectEl.parentElement.querySelector('.' + selectEl.className + '-other');
+  if (otherInput) otherInput.style.display = selectEl.value === OTHER_OPTION_LABEL ? 'block' : 'none';
+}
+
 function collectEducation() {
-  return Array.from(document.querySelectorAll('#eduRows .edu-row')).map(row => ({
-    level: row.querySelector('.edu-level').value,
-    year: row.querySelector('.edu-year').value,
-    degree: row.querySelector('.edu-degree').value,
-    major: row.querySelector('.edu-major').value,
-    institute: row.querySelector('.edu-institute').value
-  })).filter(e => e.level || e.degree || e.institute);
+  return Array.from(document.querySelectorAll('#eduRows .edu-row')).map(row => {
+    const levelSelect = row.querySelector('.edu-level');
+    const level = levelSelect.value === OTHER_OPTION_LABEL ? row.querySelector('.edu-level-other').value : levelSelect.value;
+    return {
+      level: level,
+      year: row.querySelector('.edu-year').value,
+      degree: row.querySelector('.edu-degree').value,
+      major: row.querySelector('.edu-major').value,
+      institute: row.querySelector('.edu-institute').value
+    };
+  }).filter(e => e.level || e.degree || e.institute);
 }
 
 const CUR_REG_MAP = [
@@ -140,14 +154,77 @@ async function load() {
   try {
     if (m.profile_kind === 'organization') {
       el.innerHTML = `
-        <div class="panel">
-          <h2>${m.org_name_th || ''}</h2>
-          <p>เลขทะเบียนสมาชิกวิสามัญ: <b>${m.reg_no || 'ยังไม่ออกเลข'}</b></p>
-          <p>ประเภทองค์กร: ${m.org_type || '-'} &nbsp;•&nbsp; สถานะ: <span class="badge ${m.status==='ปกติ'?'ok':'pending'}">${m.status || '-'}</span></p>
-          <p>ผู้แทนองค์กร: ${m.rep_prefix || ''} ${m.rep_name || ''} (${m.rep_position || '-'})</p>
-          <p>ติดต่อผู้แทน: ${m.rep_email || '-'} &nbsp;•&nbsp; ${m.rep_phone || '-'}</p>
-        </div>`;
+        <div class="panel profile-header-panel">
+          <div class="profile-header">
+            <div class="profile-photo">🏢</div>
+            <div class="profile-header-main">
+              <h2>${m.org_name_th || ''}</h2>
+              <div class="profile-badges">
+                <span class="badge pending">วิสามัญ</span>
+                <span class="badge ${m.status==='ปกติ'?'ok':'pending'}">${m.status || '-'}</span>
+              </div>
+            </div>
+          </div>
+          <div class="profile-info-grid">
+            <div><span>เลขทะเบียนสมาชิกวิสามัญ</span><b>${m.reg_no || 'ยังไม่ออกเลข'}</b></div>
+            <div><span>ประเภทองค์กร</span><b>${m.org_type || '-'}</b></div>
+            <div><span>เลขทะเบียนนิติบุคคล</span><b>${m.juristic_no || '-'}</b></div>
+            <div><span>วันที่อนุมัติ</span><b>${m.approved_date ? new Date(m.approved_date).toLocaleDateString('th-TH') : '-'}</b></div>
+            <div><span>วันหมดอายุสมาชิกภาพ</span><b>${m.end_date ? new Date(m.end_date).toLocaleDateString('th-TH') : '-'}</b></div>
+          </div>
+          <p style="color:var(--muted); font-size:13px; margin-top:10px">ชื่อองค์กร เลขทะเบียน และข้อมูลผู้แทน (ชื่อ-ตำแหน่ง) แก้ไขไม่ได้ในหน้านี้ — ติดต่อเจ้าหน้าที่หากต้องแก้ไข</p>
+        </div>
+
+        <div id="editError" class="error-box"></div>
+
+        <fieldset class="panel">
+          <legend>ข้อมูลผู้แทนองค์กร</legend>
+          <div class="grid-2">
+            <div><label>ชื่อ-นามสกุลผู้แทน</label><input type="text" value="${m.rep_prefix || ''} ${m.rep_name || ''}" disabled></div>
+            <div><label>ตำแหน่ง</label><input type="text" value="${m.rep_position || ''}" disabled></div>
+            ${fld('o_rep_phone', 'เบอร์มือถือผู้แทน', m.rep_phone, 'tel')}
+            ${fld('o_rep_phone2', 'เบอร์โทรศัพท์ (ถ้ามี)', m.rep_phone2, 'tel')}
+            ${fld('o_rep_email', 'อีเมลผู้แทน', m.rep_email, 'email')}
+            ${fld('o_rep_line_id', 'Line ID', m.rep_line_id)}
+          </div>
+          <p style="color:var(--muted); font-size:13px">ชื่อและตำแหน่งผู้แทนแก้ไขไม่ได้ในหน้านี้ — ข้อมูลติดต่ออื่นบันทึกได้ทันที</p>
+        </fieldset>
+
+        <fieldset class="panel">
+          <legend>ข้อมูลติดต่อองค์กร</legend>
+          <div class="grid-2">
+            ${fld('o_office_phone', 'โทรศัพท์สำนักงาน', m.office_phone, 'tel')}
+            ${fld('o_website', 'เว็บไซต์ (ถ้ามี)', m.website)}
+          </div>
+        </fieldset>
+
+        <fieldset class="panel">
+          <legend>ที่อยู่องค์กร</legend>
+          <div class="grid-2">
+            ${fld('o_addr_house_no', 'บ้านเลขที่', m.addr_house_no)}
+            ${fld('o_addr_moo', 'หมู่ที่', m.addr_moo)}
+            ${fld('o_addr_building', 'อาคาร', m.addr_building)}
+            ${fld('o_addr_floor', 'ชั้น', m.addr_floor)}
+            ${fld('o_addr_soi', 'ซอย', m.addr_soi)}
+            ${fld('o_addr_road', 'ถนน', m.addr_road)}
+            <div><label>แขวง/ตำบล</label><select id="o_addr_subdistrict"></select></div>
+            <div><label>เขต/อำเภอ</label><select id="o_addr_district"></select></div>
+            <div><label>จังหวัด</label><select id="o_addr_province"></select></div>
+            <div><label>รหัสไปรษณีย์</label><input type="text" id="o_addr_zipcode" value="${m.addr_zipcode || ''}" readonly></div>
+          </div>
+        </fieldset>
+
+        <button class="btn" style="width:auto" onclick="saveOrgProfile()">บันทึกข้อมูล</button>
+      `;
       updateNavVisibility(m);
+      if (typeof initThaiAddressCascade === 'function') {
+        initThaiAddressCascade('o_addr', {
+          province: m.addr_province, district: m.addr_district,
+          subdistrict: m.addr_subdistrict, zipcode: m.addr_zipcode
+        });
+      } else {
+        console.error('initThaiAddressCascade is not defined — api.js อาจเป็นเวอร์ชันเก่า กรุณาอัปโหลดไฟล์ api.js ล่าสุดและล้างแคชเบราว์เซอร์ (Ctrl+Shift+R)');
+      }
       return;
     }
 
@@ -199,14 +276,14 @@ async function load() {
               ${['ชาย', 'หญิง', 'LGBTQ+', 'ไม่ระบุ'].map(g => `<option value="${g}" ${(m.gender || 'ไม่ระบุ') === g ? 'selected' : ''}>${g}</option>`).join('')}
             </select>
           </div>
-          ${fld('s_religion', 'ศาสนา', m.religion)}
-          ${fld('s_ethnicity', 'เชื้อชาติ', m.ethnicity)}
-          ${fld('s_nationality', 'สัญชาติ', m.nationality)}
+          <div><label>ศาสนา</label>${dropdownWithOtherHtml('s_religion', RELIGION_OPTIONS, m.religion)}</div>
+          <div><label>เชื้อชาติ</label>${dropdownWithOtherHtml('s_ethnicity', ETHNICITY_OPTIONS, m.ethnicity)}</div>
+          <div><label>สัญชาติ</label>${dropdownWithOtherHtml('s_nationality', NATIONALITY_OPTIONS, m.nationality)}</div>
           ${fld('s_phone', 'เบอร์โทรศัพท์', m.phone)}
           ${fld('s_email', 'อีเมล', m.email, 'email')}
           ${fld('s_line_id', 'Line ID', m.line_id)}
         </div>
-        <p style="color:var(--muted); font-size:13px; margin-top:8px">การแก้ไขชื่อ-นามสกุล (อังกฤษ) ต้องรออนุมัติจากเจ้าหน้าที่ ข้อมูลอื่นในหมวดนี้บันทึกได้ทันที</p>
+        <p style="color:var(--muted); font-size:13px; margin-top:8px">ข้อมูลในหมวดนี้บันทึกได้ทันที รวมถึงชื่อ-นามสกุล/คำนำหน้า (อังกฤษ) — ส่วนชื่อ-นามสกุลภาษาไทยแก้ไขไม่ได้ในหน้านี้ กรุณาติดต่อเจ้าหน้าที่หากต้องแก้ไข (ต้องตรงกับบัตรประชาชน)</p>
       </fieldset>
 
       <fieldset class="panel">
@@ -223,7 +300,7 @@ async function load() {
               ${['ปฏิบัติงาน', 'ว่างงาน', 'เกษียณอายุ'].map(s => `<option value="${s}" ${m.work_status === s ? 'selected' : ''}>${s}</option>`).join('')}
             </select>
           </div>
-          ${fld('s_position', 'ตำแหน่ง', m.position)}
+          <div><label>ตำแหน่ง</label>${dropdownWithOtherHtml('s_position', POSITION_OPTIONS, m.position)}</div>
           <div><label>สังกัด</label><select id="s_affiliation"></select></div>
           <div><label>หน่วยงาน</label><input type="text" id="s_agency" value="${m.agency || ''}" placeholder="พิมพ์เอง หรือเลือกจากคำแนะนำถ้าสังกัดราชการ"></div>
           ${fld('s_work_province', 'จังหวัดที่ปฏิบัติงาน', m.work_province)}
@@ -348,6 +425,27 @@ async function load() {
   }
 }
 
+async function saveOrgProfile() {
+  const errBox = document.getElementById('editError');
+  errBox.style.display = 'none';
+  const v = id => document.getElementById(id).value;
+  try {
+    const patch = {
+      rep_phone: v('o_rep_phone'), rep_phone2: v('o_rep_phone2'), rep_email: v('o_rep_email'), rep_line_id: v('o_rep_line_id'),
+      office_phone: v('o_office_phone'), website: v('o_website'),
+      addr_house_no: v('o_addr_house_no'), addr_moo: v('o_addr_moo'), addr_building: v('o_addr_building'), addr_floor: v('o_addr_floor'),
+      addr_soi: v('o_addr_soi'), addr_road: v('o_addr_road'), addr_subdistrict: v('o_addr_subdistrict'),
+      addr_district: v('o_addr_district'), addr_province: v('o_addr_province'), addr_zipcode: v('o_addr_zipcode')
+    };
+    await apiCall('updateOrgProfile', { patch });
+    showToast('บันทึกข้อมูลสำเร็จ', 'success');
+    load();
+  } catch (err) {
+    errBox.textContent = 'บันทึกไม่สำเร็จ: ' + err.message;
+    errBox.style.display = 'block';
+  }
+}
+
 async function togglePhotoConsent() {
   const checked = document.getElementById('s_photo_consent').checked;
   try {
@@ -371,11 +469,11 @@ async function saveProfile() {
     }
     const patch = {
       prefix_en: v('s_prefix_en'), first_name_en: v('s_first_name_en'), last_name_en: v('s_last_name_en'),
-      dob: v('s_dob'), gender: v('s_gender'), religion: v('s_religion'), ethnicity: v('s_ethnicity'), nationality: v('s_nationality'),
+      dob: v('s_dob'), gender: v('s_gender'), religion: getDropdownWithOtherValue('s_religion'), ethnicity: getDropdownWithOtherValue('s_ethnicity'), nationality: getDropdownWithOtherValue('s_nationality'),
       phone: v('s_phone'), email: v('s_email'), line_id: v('s_line_id'), photo_url: currentPhotoUrl,
       photo_public_consent: document.getElementById('s_photo_consent').checked ? 'true' : 'false',
       education_json: JSON.stringify(collectEducation()),
-      work_status: v('s_work_status'), position: v('s_position'), agency: v('s_agency'),
+      work_status: v('s_work_status'), position: getDropdownWithOtherValue('s_position'), agency: v('s_agency'),
       affiliation: v('s_affiliation'), work_province: v('s_work_province'), expertise: v('s_expertise'),
       addr_current_house_no: v('s_cur_house_no'), addr_current_moo: v('s_cur_moo'), addr_current_building: v('s_cur_building'),
       addr_current_soi: v('s_cur_soi'), addr_current_road: v('s_cur_road'), addr_current_subdistrict: v('s_cur_subdistrict'),
