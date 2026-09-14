@@ -252,6 +252,10 @@ async function load() {
           <div><span>เลขที่ใบอนุญาต</span><b>${m.license_no || 'ยังไม่มี'}</b></div>
           <div><span>วันที่สมัครสมาชิก</span><b>${m.applied_date ? new Date(m.applied_date).toLocaleDateString('th-TH') : '-'}</b></div>
           <div><span>วันหมดอายุสมาชิกภาพ</span><b>${m.membership_expire_date ? new Date(m.membership_expire_date).toLocaleDateString('th-TH') : '-'}</b></div>
+          ${m.license_no ? `
+          <div><span>วันที่ออกใบอนุญาต</span><b>${m.license_issue_date ? new Date(m.license_issue_date).toLocaleDateString('th-TH') : '-'}</b></div>
+          <div><span>วันที่ใบอนุญาตหมดอายุ</span><b>${m.license_expire_date ? new Date(m.license_expire_date).toLocaleDateString('th-TH') : '-'}</b></div>
+          ` : ''}
         </div>
         <p style="color:var(--muted); font-size:13px; margin-top:10px">เลขบัตรประชาชนและชื่อ-นามสกุล (ภาษาไทย) แก้ไขไม่ได้ในหน้านี้ — เลขสมาชิก/ใบอนุญาตจัดการโดยเจ้าหน้าที่เท่านั้น</p>
       </div>
