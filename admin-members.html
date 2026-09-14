@@ -112,9 +112,9 @@
       <p class="count-line" id="countLineOrg">รายชื่อสมาชิกทั้งหมด 0 ราย</p>
       <table>
         <thead>
-          <tr><th>เลขทะเบียน</th><th>ชื่อองค์กร</th><th>ประเภทองค์กร</th><th>ผู้แทนองค์กร</th><th>สถานะ</th></tr>
+          <tr><th>เลขทะเบียน</th><th>ชื่อองค์กร</th><th>ประเภทองค์กร</th><th>ผู้แทนองค์กร</th><th>สถานะ</th><th></th></tr>
         </thead>
-        <tbody id="orgRows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+        <tbody id="orgRows"><tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
   </main>
@@ -237,7 +237,7 @@ function renderOrg(rows) {
   document.getElementById('countLineOrg').textContent = 'รายชื่อสมาชิกทั้งหมด ' + rows.length + ' ราย';
   const tbody = document.getElementById('orgRows');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่พบข้อมูลสมาชิกวิสามัญ</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่พบข้อมูลสมาชิกวิสามัญ</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(o => `
@@ -247,6 +247,7 @@ function renderOrg(rows) {
       <td>${o.org_type || '-'}</td>
       <td>${o.rep_name || '-'}</td>
       <td>${statusBadge(o.status)}</td>
+      <td><button class="btn small secondary" onclick="viewOrgMember('${o.org_id}')">ดู/แก้ไข</button></td>
     </tr>
   `).join('');
 }
@@ -259,6 +260,146 @@ function searchOrg() {
     String(o.reg_no||'').toLowerCase().includes(q) ||
     String(o.rep_name||'').toLowerCase().includes(q)
   ));
+}
+
+function viewOrgMember(orgId) {
+  const o = allOrgs.find(x => x.org_id === orgId);
+  if (!o) { showToast('ไม่พบข้อมูลองค์กรนี้', 'error'); return; }
+  renderOrgEditForm(o);
+  document.getElementById('detailOverlay').style.display = 'flex';
+}
+
+function renderOrgEditForm(o) {
+  const purposesList = [
+    'ป้องกันแก้ไขปัญหาให้แก่บุคคล ครอบครัว กลุ่มคนหรือชุมชน ให้กระทำหน้าที่ทางสังคมและดำรงชีวิตได้อย่างปกติสุข',
+    'ให้ความช่วยเหลือทางสังคมหรือบริการทางสังคม',
+    'คุ้มครองสิทธิ ให้คำปรึกษาแนะนำ ส่งเสริม และการสนับสนุนเด็ก เยาวชน สตรี ผู้สูงอายุ คนพิการ และผู้ด้อยโอกาสในสังคม'
+  ];
+  let purposes = [];
+  try { purposes = JSON.parse(o.purposes_json || '[]'); } catch (e) {}
+
+  document.getElementById('detailBody').innerHTML = `
+    <h2>${o.org_name_th || ''}</h2>
+    <p style="color:var(--muted); font-size:13px">เลขทะเบียน ${o.reg_no || '-'} • สมัครเมื่อ ${o.applied_date ? new Date(o.applied_date).toLocaleDateString('th-TH') : '-'} • อนุมัติเมื่อ ${o.approved_date ? new Date(o.approved_date).toLocaleDateString('th-TH') : '-'}</p>
+
+    <fieldset>
+      <legend>ข้อมูลองค์กร</legend>
+      <div class="grid-2">
+        ${fld('oe_org_name_th', 'ชื่อองค์กร (ไทย)', o.org_name_th)}
+        ${fld('oe_org_name_en', 'ชื่อองค์กร (อังกฤษ)', o.org_name_en)}
+        ${fld('oe_juristic_no', 'เลขทะเบียนนิติบุคคล', o.juristic_no)}
+        ${fld('oe_tax_id', 'เลขประจำตัวผู้เสียภาษี', o.tax_id)}
+        ${fld('oe_founded_date', 'วันที่ก่อตั้ง', (o.founded_date||'').slice(0,10), 'date')}
+      </div>
+      <label>ประเภทองค์กร</label>
+      <div class="doc-row">
+        <label style="width:auto; display:inline-flex; align-items:center; gap:6px; margin-right:20px"><input type="radio" name="oe_org_type" value="องค์กรภาครัฐ" ${o.org_type==='องค์กรภาครัฐ'?'checked':''} style="width:auto"> องค์กรภาครัฐ</label>
+        <label style="width:auto; display:inline-flex; align-items:center; gap:6px"><input type="radio" name="oe_org_type" value="องค์กรภาคเอกชน" ${o.org_type==='องค์กรภาคเอกชน'?'checked':''} style="width:auto"> องค์กรภาคเอกชน</label>
+      </div>
+      <label style="margin-top:10px">เป้าหมายและกิจกรรมขององค์กร</label>
+      <div class="doc-row" style="flex-direction:column; align-items:flex-start; gap:8px">
+        ${purposesList.map(p => `<label style="width:auto; display:flex; align-items:flex-start; gap:6px"><input type="checkbox" class="oe_purpose_cb" value="${p}" ${purposes.indexOf(p)!==-1?'checked':''} style="width:auto; margin-top:3px"> ${p}</label>`).join('')}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>ข้อมูลผู้แทนองค์กร</legend>
+      <div class="grid-2">
+        ${fld('oe_rep_prefix', 'คำนำหน้า', o.rep_prefix)}
+        ${fld('oe_rep_name', 'ชื่อ-นามสกุล', o.rep_name)}
+        ${fld('oe_rep_position', 'ตำแหน่ง', o.rep_position)}
+        ${fld('oe_rep_national_id', 'เลขประจำตัวประชาชน', o.rep_national_id)}
+        ${fld('oe_rep_dob', 'วันเกิด', (o.rep_dob||'').slice(0,10), 'date')}
+        <div><label>เชื้อชาติ</label>${dropdownWithOtherHtml('oe_rep_ethnicity', ETHNICITY_OPTIONS, o.rep_ethnicity)}</div>
+        <div><label>สัญชาติ</label>${dropdownWithOtherHtml('oe_rep_nationality', NATIONALITY_OPTIONS, o.rep_nationality)}</div>
+        <div><label>ศาสนา</label>${dropdownWithOtherHtml('oe_rep_religion', RELIGION_OPTIONS, o.rep_religion)}</div>
+        ${fld('oe_rep_marital_status', 'สถานภาพการสมรส', o.rep_marital_status)}
+        ${fld('oe_rep_phone', 'เบอร์มือถือ', o.rep_phone, 'tel')}
+        ${fld('oe_rep_phone2', 'เบอร์โทรศัพท์ (ถ้ามี)', o.rep_phone2, 'tel')}
+        ${fld('oe_rep_email', 'อีเมล', o.rep_email, 'email')}
+        ${fld('oe_rep_line_id', 'Line ID', o.rep_line_id)}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>ที่อยู่องค์กร</legend>
+      <div class="grid-2">
+        ${fld('oe_addr_house_no', 'บ้านเลขที่', o.addr_house_no)}
+        ${fld('oe_addr_moo', 'หมู่ที่', o.addr_moo)}
+        ${fld('oe_addr_building', 'อาคาร', o.addr_building)}
+        ${fld('oe_addr_floor', 'ชั้น', o.addr_floor)}
+        ${fld('oe_addr_soi', 'ซอย', o.addr_soi)}
+        ${fld('oe_addr_road', 'ถนน', o.addr_road)}
+        <div><label>แขวง/ตำบล</label><select id="oe_addr_subdistrict"></select></div>
+        <div><label>เขต/อำเภอ</label><select id="oe_addr_district"></select></div>
+        <div><label>จังหวัด</label><select id="oe_addr_province"></select></div>
+        <div><label>รหัสไปรษณีย์</label><input type="text" id="oe_addr_zipcode" value="${o.addr_zipcode || ''}" readonly></div>
+        ${fld('oe_office_phone', 'โทรศัพท์สำนักงาน', o.office_phone, 'tel')}
+        ${fld('oe_website', 'เว็บไซต์', o.website)}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>สถานะสมาชิกภาพ (แก้ไขได้เฉพาะแอดมิน)</legend>
+      <div class="grid-2">
+        <div><label>สถานะ</label>
+          <select id="oe_status">
+            ${['ปกติ', 'พักใช้', 'เพิกถอน', 'สิ้นสภาพ'].map(s => `<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        ${fld('oe_end_date', 'วันหมดอายุสมาชิกภาพ', (o.end_date||'').slice(0,10), 'date')}
+        ${fld('oe_note', 'หมายเหตุ', o.note)}
+      </div>
+    </fieldset>
+
+    <div id="orgEditError" class="error-box"></div>
+    <div class="detail-actions">
+      <button class="btn" onclick="saveOrgEdit('${o.org_id}')">บันทึก</button>
+      <button class="btn secondary" onclick="closeMemberDetail()">ยกเลิก</button>
+    </div>
+  `;
+
+  if (typeof initThaiAddressCascade === 'function') {
+    initThaiAddressCascade('oe_addr', {
+      province: o.addr_province, district: o.addr_district,
+      subdistrict: o.addr_subdistrict, zipcode: o.addr_zipcode
+    });
+  }
+}
+
+async function saveOrgEdit(orgId) {
+  const errBox = document.getElementById('orgEditError');
+  errBox.style.display = 'none';
+  const v = id => document.getElementById(id).value;
+  try {
+    const orgTypeEl = document.querySelector('input[name="oe_org_type"]:checked');
+    const patch = {
+      org_name_th: v('oe_org_name_th'), org_name_en: v('oe_org_name_en'),
+      juristic_no: v('oe_juristic_no'), tax_id: v('oe_tax_id'), founded_date: v('oe_founded_date'),
+      org_type: orgTypeEl ? orgTypeEl.value : '',
+      purposes_json: JSON.stringify(Array.from(document.querySelectorAll('.oe_purpose_cb:checked')).map(cb => cb.value)),
+      rep_prefix: v('oe_rep_prefix'), rep_name: v('oe_rep_name'), rep_position: v('oe_rep_position'),
+      rep_national_id: v('oe_rep_national_id'), rep_dob: v('oe_rep_dob'),
+      rep_ethnicity: getDropdownWithOtherValue('oe_rep_ethnicity'),
+      rep_nationality: getDropdownWithOtherValue('oe_rep_nationality'),
+      rep_religion: getDropdownWithOtherValue('oe_rep_religion'),
+      rep_marital_status: v('oe_rep_marital_status'), rep_phone: v('oe_rep_phone'), rep_phone2: v('oe_rep_phone2'),
+      rep_email: v('oe_rep_email'), rep_line_id: v('oe_rep_line_id'),
+      addr_house_no: v('oe_addr_house_no'), addr_moo: v('oe_addr_moo'), addr_building: v('oe_addr_building'),
+      addr_floor: v('oe_addr_floor'), addr_soi: v('oe_addr_soi'), addr_road: v('oe_addr_road'),
+      addr_subdistrict: v('oe_addr_subdistrict'), addr_district: v('oe_addr_district'),
+      addr_province: v('oe_addr_province'), addr_zipcode: v('oe_addr_zipcode'),
+      office_phone: v('oe_office_phone'), website: v('oe_website'),
+      status: v('oe_status'), end_date: v('oe_end_date'), note: v('oe_note')
+    };
+    await apiCall('updateOrgProfile', { org_id: orgId, patch });
+    showToast('บันทึกข้อมูลสำเร็จ', 'success');
+    closeMemberDetail();
+    load();
+  } catch (err) {
+    errBox.textContent = 'บันทึกไม่สำเร็จ: ' + err.message;
+    errBox.style.display = 'block';
+  }
 }
 
 function eduSummary(m) {
@@ -403,8 +544,13 @@ function renderEditForm(data) {
         </div>
         <div><label>ตำแหน่งปัจจุบัน</label>${dropdownWithOtherHtml('e_position', POSITION_OPTIONS, m.position)}</div>
         <div><label>สังกัด</label><select id="e_affiliation"></select></div>
-        <div><label>ชื่อหน่วยงาน</label><input type="text" id="e_agency" value="${m.agency || ''}" placeholder="พิมพ์เอง หรือเลือกจากคำแนะนำถ้าสังกัดราชการ"></div>
-        ${fld('e_work_province', 'จังหวัดที่ปฏิบัติงาน', m.work_province)}
+        <div><label>ชื่อหน่วยงาน</label>
+          <select id="e_agency" onchange="toggleOtherInput('e_agency')">
+            <option value="">— เลือกสังกัดก่อน —</option>
+          </select>
+          <input type="text" id="e_agency_other" placeholder="ระบุ..." style="margin-top:6px; display:none">
+        </div>
+        <div><label>จังหวัดที่ปฏิบัติงาน</label><select id="e_work_province"><option value="">— เลือกจังหวัด —</option></select></div>
         ${fld('e_expertise', 'ความเชี่ยวชาญด้านสังคมสงเคราะห์', m.expertise)}
       </div>
     </fieldset>
@@ -500,6 +646,7 @@ function renderEditForm(data) {
   } else {
     console.error('initAffiliationCascade is not defined — api.js อาจเป็นเวอร์ชันเก่า กรุณาอัปโหลดไฟล์ api.js ล่าสุดและล้างแคชเบราว์เซอร์ (Ctrl+Shift+R)');
   }
+  initProvinceOnlyDropdown('e_work_province', m.work_province);
 
   document.getElementById('e_photo').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];
@@ -527,7 +674,7 @@ async function saveMemberEdit(memberId) {
       member_status: v('e_member_status'), photo_url: currentEditPhotoUrl,
       applied_date: v('e_applied_date'), membership_expire_date: v('e_membership_expire_date'),
       education_json: JSON.stringify(collectEditEducation()),
-      work_status: v('e_work_status'), position: getDropdownWithOtherValue('e_position'), agency: v('e_agency'),
+      work_status: v('e_work_status'), position: getDropdownWithOtherValue('e_position'), agency: getDropdownWithOtherValue('e_agency'),
       affiliation: v('e_affiliation'), work_province: v('e_work_province'), expertise: v('e_expertise'),
       addr_current_house_no: v('e_cur_house_no'), addr_current_moo: v('e_cur_moo'), addr_current_building: v('e_cur_building'),
       addr_current_soi: v('e_cur_soi'), addr_current_road: v('e_cur_road'), addr_current_subdistrict: v('e_cur_subdistrict'),
@@ -580,7 +727,7 @@ async function load() {
     allOrgs = await apiCall('listMembersOrg');
     renderOrg(allOrgs);
   } catch (err) {
-    document.getElementById('orgRows').innerHTML = `<tr><td colspan="5" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+    document.getElementById('orgRows').innerHTML = `<tr><td colspan="6" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
   }
 }
 load();

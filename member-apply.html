@@ -185,8 +185,13 @@
               <input type="text" id="i_position_other" placeholder="ระบุ..." style="margin-top:6px; display:none">
             </div>
             <div><label>สังกัด</label><select id="i_affiliation"></select></div>
-            <div><label>หน่วยงาน</label><input type="text" id="i_agency" placeholder="พิมพ์เอง หรือเลือกจากคำแนะนำถ้าสังกัดราชการ"></div>
-            <div><label>จังหวัดที่ปฏิบัติงาน</label><input type="text" id="i_work_province"></div>
+            <div><label>หน่วยงาน</label>
+              <select id="i_agency" onchange="toggleOtherInput('i_agency')">
+                <option value="">— เลือกสังกัดก่อน —</option>
+              </select>
+              <input type="text" id="i_agency_other" placeholder="ระบุ..." style="margin-top:6px; display:none">
+            </div>
+            <div><label>จังหวัดที่ปฏิบัติงาน</label><select id="i_work_province"><option value="">— เลือกจังหวัด —</option></select></div>
             <div><label>ความเชี่ยวชาญด้านสังคมสงเคราะห์</label><input type="text" id="i_expertise"></div>
           </div>
         </fieldset>
@@ -623,7 +628,7 @@ async function submitIndividual(e) {
       education_json: JSON.stringify(collectEducation()),
       work_status: document.getElementById('i_work_status').value,
       position: getDropdownWithOtherValue('i_position'),
-      agency: document.getElementById('i_agency').value,
+      agency: getDropdownWithOtherValue('i_agency'),
       affiliation: document.getElementById('i_affiliation').value,
       work_province: document.getElementById('i_work_province').value,
       expertise: document.getElementById('i_expertise').value,
@@ -886,6 +891,7 @@ if (typeof initAffiliationCascade === 'function') {
 } else {
   console.error('initAffiliationCascade is not defined — api.js อาจเป็นเวอร์ชันเก่า กรุณาอัปโหลดไฟล์ api.js ล่าสุดและล้างแคชเบราว์เซอร์ (Ctrl+Shift+R)');
 }
+initProvinceOnlyDropdown('i_work_province');
 let orgSigPad = createSignaturePad('orgSignaturePad');
 let indivSigPad = createSignaturePad('indivSignaturePad');
 

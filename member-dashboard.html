@@ -302,8 +302,13 @@ async function load() {
           </div>
           <div><label>ตำแหน่ง</label>${dropdownWithOtherHtml('s_position', POSITION_OPTIONS, m.position)}</div>
           <div><label>สังกัด</label><select id="s_affiliation"></select></div>
-          <div><label>หน่วยงาน</label><input type="text" id="s_agency" value="${m.agency || ''}" placeholder="พิมพ์เอง หรือเลือกจากคำแนะนำถ้าสังกัดราชการ"></div>
-          ${fld('s_work_province', 'จังหวัดที่ปฏิบัติงาน', m.work_province)}
+          <div><label>หน่วยงาน</label>
+            <select id="s_agency" onchange="toggleOtherInput('s_agency')">
+              <option value="">— เลือกสังกัดก่อน —</option>
+            </select>
+            <input type="text" id="s_agency_other" placeholder="ระบุ..." style="margin-top:6px; display:none">
+          </div>
+          <div><label>จังหวัดที่ปฏิบัติงาน</label><select id="s_work_province"><option value="">— เลือกจังหวัด —</option></select></div>
           ${fld('s_expertise', 'ความเชี่ยวชาญด้านสังคมสงเคราะห์', m.expertise)}
         </div>
       </fieldset>
@@ -400,6 +405,7 @@ async function load() {
     } else {
       console.error('initAffiliationCascade is not defined — api.js อาจเป็นเวอร์ชันเก่า กรุณาอัปโหลดไฟล์ api.js ล่าสุดและล้างแคชเบราว์เซอร์ (Ctrl+Shift+R)');
     }
+    initProvinceOnlyDropdown('s_work_province', m.work_province);
 
     document.getElementById('s_photo').addEventListener('change', async (ev) => {
       const file = ev.target.files[0];
@@ -473,7 +479,7 @@ async function saveProfile() {
       phone: v('s_phone'), email: v('s_email'), line_id: v('s_line_id'), photo_url: currentPhotoUrl,
       photo_public_consent: document.getElementById('s_photo_consent').checked ? 'true' : 'false',
       education_json: JSON.stringify(collectEducation()),
-      work_status: v('s_work_status'), position: getDropdownWithOtherValue('s_position'), agency: v('s_agency'),
+      work_status: v('s_work_status'), position: getDropdownWithOtherValue('s_position'), agency: getDropdownWithOtherValue('s_agency'),
       affiliation: v('s_affiliation'), work_province: v('s_work_province'), expertise: v('s_expertise'),
       addr_current_house_no: v('s_cur_house_no'), addr_current_moo: v('s_cur_moo'), addr_current_building: v('s_cur_building'),
       addr_current_soi: v('s_cur_soi'), addr_current_road: v('s_cur_road'), addr_current_subdistrict: v('s_cur_subdistrict'),

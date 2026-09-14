@@ -192,14 +192,17 @@ function showPrompt(message, defaultValue) {
 }
 
 // ---------- ที่อยู่แบบ Dropdown อัตโนมัติ (จังหวัด/อำเภอ/ตำบล/รหัสไปรษณีย์) ----------
-// ใช้ฐานข้อมูลสาธารณะ kongvut/thai-province-data (จังหวัด 77 + อำเภอ + ตำบลครบ) ผ่าน GitHub Raw CDN
+// ข้อมูล 77 จังหวัด + อำเภอ + ตำบลครบ (จาก kongvut/thai-province-data) — เก็บเป็นไฟล์ static ของเราเอง (thai_address.json)
+// แทนที่จะดึงจาก GitHub CDN ของ repo ต้นทางโดยตรงเหมือนเดิม เพราะ path ไฟล์ของ repo ต้นทางเปลี่ยนไปแล้วทำให้ URL เดิมใช้ไม่ได้ (404)
+// และการเก็บไฟล์ไว้เองก็กันปัญหานี้เกิดซ้ำในอนาคตได้ด้วย (ไม่ขึ้นกับโครงสร้างไฟล์ของ repo ภายนอกอีกต่อไป)
 
-const THAI_ADDRESS_DATA_URL = 'https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json';
+const THAI_ADDRESS_DATA_URL = 'thai_address.json';
 let thaiAddressDataCache = null;
 
 async function loadThaiAddressData() {
   if (thaiAddressDataCache) return thaiAddressDataCache;
   const resp = await fetch(THAI_ADDRESS_DATA_URL);
+  if (!resp.ok) throw new Error('โหลดไฟล์ข้อมูลที่อยู่ไม่สำเร็จ (HTTP ' + resp.status + ') — ตรวจสอบว่าอัปโหลดไฟล์ thai_address.json ขึ้น GitHub แล้วหรือยัง');
   thaiAddressDataCache = await resp.json();
   return thaiAddressDataCache;
 }
@@ -251,6 +254,9 @@ async function initThaiAddressCascade(prefix, initial) {
     data = await loadThaiAddressData();
   } catch (e) {
     console.error('โหลดฐานข้อมูลที่อยู่ไม่สำเร็จ', e);
+    const provinceSelFail = document.getElementById(prefix + '_province');
+    if (provinceSelFail) provinceSelFail.innerHTML = '<option value="">โหลดรายชื่อจังหวัดไม่สำเร็จ ลองรีเฟรชหน้านี้ใหม่</option>';
+    if (typeof showToast === 'function') showToast('โหลดรายชื่อจังหวัด/อำเภอ/ตำบลไม่สำเร็จ: ' + e.message, 'error');
     return;
   }
   const provinceSel = document.getElementById(prefix + '_province');
@@ -295,34 +301,59 @@ const AFFILIATION_DATA = {"กระทรวงกลาโหม": ["สำน
  * แต่ถ้าเลือกสังกัดเป็นกระทรวงจริง จะขึ้นคำแนะนำรายชื่อกรมในสังกัดนั้นให้เลือกอัตโนมัติผ่าน <datalist> (ยังพิมพ์เองทับได้เสมอ)
  * ต้องมี element id = `${prefix}_affiliation` (select) และ `${prefix}_agency` (input พร้อม list="${prefix}_agency_list")
  */
+/** ตั้งค่า dropdown "สังกัด" (กระทรวง) + dropdown "หน่วยงาน" (กรม) แบบ cascade จริง พร้อมตัวเลือก "อื่นๆ (ระบุ)" ที่ระดับกรม
+ * (เดิมใช้ <datalist> เป็นคำแนะนำ แต่ผู้ใช้บางคนสับสนว่า "เลือกไม่ได้" เพราะดูเหมือนช่องพิมพ์ธรรมดา จึงเปลี่ยนเป็น dropdown จริงที่คลิกเลือกได้ชัดเจน)
+ * สังกัด "ไม่สังกัดหน่วยงานราชการ/เอกชน" จะไม่มีตัวเลือกกรมให้ ข้ามไปที่ช่องระบุเองอัตโนมัติ (เพราะไม่มีกรมให้เลือกอยู่แล้ว)
+ * ต้องมี element id = `${prefix}_affiliation` (select) และ `${prefix}_agency` (select) + `${prefix}_agency_other` (input ระบุเอง)
+ */
+/** ตั้งค่า dropdown จังหวัดเดี่ยวๆ (ไม่มีอำเภอ/ตำบล) — ใช้กับฟิลด์ที่ต้องการแค่ชื่อจังหวัด เช่น "จังหวัดที่ปฏิบัติงาน" */
+async function initProvinceOnlyDropdown(id, currentValue) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  let data;
+  try {
+    data = await loadThaiAddressData();
+  } catch (e) {
+    console.error('โหลดรายชื่อจังหวัดไม่สำเร็จ', e);
+    sel.innerHTML = '<option value="">โหลดรายชื่อจังหวัดไม่สำเร็จ ลองรีเฟรชหน้านี้ใหม่</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">— เลือกจังหวัด —</option>' +
+    data.map(p => `<option value="${p.name_th}" ${currentValue === p.name_th ? 'selected' : ''}>${p.name_th}</option>`).join('');
+}
+
 function initAffiliationCascade(prefix, initial) {
   const affSel = document.getElementById(prefix + '_affiliation');
-  const agyInput = document.getElementById(prefix + '_agency');
-  if (!affSel) return;
+  const agySel = document.getElementById(prefix + '_agency');
+  if (!affSel || !agySel) return;
   const ministries = Object.keys(AFFILIATION_DATA);
+  const NOT_GOV = 'ไม่สังกัดหน่วยงานราชการ/เอกชน';
   affSel.innerHTML = '<option value="">— เลือกสังกัด —</option>' +
     ministries.map(m => `<option value="${m}">${m}</option>`).join('') +
-    '<option value="ไม่สังกัดหน่วยงานราชการ/เอกชน">ไม่สังกัดหน่วยงานราชการ (เอกชน/มูลนิธิ/อื่นๆ)</option>';
+    `<option value="${NOT_GOV}">ไม่สังกัดหน่วยงานราชการ (เอกชน/มูลนิธิ/อื่นๆ)</option>`;
 
-  let datalist = document.getElementById(prefix + '_agency_list');
-  if (!datalist && agyInput) {
-    datalist = document.createElement('datalist');
-    datalist.id = prefix + '_agency_list';
-    agyInput.setAttribute('list', datalist.id);
-    agyInput.parentNode.appendChild(datalist);
-  }
-
-  function updateAgencySuggestions(ministry) {
-    if (!datalist) return;
+  function fillAgency(ministry, keepAgency) {
     const depts = AFFILIATION_DATA[ministry] || [];
-    datalist.innerHTML = depts.map(d => `<option value="${d}"></option>`).join('');
+    const isOther = !!keepAgency && depts.indexOf(keepAgency) === -1;
+    agySel.setAttribute('onchange', "toggleOtherInput('" + prefix + "_agency')");
+    agySel.innerHTML = (depts.length ? '<option value="">— เลือกกรม/หน่วยงาน —</option>' : '<option value="">— ไม่มีรายชื่อ กรุณาระบุเอง —</option>') +
+      depts.map(d => `<option value="${d}" ${keepAgency === d ? 'selected' : ''}>${d}</option>`).join('') +
+      `<option value="${OTHER_OPTION_LABEL}" ${isOther || !depts.length ? 'selected' : ''}>${OTHER_OPTION_LABEL}</option>`;
+    const otherInput = document.getElementById(prefix + '_agency_other');
+    if (otherInput) {
+      const showOther = isOther || !depts.length;
+      otherInput.style.display = showOther ? 'block' : 'none';
+      if (showOther && keepAgency) otherInput.value = keepAgency;
+    }
   }
 
-  affSel.onchange = () => updateAgencySuggestions(affSel.value);
+  affSel.onchange = () => fillAgency(affSel.value, '');
 
   if (initial && initial.affiliation) {
-    affSel.value = ministries.includes(initial.affiliation) ? initial.affiliation : 'ไม่สังกัดหน่วยงานราชการ/เอกชน';
-    updateAgencySuggestions(affSel.value);
+    affSel.value = ministries.indexOf(initial.affiliation) !== -1 ? initial.affiliation : NOT_GOV;
+    fillAgency(affSel.value, initial.agency || '');
+  } else {
+    fillAgency('', '');
   }
 }
 
@@ -389,7 +420,7 @@ function createSignaturePad(canvasId) {
 // ---------- ตรวจสอบว่า Deploy เวอร์ชันล่าสุดของ backend แล้วหรือยัง ----------
 // ต้องตรงกับ BACKEND_VERSION ใน Code.gs — อัปเดตทุกครั้งที่ส่งมอบไฟล์ Code.gs ชุดใหม่
 // ป้องกันปัญหา "อัปโหลดไฟล์เว็บแล้วแต่ลืม Deploy Apps Script ใหม่" ซึ่งทำให้ฟีเจอร์ใหม่ไม่ทำงานโดยไม่รู้ตัว
-const EXPECTED_BACKEND_VERSION = '2026-09-11-promptpay-qr-channels';
+const EXPECTED_BACKEND_VERSION = '2026-09-14-address-fix-leading-zeros-org-admin';
 
 async function checkBackendVersionAndWarn() {
   try {
