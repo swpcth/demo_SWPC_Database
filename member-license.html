@@ -162,10 +162,10 @@ function renderCard(data) {
     <div class="card-info">
       <div class="card-name-th">${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</div>
       <div class="card-name-en">${m.prefix_en || ''} ${m.first_name_en || ''} ${m.last_name_en || ''}</div>
-      <div class="card-row"><span>เลขประจำตัวประชาชน</span><b>${m.national_id || '-'}</b></div>
+      <div class="card-row"><span>เลขประจำตัวประชาชน / ID Card Number</span><b>${m.national_id || '-'}</b></div>
       <div class="card-dates-row">
-        <div><span>วันออกบัตร</span><b>${lic ? fmtDate(lic.issue_date) : '-'}</b></div>
-        <div><span>วันหมดอายุ</span><b>${lic ? fmtDate(lic.expire_date) : '-'}</b></div>
+        <div><span>วันออกบัตร / Issue Date</span><b>${lic ? fmtDate(lic.issue_date) : '-'}</b></div>
+        <div><span>วันหมดอายุ / Expiry Date</span><b>${lic ? fmtDate(lic.expire_date) : '-'}</b></div>
       </div>
     </div>
   `;
