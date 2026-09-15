@@ -71,7 +71,7 @@ async function load() {
     const days = daysUntilClient(m.membership_expire_date);
     const st = statusInfo(days);
     const isGold = m.member_type === 'สามัญ';
-    const cardThemeClass = isGold ? 'card-gold' : 'card-silver';
+    const cardThemeClass = isGold ? 'card-gold' : 'card-red';
     const typeLabelTh = isGold ? 'สมาชิกสามัญสภาวิชาชีพสังคมสงเคราะห์' : 'สมาชิกสมทบสภาวิชาชีพสังคมสงเคราะห์';
     const typeLabelEn = isGold ? 'Social Work Professions Council Member' : 'Social Work Professions Council Associate Member';
     const verifyUrl = location.origin + location.pathname.replace('member-card.html', '') + 'verify-card.html?token=' + data.card.qr_token;
@@ -91,10 +91,7 @@ async function load() {
           </div>
         </div>
         <div class="card-body">
-          <div class="card-photo-col">
-            <div class="card-photo">${m.photo_url ? `<img src="${toEmbeddableImageUrl(m.photo_url)}">` : '👤'}</div>
-            <div class="card-no-label">เลขที่สมาชิก<br><b>${m.member_no || '-'}</b><br>Membership No.</div>
-          </div>
+          <div class="card-photo">${m.photo_url ? `<img src="${toEmbeddableImageUrl(m.photo_url)}">` : '👤'}</div>
           <div class="card-info">
             <div class="card-name-th">${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</div>
             <div class="card-name-en">${m.prefix_en || ''} ${m.first_name_en || ''} ${m.last_name_en || ''}</div>
@@ -105,10 +102,15 @@ async function load() {
             </div>
           </div>
         </div>
-        <div class="card-signature">
-          <div class="sig-line"></div>
-          <div class="sig-name">(${data.signatory.name})</div>
-          <div class="sig-position">${data.signatory.position}</div>
+        <div class="card-bottom">
+          <div class="card-no-box">
+            <div class="card-no-label">เลขที่สมาชิก<br><b>${m.member_no || '-'}</b><br>Membership No.</div>
+          </div>
+          <div class="card-signature">
+            <div class="sig-line"></div>
+            <div class="sig-name">(${data.signatory.name})</div>
+            <div class="sig-position">${data.signatory.position}</div>
+          </div>
         </div>
       </div>
 
