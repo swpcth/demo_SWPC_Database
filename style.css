@@ -860,11 +860,13 @@ fieldset legend {
 .card-info { flex: 1; min-width: 0; }
 .card-name-th { font-size: 16px; font-weight: 800; }
 .card-name-en { font-size: 11px; margin-bottom: 4px; opacity: 0.9; }
-.card-row { display: flex; justify-content: space-between; font-size: 10px; gap: 8px; }
-.card-row span { opacity: 0.75; }
+.card-row { margin-bottom: 3px; }
+.card-row span { display: block; font-size: 9px; line-height: 1.35; opacity: 0.75; }
+.card-row b { display: block; font-size: 15px; font-weight: 800; margin-top: 1px; }
 .card-dates-row { display: flex; gap: 14px; margin-top: 4px; }
 .card-dates-row > div { font-size: 10px; }
-.card-dates-row span { display: block; opacity: 0.75; }
+.card-dates-row span { display: block; font-size: 9px; opacity: 0.75; }
+.card-dates-row b { display: block; font-size: 13px; font-weight: 800; margin-top: 1px; }
 
 /* แถบล่างของบัตร — กล่องเลขที่สมาชิก/ใบอนุญาต (ซ้าย) + ลายเซ็นและชื่อ-ตำแหน่งผู้ลงนาม (ขวา) อยู่แถวเดียวกัน */
 .card-bottom {
