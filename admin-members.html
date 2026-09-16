@@ -337,6 +337,9 @@ function renderOrgEditForm(o) {
         ${fld('oe_office_phone', 'โทรศัพท์สำนักงาน', o.office_phone, 'tel')}
         ${fld('oe_website', 'เว็บไซต์', o.website)}
       </div>
+      <div class="detail-photo" id="oeLogoPreview" style="margin-top:8px">${o.logo_url ? `<img src="${toEmbeddableImageUrl(o.logo_url)}">` : '🏢'}</div>
+      <label>โลโก้หน่วยงาน</label>
+      <input type="file" id="oe_logo" accept=".jpg,.jpeg,.png">
     </fieldset>
 
     <fieldset>
@@ -365,7 +368,21 @@ function renderOrgEditForm(o) {
       subdistrict: o.addr_subdistrict, zipcode: o.addr_zipcode
     });
   }
+  currentOeLogoUrl = o.logo_url || '';
+  document.getElementById('oe_logo').addEventListener('change', async (ev) => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    try {
+      const uploaded = await uploadDocument(file, 'โลโก้หน่วยงาน');
+      currentOeLogoUrl = uploaded.url;
+      document.getElementById('oeLogoPreview').innerHTML = `<img src="${toEmbeddableImageUrl(uploaded.url)}">`;
+    } catch (err) {
+      showToast('อัปโหลดโลโก้ไม่สำเร็จ: ' + err.message, 'error');
+    }
+  });
 }
+
+let currentOeLogoUrl = '';
 
 async function saveOrgEdit(orgId) {
   const errBox = document.getElementById('orgEditError');
@@ -389,7 +406,7 @@ async function saveOrgEdit(orgId) {
       addr_floor: v('oe_addr_floor'), addr_soi: v('oe_addr_soi'), addr_road: v('oe_addr_road'),
       addr_subdistrict: v('oe_addr_subdistrict'), addr_district: v('oe_addr_district'),
       addr_province: v('oe_addr_province'), addr_zipcode: v('oe_addr_zipcode'),
-      office_phone: v('oe_office_phone'), website: v('oe_website'),
+      office_phone: v('oe_office_phone'), website: v('oe_website'), logo_url: currentOeLogoUrl,
       status: v('oe_status'), end_date: v('oe_end_date'), note: v('oe_note')
     };
     await apiCall('updateOrgProfile', { org_id: orgId, patch });

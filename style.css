@@ -871,8 +871,8 @@ fieldset legend {
 }
 
 .card-photo {
-  width: 66px;
-  height: 82px;
+  width: 78px;
+  height: 96px;
   background: rgba(255,255,255,0.6);
   border-radius: 8px;
   border: 2px solid rgba(0,0,0,0.55);
@@ -881,7 +881,7 @@ fieldset legend {
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  font-size: 28px;
+  font-size: 32px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 .card-photo img { width: 100%; height: 100%; object-fit: cover; }
