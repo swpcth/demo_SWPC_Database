@@ -56,9 +56,11 @@
   <main class="main">
     <header><h1>ภาพรวมระบบ</h1></header>
 
+    <div class="dashboard-section-label">สรุปจำนวนสมาชิก</div>
     <!-- สรุปจำนวนสมาชิก แยกเข้าสู่ระบบแล้ว/ยังไม่เข้าสู่ระบบ (ตามรูปแบบแดชบอร์ดเดิมที่สภาฯ ใช้อยู่) -->
     <div id="memberStatusDashboard"><div class="panel"><p class="empty-state">กำลังโหลด...</p></div></div>
 
+    <div class="dashboard-section-label">ภาพรวมผู้บริหาร</div>
     <!-- 8.1 Dashboard ผู้บริหาร -->
     <div class="stat-grid" id="execStats">
       <div class="empty-state">กำลังโหลดข้อมูล...</div>
@@ -79,6 +81,7 @@
       <canvas id="chartYearly" height="90"></canvas>
     </div>
 
+    <div class="dashboard-section-label">คำขอที่รอดำเนินการ</div>
     <!-- 8.2 Dashboard เพิ่มเติม -->
     <div class="panel">
       <h2>คำขอสมัครสมาชิก แยกตามประเภท</h2>
@@ -95,6 +98,7 @@
       <table id="tbl-welfare-pending"><tbody></tbody></table>
     </div>
 
+    <div class="dashboard-section-label">สรุปสถานะ</div>
     <div class="panel">
       <h2>สรุปตามสถานะสมาชิก</h2>
       <table id="tbl-status"><tbody></tbody></table>
@@ -103,6 +107,18 @@
     <div class="panel">
       <h2>สรุปตามสถานะใบอนุญาต</h2>
       <table id="tbl-license-status"><tbody></tbody></table>
+    </div>
+
+    <div id="detailOverlay" class="overlay" style="display:none" onclick="if(event.target===this) closeDetail()">
+      <div class="overlay-card">
+        <button class="overlay-close" onclick="closeDetail()">✕</button>
+        <h2 id="detailTitle">รายชื่อ</h2>
+        <p class="count-line" id="detailCount"></p>
+        <table>
+          <thead><tr><th>ชื่อ-นามสกุล</th><th>เลขที่สมาชิก</th><th>เบอร์โทร</th><th>อีเมล</th><th>สถานะ</th></tr></thead>
+          <tbody id="detailRows"></tbody>
+        </table>
+      </div>
     </div>
   </main>
 </div>
@@ -180,8 +196,8 @@ async function loadLegacySummary() {
   } catch (err) { /* ignore, non-critical secondary tables */ }
 }
 
-function renderStatusBlock(title, totalLabel, data) {
-  function col(label, iconClass, bucket) {
+function renderStatusBlock(title, totalLabel, data, groupKey) {
+  function col(label, iconClass, bucket, showViewBtn) {
     return `
       <div class="member-status-col">
         <div class="member-status-col-title">${iconClass} ${label} <span style="color:var(--muted); font-weight:400">(${bucket.total.toLocaleString()} คน)</span></div>
@@ -190,27 +206,54 @@ function renderStatusBlock(title, totalLabel, data) {
           <div class="status-chip warn"><div class="n">${bucket.หมดอายุ.toLocaleString()}</div><div class="l">หมดอายุ</div></div>
           <div class="status-chip neutral"><div class="n">${bucket.ไม่มีข้อมูล.toLocaleString()}</div><div class="l">ไม่มีข้อมูล</div></div>
         </div>
+        ${showViewBtn && bucket.total > 0 ? `<button class="btn small secondary" style="margin-top:10px" onclick="viewMembersWithoutAccount('${groupKey}', '${label} — ${title}')">ดูรายชื่อ</button>` : ''}
       </div>`;
   }
   return `
     <div class="panel member-status-block">
       <div class="member-status-title">👥 ${title} ทั้งหมด <b>${data.total.toLocaleString()}</b> ${totalLabel}</div>
       <div class="member-status-cols">
-        ${col('เข้าสู่ระบบแล้ว', '➡️', data.loggedIn)}
-        ${col('ยังไม่เข้าสู่ระบบ', '➡️', data.notLoggedIn)}
+        ${col('เข้าสู่ระบบแล้ว', '➡️', data.loggedIn, false)}
+        ${col('ยังไม่เข้าสู่ระบบ', '➡️', data.notLoggedIn, true)}
       </div>
     </div>`;
 }
+
+async function viewMembersWithoutAccount(group, label) {
+  document.getElementById('detailTitle').textContent = 'รายชื่อ: ' + label + ' (ยังไม่มีบัญชีเข้าใช้งาน)';
+  document.getElementById('detailCount').textContent = 'กำลังโหลด...';
+  document.getElementById('detailRows').innerHTML = '';
+  document.getElementById('detailOverlay').style.display = 'flex';
+  try {
+    const rows = await apiCall('listMembersWithoutAccount', { group });
+    document.getElementById('detailCount').textContent = 'พบ ' + rows.length.toLocaleString() + ' รายการ' + (rows.length >= 1000 ? ' (แสดงสูงสุด 1,000 รายการแรก)' : '') + ' — ยังไม่เคยสร้างบัญชีเข้าใช้งาน กรุณาติดต่อให้มาสมัครผ่านหน้าแรก (เมนู "เป็นสมาชิกอยู่แล้ว? คลิกที่นี่")';
+    document.getElementById('detailRows').innerHTML = rows.map(r => `
+      <tr>
+        <td>${escapeHtml(r.name)}</td>
+        <td>${escapeHtml(r.member_no) || '-'}</td>
+        <td>${escapeHtml(r.phone) || '-'}</td>
+        <td>${escapeHtml(r.email) || '-'}</td>
+        <td><span class="badge ${r.member_status==='ปกติ'?'ok':(r.member_status==='หมดอายุ'?'warn':'pending')}">${escapeHtml(r.member_status)}</span></td>
+      </tr>
+    `).join('') || '<tr><td colspan="5" class="empty-state">ไม่พบข้อมูล</td></tr>';
+  } catch (err) {
+    document.getElementById('detailCount').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + err.message;
+  }
+}
+
+function closeDetail() { document.getElementById('detailOverlay').style.display = 'none'; }
 
 async function loadMemberStatusDashboard() {
   const el = document.getElementById('memberStatusDashboard');
   try {
     const d = await apiCall('getMemberStatusDashboard');
     el.innerHTML =
-      renderStatusBlock('สมาชิกสามัญ', 'คน', d.ordinary) +
-      renderStatusBlock('นักสังคมสงเคราะห์ที่รับอนุญาต', 'คน', d.licensed) +
+      renderStatusBlock('สมาชิกสามัญ', 'คน', d.ordinary, 'ordinary') +
+      renderStatusBlock('นักสังคมสงเคราะห์ที่รับอนุญาต', 'คน', d.licensed, 'licensed') +
       `<div class="stat-grid">
-        <div class="stat-card"><div class="num">${d.associateTotal.toLocaleString()}</div><div class="label">สมาชิกสมทบทั้งหมด</div></div>
+        <div class="stat-card"><div class="num">${d.associateTotal.toLocaleString()}</div><div class="label">สมาชิกสมทบทั้งหมด</div>
+          <button class="btn small secondary" style="margin-top:8px" onclick="viewMembersWithoutAccount('associate', 'สมาชิกสมทบที่ยังไม่มีบัญชี')">ดูรายชื่อที่ยังไม่มีบัญชี</button>
+        </div>
         <div class="stat-card"><div class="num">${d.typeChangeSuccessCount.toLocaleString()}</div><div class="label">เปลี่ยนสถานะสมทบไปสามัญ (สำเร็จแล้ว)</div></div>
       </div>`;
   } catch (err) {

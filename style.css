@@ -1432,3 +1432,16 @@ fieldset legend {
 .status-chip.ok .n { color: var(--ok); }
 .status-chip.warn .n { color: var(--warn); }
 .status-chip.neutral .n { color: var(--muted); }
+
+/* ---------- หัวข้อแบ่งหมวดหมู่ในหน้าแดชบอร์ด ---------- */
+.dashboard-section-label {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--navy-deep);
+  border-left: 4px solid var(--red);
+  padding-left: 10px;
+  margin: 32px 0 14px;
+}
+.dashboard-section-label:first-of-type { margin-top: 0; }
