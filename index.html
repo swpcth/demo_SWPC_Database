@@ -48,12 +48,31 @@
       <!-- REGISTER -->
       <form id="form-register" style="display:none" onsubmit="return doRegister(event)">
         <h2>สมัครใช้งานบัญชี</h2>
-        <p class="sub">สร้างบัญชีก่อน แล้วยื่นใบสมัครสมาชิกในขั้นถัดไป — บัญชีจะผูกกับข้อมูลสมาชิกอัตโนมัติเมื่อใบสมัครได้รับอนุมัติ</p>
-        <label for="r-username">ตั้งชื่อผู้ใช้งาน</label>
-        <input type="text" id="r-username" required>
-        <label for="r-password">ตั้งรหัสผ่าน</label>
-        <input type="password" id="r-password" required minlength="8">
+        <p class="sub" id="register-sub">สร้างบัญชีก่อน แล้วยื่นใบสมัครสมาชิกในขั้นถัดไป — บัญชีจะผูกกับข้อมูลสมาชิกอัตโนมัติเมื่อใบสมัครได้รับอนุมัติ</p>
+
+        <div id="register-fields-new">
+          <label for="r-username">ตั้งชื่อผู้ใช้งาน</label>
+          <input type="text" id="r-username">
+          <label for="r-password">ตั้งรหัสผ่าน</label>
+          <input type="password" id="r-password" minlength="8">
+        </div>
+
+        <div id="register-fields-existing" style="display:none">
+          <label for="r-national-id">เลขประจำตัวประชาชน (13 หลัก)</label>
+          <input type="text" id="r-national-id" pattern="[0-9]{13}" maxlength="13">
+          <label for="r-phone">เบอร์โทรศัพท์ที่แจ้งไว้กับสภาวิชาชีพฯ</label>
+          <input type="tel" id="r-phone">
+          <label for="r-username2">ตั้งชื่อผู้ใช้งาน</label>
+          <input type="text" id="r-username2">
+          <label for="r-password2">ตั้งรหัสผ่าน</label>
+          <input type="password" id="r-password2" minlength="8">
+        </div>
+
         <button class="btn" type="submit">สร้างบัญชี</button>
+
+        <p class="portal-switch" style="margin-top:12px">
+          <a href="#" id="register-mode-toggle" onclick="toggleRegisterMode(); return false;">เป็นสมาชิกสามัญ/สมทบของสภาวิชาชีพฯ อยู่แล้ว (มีข้อมูลในระบบ)? คลิกที่นี่</a>
+        </p>
 
         <div class="or-divider"><span>หรือ</span></div>
         <button type="button" class="btn thaid-btn" onclick="loginWithThaid()">เข้าสู่ระบบด้วย ThaID</button>
@@ -72,6 +91,23 @@ function showTab(which) {
   document.getElementById('tab-register').classList.toggle('active', which === 'register');
   document.getElementById('form-login').style.display = which === 'login' ? 'block' : 'none';
   document.getElementById('form-register').style.display = which === 'register' ? 'block' : 'none';
+  document.getElementById('error').style.display = 'none';
+  if (which === 'register' && registerMode !== 'new') { toggleRegisterMode(); }
+}
+
+let registerMode = 'new'; // 'new' = สมาชิกใหม่ (username+password ตรงๆ) | 'existing' = สมาชิกเดิม (ยืนยันด้วยเลขบัตร+เบอร์โทร)
+
+function toggleRegisterMode() {
+  registerMode = registerMode === 'new' ? 'existing' : 'new';
+  const isExisting = registerMode === 'existing';
+  document.getElementById('register-fields-new').style.display = isExisting ? 'none' : 'block';
+  document.getElementById('register-fields-existing').style.display = isExisting ? 'block' : 'none';
+  document.getElementById('register-mode-toggle').textContent = isExisting
+    ? 'เป็นผู้สมัครใหม่ ยังไม่เคยเป็นสมาชิก? คลิกที่นี่'
+    : 'เป็นสมาชิกสามัญ/สมทบของสภาวิชาชีพฯ อยู่แล้ว (มีข้อมูลในระบบ)? คลิกที่นี่';
+  document.getElementById('register-sub').textContent = isExisting
+    ? 'สำหรับสมาชิกสามัญ/สมทบที่มีข้อมูลอยู่ในระบบแล้ว แต่ยังไม่เคยสร้างบัญชีเข้าใช้งาน — ยืนยันตัวตนด้วยเลขประจำตัวประชาชนและเบอร์โทรศัพท์ที่ตรงกับข้อมูลที่แจ้งไว้กับสภาวิชาชีพฯ'
+    : 'สร้างบัญชีก่อน แล้วยื่นใบสมัครสมาชิกในขั้นถัดไป — บัญชีจะผูกกับข้อมูลสมาชิกอัตโนมัติเมื่อใบสมัครได้รับอนุมัติ';
   document.getElementById('error').style.display = 'none';
 }
 
@@ -107,11 +143,22 @@ async function doLogin(e) {
 async function doRegister(e) {
   e.preventDefault();
   try {
-    await apiCall('register', {
-      username: document.getElementById('r-username').value.trim(),
-      password: document.getElementById('r-password').value
-    });
-    showToast('สร้างบัญชีสำเร็จ กรุณาเข้าสู่ระบบ แล้วยื่นใบสมัครสมาชิกในขั้นตอนถัดไป', 'success');    showTab('login');
+    if (registerMode === 'existing') {
+      const nationalId = document.getElementById('r-national-id').value.trim();
+      const phone = document.getElementById('r-phone').value.trim();
+      const username = document.getElementById('r-username2').value.trim();
+      const password = document.getElementById('r-password2').value;
+      if (!nationalId || !phone || !username || !password) { showError('กรุณากรอกข้อมูลให้ครบทุกช่อง'); return false; }
+      await apiCall('claimExistingMemberAccount', { national_id: nationalId, phone, username, password });
+      showToast('สร้างบัญชีสำเร็จ ผูกกับข้อมูลสมาชิกของท่านเรียบร้อยแล้ว กรุณาเข้าสู่ระบบ', 'success');
+    } else {
+      const username = document.getElementById('r-username').value.trim();
+      const password = document.getElementById('r-password').value;
+      if (!username || !password) { showError('กรุณากรอกข้อมูลให้ครบทุกช่อง'); return false; }
+      await apiCall('register', { username, password });
+      showToast('สร้างบัญชีสำเร็จ กรุณาเข้าสู่ระบบ แล้วยื่นใบสมัครสมาชิกในขั้นตอนถัดไป', 'success');
+    }
+    showTab('login');
   } catch (err) {
     showError(err.message);
   }
