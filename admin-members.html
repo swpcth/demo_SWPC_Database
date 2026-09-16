@@ -437,9 +437,9 @@ function addEditEduRow(edu) {
           ${buildYearOptionsBE(60).map(y => `<option value="${y}" ${String(edu.year) === String(y) ? 'selected' : ''}>${y}</option>`).join('')}
         </select>
       </div>
-      <div><label>วุฒิการศึกษา</label><input type="text" class="edu-degree" value="${edu.degree || ''}"></div>
+      <div><label>วุฒิการศึกษา</label>${dropdownWithOtherHtmlClass('edu-degree', EDU_DEGREE_OPTIONS, edu.degree, "toggleOtherInputClass(this)")}</div>
       <div><label>สาขาวิชา</label><input type="text" class="edu-major" value="${edu.major || ''}"></div>
-      <div><label>สถาบันการศึกษา</label><input type="text" class="edu-institute" value="${edu.institute || ''}"></div>
+      <div><label>สถาบันการศึกษา</label>${dropdownWithOtherHtmlClass('edu-institute', EDU_INSTITUTE_OPTIONS, edu.institute, "toggleOtherInputClass(this)")}</div>
     </div>
     <button type="button" class="btn small secondary" onclick="document.getElementById('editEdu${id}').remove()">ลบรายการนี้</button>
     <hr>`;
@@ -453,14 +453,16 @@ function toggleOtherInputClass(selectEl) {
 
 function collectEditEducation() {
   return Array.from(document.querySelectorAll('#editEduRows .edu-row')).map(row => {
-    const levelSelect = row.querySelector('.edu-level');
-    const level = levelSelect.value === OTHER_OPTION_LABEL ? row.querySelector('.edu-level-other').value : levelSelect.value;
+    function fieldValue(cls) {
+      const sel = row.querySelector('.' + cls);
+      return sel.value === OTHER_OPTION_LABEL ? row.querySelector('.' + cls + '-other').value : sel.value;
+    }
     return {
-      level: level,
+      level: fieldValue('edu-level'),
       year: row.querySelector('.edu-year').value,
-      degree: row.querySelector('.edu-degree').value,
+      degree: fieldValue('edu-degree'),
       major: row.querySelector('.edu-major').value,
-      institute: row.querySelector('.edu-institute').value
+      institute: fieldValue('edu-institute')
     };
   }).filter(e => e.level || e.degree || e.institute);
 }
