@@ -50,6 +50,11 @@
         <h2>สมัครใช้งานบัญชี</h2>
         <p class="sub" id="register-sub">สร้างบัญชีก่อน แล้วยื่นใบสมัครสมาชิกในขั้นถัดไป — บัญชีจะผูกกับข้อมูลสมาชิกอัตโนมัติเมื่อใบสมัครได้รับอนุมัติ</p>
 
+        <a href="#" id="register-mode-toggle" class="existing-member-callout" onclick="toggleRegisterMode(); return false;">
+          <span class="existing-member-callout-icon">🪪</span>
+          <span id="register-mode-toggle-text">เป็นสมาชิกสามัญ/สมทบของสภาวิชาชีพฯ อยู่แล้ว? <u>คลิกที่นี่</u></span>
+        </a>
+
         <div id="register-fields-new">
           <label for="r-username">ตั้งชื่อผู้ใช้งาน</label>
           <input type="text" id="r-username">
@@ -69,10 +74,6 @@
         </div>
 
         <button class="btn" type="submit">สร้างบัญชี</button>
-
-        <p class="portal-switch" style="margin-top:12px">
-          <a href="#" id="register-mode-toggle" onclick="toggleRegisterMode(); return false;">เป็นสมาชิกสามัญ/สมทบของสภาวิชาชีพฯ อยู่แล้ว (มีข้อมูลในระบบ)? คลิกที่นี่</a>
-        </p>
 
         <div class="or-divider"><span>หรือ</span></div>
         <button type="button" class="btn thaid-btn" onclick="loginWithThaid()">เข้าสู่ระบบด้วย ThaID</button>
@@ -102,9 +103,10 @@ function toggleRegisterMode() {
   const isExisting = registerMode === 'existing';
   document.getElementById('register-fields-new').style.display = isExisting ? 'none' : 'block';
   document.getElementById('register-fields-existing').style.display = isExisting ? 'block' : 'none';
-  document.getElementById('register-mode-toggle').textContent = isExisting
-    ? 'เป็นผู้สมัครใหม่ ยังไม่เคยเป็นสมาชิก? คลิกที่นี่'
-    : 'เป็นสมาชิกสามัญ/สมทบของสภาวิชาชีพฯ อยู่แล้ว (มีข้อมูลในระบบ)? คลิกที่นี่';
+  document.getElementById('register-mode-toggle-text').innerHTML = isExisting
+    ? 'เป็นผู้สมัครใหม่ ยังไม่เคยเป็นสมาชิก? <u>คลิกที่นี่</u>'
+    : 'เป็นสมาชิกสามัญ/สมทบของสภาวิชาชีพฯ อยู่แล้ว? <u>คลิกที่นี่</u>';
+  document.getElementById('register-mode-toggle').classList.toggle('existing-member-callout-active', isExisting);
   document.getElementById('register-sub').textContent = isExisting
     ? 'สำหรับสมาชิกสามัญ/สมทบที่มีข้อมูลอยู่ในระบบแล้ว แต่ยังไม่เคยสร้างบัญชีเข้าใช้งาน — ยืนยันตัวตนด้วยเลขประจำตัวประชาชนและเบอร์โทรศัพท์ที่ตรงกับข้อมูลที่แจ้งไว้กับสภาวิชาชีพฯ'
     : 'สร้างบัญชีก่อน แล้วยื่นใบสมัครสมาชิกในขั้นถัดไป — บัญชีจะผูกกับข้อมูลสมาชิกอัตโนมัติเมื่อใบสมัครได้รับอนุมัติ';

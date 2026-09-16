@@ -373,6 +373,35 @@ th { color: var(--muted); font-weight: 500; font-size: 13px; }
 
 .portal-switch a { color: var(--navy); font-weight: 600; }
 
+.existing-member-callout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff6de;
+  border: 2px solid #e0ad2e;
+  border-radius: var(--radius);
+  padding: 13px 16px;
+  margin: 4px 0 18px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #6b4d0a;
+  text-decoration: none;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 6px rgba(224,173,46,0.18);
+}
+.existing-member-callout:hover { background: #ffefc0; box-shadow: 0 3px 10px rgba(224,173,46,0.28); }
+.existing-member-callout-icon { font-size: 20px; flex-shrink: 0; }
+.existing-member-callout u { text-decoration-thickness: 2px; }
+.existing-member-callout-active {
+  background: #eaf3ff;
+  border-color: var(--navy);
+  color: var(--navy-deep);
+  box-shadow: 0 2px 6px rgba(20,60,120,0.15);
+}
+.existing-member-callout-active:hover { background: #dcebff; }
+
 .or-divider {
   display: flex;
   align-items: center;
