@@ -1,5 +1,5 @@
 // ตั้งค่า URL ของ Apps Script Web App ที่ deploy แล้ว (ลงท้ายด้วย /exec)
-const API_BASE_URL = 'https://script.google.com/macros/library/d/1TmSd_cto675RKleuddI4bP7LSxxHNtjQ7J9Oj4Nu9qB3fRUHPg0QWGgO/45';
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbyzhzXrSnGYr-i9HkPBWtyLPhBJce2HcBOKjQzxbufvYWNaLVvKmhu34AJOvGok88nOIQ/exec';
 
 const Auth = {
   getToken() { return localStorage.getItem('swc_token'); },
