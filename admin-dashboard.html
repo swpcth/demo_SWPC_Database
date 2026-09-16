@@ -269,10 +269,8 @@ async function loadMemberStatusDashboard() {
     el.innerHTML =
       renderStatusBlock('สมาชิกสามัญ', 'คน', d.ordinary, 'ordinary') +
       renderStatusBlock('นักสังคมสงเคราะห์ที่รับอนุญาต', 'คน', d.licensed, 'licensed') +
+      renderStatusBlock('สมาชิกสมทบ', 'คน', d.associate, 'associate') +
       `<div class="stat-grid">
-        <div class="stat-card"><div class="num">${d.associateTotal.toLocaleString()}</div><div class="label">สมาชิกสมทบทั้งหมด</div>
-          <button class="btn small secondary" style="margin-top:8px" onclick="viewMembersWithoutAccount('associate', 'สมาชิกสมทบที่ยังไม่มีบัญชี')">ดูรายชื่อที่ยังไม่มีบัญชี</button>
-        </div>
         <div class="stat-card"><div class="num">${d.typeChangeSuccessCount.toLocaleString()}</div><div class="label">เปลี่ยนสถานะสมทบไปสามัญ (สำเร็จแล้ว)</div></div>
       </div>`;
   } catch (err) {

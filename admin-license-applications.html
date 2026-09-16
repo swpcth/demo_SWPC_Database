@@ -45,6 +45,7 @@
       <div class="nav-group">
         <a href="admin-users.html">ผู้ใช้งานระบบ</a>
         <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
+        <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
       </div>
 <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
@@ -61,9 +62,10 @@
         <button class="tab-chip" data-type="ขึ้นทะเบียน" onclick="filterType('ขึ้นทะเบียน')">ขึ้นทะเบียนใหม่</button>
         <button class="tab-chip" data-type="ต่ออายุใบอนุญาต" onclick="filterType('ต่ออายุใบอนุญาต')">ต่ออายุ</button>
       </div>
+      <button class="btn small secondary" onclick="createBatchFromSelected()">+ สร้าง/เพิ่มเข้ากลุ่มอนุมัติแบบกลุ่ม จากรายการที่ติ๊กไว้</button>
       <table>
-        <thead><tr><th>เลขที่คำขอ</th><th>ประเภท</th><th>ชื่อสมาชิก</th><th>ค่าธรรมเนียม</th><th>วันที่ยื่น</th><th>สถานะ</th><th></th></tr></thead>
-        <tbody id="rows"><tr><td colspan="7" class="empty-state">กำลังโหลด...</td></tr></tbody>
+        <thead><tr><th></th><th>เลขที่คำขอ</th><th>ประเภท</th><th>ชื่อสมาชิก</th><th>ค่าธรรมเนียม</th><th>วันที่ยื่น</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="8" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
 
@@ -108,13 +110,14 @@ function renderApps() {
   const tbody = document.getElementById('rows');
   const rows = allApps.filter(a => !typeFilter || a.applicant_type === typeFilter);
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่มีคำขอในหมวดนี้</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">ไม่มีคำขอในหมวดนี้</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(a => {
     const d = JSON.parse(a.ref_data_json || '{}');
     return `
       <tr>
+        <td>${d.member_id ? `<input type="checkbox" class="batch-select-cb" value="${d.member_id}" style="width:auto">` : ''}</td>
         <td>${a.application_id}</td>
         <td>${a.applicant_type}</td>
         <td>${d.name || '-'}</td>
@@ -133,6 +136,21 @@ function renderApps() {
         </td>
       </tr>`;
   }).join('');
+}
+
+async function createBatchFromSelected() {
+  const selected = Array.from(document.querySelectorAll('.batch-select-cb:checked')).map(cb => cb.value);
+  if (!selected.length) { showToast('กรุณาติ๊กเลือกรายการที่ต้องการก่อน (ช่องติ๊กซ้ายสุดของตาราง)', 'info'); return; }
+  const batchName = await showPrompt('ตั้งชื่อกลุ่ม (เช่น "รอบต่ออายุ ก.ค. 2569") — จะไปดำเนินการต่อที่หน้า "เครื่องมือใบอนุญาต (กลุ่ม)"');
+  if (!batchName) return;
+  const importType = await showConfirm('เลือกประเภท: กด "ตกลง" = ต่อก่อนหมดอายุ (before_expiry) / กด "ยกเลิก" = ต่อหลังหมดอายุ (after_expiry)')
+    ? 'before_expiry' : 'after_expiry';
+  try {
+    const res = await apiCall('addMembersToRenewalBatch', { batch_name: batchName, import_type: importType, member_ids: selected });
+    showToast(`เพิ่มเข้ากลุ่ม "${batchName}" สำเร็จ ${res.matched} รายการ` + (res.notFound.length ? ` (ไม่พบ ${res.notFound.length} รายการ)` : ''), 'success');
+  } catch (err) {
+    showToast('สร้างกลุ่มไม่สำเร็จ: ' + err.message, 'error');
+  }
 }
 
 function viewDetail(applicationId) {
@@ -191,7 +209,7 @@ async function loadApps() {
     allApps = await apiCall('listLicenseApplications');
     renderApps();
   } catch (err) {
-    document.getElementById('rows').innerHTML = `<tr><td colspan="7" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+    document.getElementById('rows').innerHTML = `<tr><td colspan="8" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
   }
 }
 

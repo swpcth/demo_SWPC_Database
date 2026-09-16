@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>จัดการนายกสภาฯ/เลขาธิการฯ — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+
+      <div class="nav-group-label">สมาชิก</div>
+      <div class="nav-group">
+        <a href="admin-members.html">ข้อมูลสมาชิก</a>
+        <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+        <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      </div>
+
+      <div class="nav-group-label">ใบอนุญาต</div>
+      <div class="nav-group">
+        <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+        <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+        <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
+      </div>
+
+      <div class="nav-group-label">การเงิน</div>
+      <div class="nav-group">
+        <a href="admin-payments.html">การชำระเงิน</a>
+        <a href="admin-refunds.html">คืนเงิน</a>
+        <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
+      </div>
+
+      <div class="nav-group-label">สวัสดิการและรายงาน</div>
+      <div class="nav-group">
+        <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+        <a href="admin-reports.html">รายงาน</a>
+      </div>
+
+      <div class="nav-group-label">ระบบ</div>
+      <div class="nav-group">
+        <a href="admin-users.html">ผู้ใช้งานระบบ</a>
+        <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
+        <a href="admin-council-officers.html" class="active">นายกสภาฯ/เลขาธิการฯ</a>
+      </div>
+
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>จัดการนายกสภาฯ / เลขาธิการฯ / เหรัญญิกฯ</h1></header>
+    <p style="color:var(--muted); font-size:13px">ข้อมูลนี้ใช้แสดงในบัตรสมาชิก, บัตรใบอนุญาต, ใบอนุญาต, ใบรับรองสมาชิกวิสามัญ และใบเสร็จรับเงินที่ระบบออกให้อัตโนมัติ ระบบจะเลือกผู้ดำรงตำแหน่งตามวันที่ของเอกสารแต่ละฉบับโดยอัตโนมัติ — เพิ่ม/แก้ไข/ลบ ทำได้เฉพาะผู้ดูแลระบบ (admin_super) เท่านั้น เพราะมีผลต่อเอกสารทางการของทั้งระบบ</p>
+
+    <div class="panel">
+      <button class="btn small" onclick="showAddForm()">+ เพิ่มวาระใหม่</button>
+
+      <div id="officerForm" class="panel" style="display:none; background:var(--paper); margin-top:12px">
+        <h2 id="officerFormTitle">เพิ่มวาระใหม่</h2>
+        <div class="error-box" id="officerFormError"></div>
+        <input type="hidden" id="of_officer_id">
+        <div class="grid-2">
+          <div><label>ตำแหน่ง *</label>
+            <select id="of_position_type">
+              <option value="นายก">นายกสภาวิชาชีพสังคมสงเคราะห์</option>
+              <option value="เลขาธิการ">เลขาธิการสภาวิชาชีพสังคมสงเคราะห์</option>
+              <option value="เหรัญญิก">เหรัญญิกสภาวิชาชีพสังคมสงเคราะห์</option>
+            </select>
+          </div>
+          <div><label>ชื่อ-นามสกุล (ไทย) *</label><input type="text" id="of_name_th" placeholder="เช่น ศาสตราจารย์ระพีพรรณ คำหอม"></div>
+          <div><label>ชื่อ-นามสกุล (อังกฤษ)</label><input type="text" id="of_name_en" placeholder="เช่น Prof. Rapeepan Khamhom"></div>
+          <div><label>วันที่เริ่มวาระ *</label><input type="date" id="of_term_start"></div>
+          <div><label>วันที่สิ้นสุดวาระ (เว้นว่างถ้ายังดำรงตำแหน่งอยู่)</label><input type="date" id="of_term_end"></div>
+          <div><label>หมายเหตุ (เช่น "ชุดที่ 5")</label><input type="text" id="of_note"></div>
+        </div>
+        <label>ลายเซ็น (รูปภาพ พื้นหลังโปร่งใสจะสวยที่สุด — ไม่บังคับ ถ้าไม่อัปโหลดจะใช้เส้นขีดว่างแทนในเอกสาร)</label>
+        <div class="detail-photo" id="ofSigPreview" style="border-radius:8px; width:160px; height:70px">🖋️</div>
+        <input type="file" id="of_signature" accept=".jpg,.jpeg,.png">
+        <button class="btn small" onclick="saveOfficer()">บันทึก</button>
+        <button class="btn small secondary" onclick="hideOfficerForm()">ยกเลิก</button>
+      </div>
+
+      <table>
+        <thead><tr><th>ตำแหน่ง</th><th>ชื่อ-นามสกุล</th><th>ลายเซ็น</th><th>วาระ</th><th>หมายเหตุ</th><th></th></tr></thead>
+        <tbody id="officerRows"><tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+const isSuper = Auth.getRole() === 'admin_super';
+
+let currentOfSignatureUrl = '';
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+
+function showAddForm() {
+  document.getElementById('officerFormTitle').textContent = 'เพิ่มวาระใหม่';
+  document.getElementById('of_officer_id').value = '';
+  document.getElementById('of_position_type').value = 'นายก';
+  document.getElementById('of_name_th').value = '';
+  document.getElementById('of_name_en').value = '';
+  document.getElementById('of_term_start').value = '';
+  document.getElementById('of_term_end').value = '';
+  document.getElementById('of_note').value = '';
+  currentOfSignatureUrl = '';
+  document.getElementById('ofSigPreview').innerHTML = '🖋️';
+  document.getElementById('officerFormError').style.display = 'none';
+  document.getElementById('officerForm').style.display = 'block';
+}
+
+function hideOfficerForm() { document.getElementById('officerForm').style.display = 'none'; }
+
+function editOfficer(o) {
+  document.getElementById('officerFormTitle').textContent = 'แก้ไขวาระ';
+  document.getElementById('of_officer_id').value = o.officer_id;
+  document.getElementById('of_position_type').value = o.position_type;
+  document.getElementById('of_name_th').value = o.name_th;
+  document.getElementById('of_name_en').value = o.name_en || '';
+  document.getElementById('of_term_start').value = (o.term_start || '').slice(0, 10);
+  document.getElementById('of_term_end').value = (o.term_end || '').slice(0, 10);
+  document.getElementById('of_note').value = o.note || '';
+  currentOfSignatureUrl = o.signature_url || '';
+  document.getElementById('ofSigPreview').innerHTML = currentOfSignatureUrl ? `<img src="${toEmbeddableImageUrl(currentOfSignatureUrl)}" style="max-width:100%; max-height:100%">` : '🖋️';
+  document.getElementById('officerFormError').style.display = 'none';
+  document.getElementById('officerForm').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+document.getElementById('of_signature').addEventListener('change', async (ev) => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  try {
+    const uploaded = await uploadDocument(file, 'ลายเซ็น');
+    currentOfSignatureUrl = uploaded.url;
+    document.getElementById('ofSigPreview').innerHTML = `<img src="${toEmbeddableImageUrl(uploaded.url)}" style="max-width:100%; max-height:100%">`;
+    showToast('อัปโหลดลายเซ็นสำเร็จ', 'success');
+  } catch (err) {
+    showToast('อัปโหลดลายเซ็นไม่สำเร็จ: ' + err.message, 'error');
+  }
+});
+
+async function saveOfficer() {
+  const errBox = document.getElementById('officerFormError');
+  errBox.style.display = 'none';
+  const officerId = document.getElementById('of_officer_id').value;
+  const payload = {
+    position_type: document.getElementById('of_position_type').value,
+    name_th: document.getElementById('of_name_th').value.trim(),
+    name_en: document.getElementById('of_name_en').value.trim(),
+    term_start: document.getElementById('of_term_start').value,
+    term_end: document.getElementById('of_term_end').value,
+    note: document.getElementById('of_note').value.trim(),
+    signature_url: currentOfSignatureUrl
+  };
+  try {
+    if (officerId) {
+      await apiCall('updateCouncilOfficer', Object.assign({ officer_id: officerId }, payload));
+    } else {
+      await apiCall('addCouncilOfficer', payload);
+    }
+    showToast('บันทึกสำเร็จ', 'success');
+    hideOfficerForm();
+    loadOfficers();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  }
+}
+
+async function removeOfficer(officerId, label) {
+  if (!(await showConfirm('ยืนยันลบวาระนี้? ("' + label + '") — ถ้าเป็นวาระเดียวที่มีอยู่ เอกสารที่ออกในช่วงนี้จะไม่มีชื่อผู้ลงนามแสดง'))) return;
+  try {
+    await apiCall('deleteCouncilOfficer', { officer_id: officerId });
+    showToast('ลบสำเร็จ', 'success');
+    loadOfficers();
+  } catch (err) {
+    showToast('ลบไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function loadOfficers() {
+  const tbody = document.getElementById('officerRows');
+  try {
+    const rows = await apiCall('listCouncilOfficers');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ยังไม่มีข้อมูล</td></tr>'; return; }
+    tbody.innerHTML = rows.map(o => `
+      <tr>
+        <td>${o.position_label}</td>
+        <td>${escapeHtml(o.name_th)}${o.name_en ? `<br><span style="color:var(--muted); font-size:12px">${escapeHtml(o.name_en)}</span>` : ''}</td>
+        <td>${o.signature_url ? `<img src="${toEmbeddableImageUrl(o.signature_url)}" style="max-width:80px; max-height:36px">` : '<span style="color:var(--muted); font-size:12px">ไม่มี (ใช้เส้นขีดแทน)</span>'}</td>
+        <td>${fmtDate(o.term_start)} — ${o.term_end ? fmtDate(o.term_end) : 'ปัจจุบัน'}</td>
+        <td style="font-size:12px; color:var(--muted)">${escapeHtml(o.note) || '-'}</td>
+        <td>
+          ${isSuper ? `
+            <button class="btn small secondary" onclick='editOfficer(${JSON.stringify(o)})'>แก้ไข</button>
+            <button class="btn small secondary" onclick="removeOfficer('${o.officer_id}', '${escapeHtml(o.position_label)} ${escapeHtml(o.name_th)}')">ลบ</button>
+          ` : ''}
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+
+if (!isSuper) {
+  document.querySelector('button[onclick="showAddForm()"]').style.display = 'none';
+}
+
+loadOfficers();
+</script>
+</body>
+</html>
