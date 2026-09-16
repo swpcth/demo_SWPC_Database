@@ -46,6 +46,7 @@
       <div class="nav-group">
         <a href="admin-users.html">ผู้ใช้งานระบบ</a>
         <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
+        <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
       </div>
 <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
@@ -56,57 +57,68 @@
   <main class="main">
     <header><h1>ภาพรวมระบบ</h1></header>
 
-    <div class="dashboard-section-label">สรุปจำนวนสมาชิก</div>
-    <!-- สรุปจำนวนสมาชิก แยกเข้าสู่ระบบแล้ว/ยังไม่เข้าสู่ระบบ (ตามรูปแบบแดชบอร์ดเดิมที่สภาฯ ใช้อยู่) -->
-    <div id="memberStatusDashboard"><div class="panel"><p class="empty-state">กำลังโหลด...</p></div></div>
-
-    <div class="dashboard-section-label">ภาพรวมผู้บริหาร</div>
-    <!-- 8.1 Dashboard ผู้บริหาร -->
-    <div class="stat-grid" id="execStats">
-      <div class="empty-state">กำลังโหลดข้อมูล...</div>
+    <div class="search-mode-tabs">
+      <button id="tab-members" class="tab-chip active" onclick="showDashboardTab('members')">สรุปจำนวนสมาชิก</button>
+      <button id="tab-exec" class="tab-chip" onclick="showDashboardTab('exec')">ภาพรวมผู้บริหาร</button>
+      <button id="tab-pending" class="tab-chip" onclick="showDashboardTab('pending')">คำขอที่รอดำเนินการ</button>
+      <button id="tab-status" class="tab-chip" onclick="showDashboardTab('status')">สรุปสถานะ</button>
     </div>
 
-    <div class="panel">
-      <h2>สรุปตามประเภทสมาชิก</h2>
-      <table id="tbl-type"><tbody></tbody></table>
+    <div id="section-members">
+      <!-- สรุปจำนวนสมาชิก แยกเข้าสู่ระบบแล้ว/ยังไม่เข้าสู่ระบบ (ตามรูปแบบแดชบอร์ดเดิมที่สภาฯ ใช้อยู่) -->
+      <div id="memberStatusDashboard"><div class="panel"><p class="empty-state">กำลังโหลด...</p></div></div>
     </div>
 
-    <div class="panel">
-      <h2>รายรับ 12 เดือนล่าสุด</h2>
-      <canvas id="chartMonthly" height="90"></canvas>
+    <div id="section-exec" style="display:none">
+      <!-- 8.1 Dashboard ผู้บริหาร -->
+      <div class="stat-grid" id="execStats">
+        <div class="empty-state">กำลังโหลดข้อมูล...</div>
+      </div>
+
+      <div class="panel">
+        <h2>สรุปตามประเภทสมาชิก</h2>
+        <table id="tbl-type"><tbody></tbody></table>
+      </div>
+
+      <div class="panel">
+        <h2>รายรับ 12 เดือนล่าสุด</h2>
+        <canvas id="chartMonthly" height="90"></canvas>
+      </div>
+
+      <div class="panel">
+        <h2>รายรับ 5 ปีล่าสุด</h2>
+        <canvas id="chartYearly" height="90"></canvas>
+      </div>
     </div>
 
-    <div class="panel">
-      <h2>รายรับ 5 ปีล่าสุด</h2>
-      <canvas id="chartYearly" height="90"></canvas>
+    <div id="section-pending" style="display:none">
+      <!-- 8.2 Dashboard เพิ่มเติม -->
+      <div class="panel">
+        <h2>คำขอสมัครสมาชิก แยกตามประเภท</h2>
+        <table>
+          <thead><tr><th>ประเภท</th><th>รอตรวจสอบ/รออนุมัติ</th><th>รอชำระเงิน</th></tr></thead>
+          <tbody id="tbl-membership-apps"></tbody>
+        </table>
+      </div>
+
+      <div class="stat-grid" id="opStats"></div>
+
+      <div class="panel">
+        <h2>คำขอรับสวัสดิการที่รอดำเนินการ แยกตามประเภท</h2>
+        <table id="tbl-welfare-pending"><tbody></tbody></table>
+      </div>
     </div>
 
-    <div class="dashboard-section-label">คำขอที่รอดำเนินการ</div>
-    <!-- 8.2 Dashboard เพิ่มเติม -->
-    <div class="panel">
-      <h2>คำขอสมัครสมาชิก แยกตามประเภท</h2>
-      <table>
-        <thead><tr><th>ประเภท</th><th>รอตรวจสอบ/รออนุมัติ</th><th>รอชำระเงิน</th></tr></thead>
-        <tbody id="tbl-membership-apps"></tbody>
-      </table>
-    </div>
+    <div id="section-status" style="display:none">
+      <div class="panel">
+        <h2>สรุปตามสถานะสมาชิก</h2>
+        <table id="tbl-status"><tbody></tbody></table>
+      </div>
 
-    <div class="stat-grid" id="opStats"></div>
-
-    <div class="panel">
-      <h2>คำขอรับสวัสดิการที่รอดำเนินการ แยกตามประเภท</h2>
-      <table id="tbl-welfare-pending"><tbody></tbody></table>
-    </div>
-
-    <div class="dashboard-section-label">สรุปสถานะ</div>
-    <div class="panel">
-      <h2>สรุปตามสถานะสมาชิก</h2>
-      <table id="tbl-status"><tbody></tbody></table>
-    </div>
-
-    <div class="panel">
-      <h2>สรุปตามสถานะใบอนุญาต</h2>
-      <table id="tbl-license-status"><tbody></tbody></table>
+      <div class="panel">
+        <h2>สรุปตามสถานะใบอนุญาต</h2>
+        <table id="tbl-license-status"><tbody></tbody></table>
+      </div>
     </div>
 
     <div id="detailOverlay" class="overlay" style="display:none" onclick="if(event.target===this) closeDetail()">
@@ -129,6 +141,13 @@ Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
 
 function fmtMoney(n) { return Number(n || 0).toLocaleString(); }
+
+function showDashboardTab(which) {
+  ['members', 'exec', 'pending', 'status'].forEach(id => {
+    document.getElementById('section-' + id).style.display = id === which ? 'block' : 'none';
+    document.getElementById('tab-' + id).classList.toggle('active', id === which);
+  });
+}
 
 async function loadExecutive() {
   try {

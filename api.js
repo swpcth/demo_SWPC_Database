@@ -1,5 +1,5 @@
 // ตั้งค่า URL ของ Apps Script Web App ที่ deploy แล้ว (ลงท้ายด้วย /exec)
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbyzhzXrSnGYr-i9HkPBWtyLPhBJce2HcBOKjQzxbufvYWNaLVvKmhu34AJOvGok88nOIQ/exec';
+const API_BASE_URL = 'https://script.google.com/macros/library/d/1TmSd_cto675RKleuddI4bP7LSxxHNtjQ7J9Oj4Nu9qB3fRUHPg0QWGgO/45';
 
 const Auth = {
   getToken() { return localStorage.getItem('swc_token'); },
@@ -420,7 +420,7 @@ function createSignaturePad(canvasId) {
 // ---------- ตรวจสอบว่า Deploy เวอร์ชันล่าสุดของ backend แล้วหรือยัง ----------
 // ต้องตรงกับ BACKEND_VERSION ใน Code.gs — อัปเดตทุกครั้งที่ส่งมอบไฟล์ Code.gs ชุดใหม่
 // ป้องกันปัญหา "อัปโหลดไฟล์เว็บแล้วแต่ลืม Deploy Apps Script ใหม่" ซึ่งทำให้ฟีเจอร์ใหม่ไม่ทำงานโดยไม่รู้ตัว
-const EXPECTED_BACKEND_VERSION = '2026-09-16-license-redesign-org-logo-fixes';
+const EXPECTED_BACKEND_VERSION = '2026-09-16-council-officers-dashboard-tabs';
 
 async function checkBackendVersionAndWarn() {
   try {
