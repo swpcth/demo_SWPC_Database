@@ -122,22 +122,6 @@ async function copyCurrentToRegistered() {
   }
 }
 
-function updateNavVisibility(profile) {
-  const navApply = document.getElementById('navApply');
-  const navTypeChange = document.getElementById('navTypeChange');
-  const navLicense = document.getElementById('navLicense');
-  const navCard = document.getElementById('navCard');
-  const navCertificate = document.getElementById('navCertificate');
-  if (navApply) navApply.style.display = 'none'; // มีโปรไฟล์แล้ว = เป็นสมาชิกแล้ว ไม่ต้องสมัครซ้ำ
-  const isOrg = profile.profile_kind === 'organization';
-  if (navTypeChange && (isOrg || profile.member_type === 'สามัญ')) navTypeChange.style.display = 'none';
-  if (isOrg) {
-    if (navLicense) navLicense.style.display = 'none';
-    if (navCard) navCard.style.display = 'none';
-    if (navCertificate) navCertificate.style.display = '';
-  }
-}
-
 async function load() {
   const el = document.getElementById('content');
   let m;
@@ -258,6 +242,7 @@ async function load() {
           <div class="profile-photo">${m.photo_url ? `<img src="${toEmbeddableImageUrl(m.photo_url)}">` : '👤'}</div>
           <div class="profile-header-main">
             <h2>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
+            <div class="profile-national-id">เลขประจำตัวประชาชน: ${m.national_id || '-'}</div>
             <div class="profile-badges">
               <span class="badge pending">${m.member_type || '-'}</span>
               <span class="badge ${m.member_status==='ปกติ'?'ok':'pending'}">${m.member_status || '-'}</span>
@@ -268,7 +253,6 @@ async function load() {
         <div class="profile-info-section">
           <div class="profile-info-section-title">ข้อมูลสมาชิกภาพ</div>
           <div class="profile-info-grid">
-            <div><span>เลขประจำตัวประชาชน</span><b>${m.national_id || '-'}</b></div>
             <div><span>เลขที่สมาชิก</span><b>${m.member_no || 'ยังไม่ออกเลข'}</b></div>
             <div><span>วันที่สมัครสมาชิก</span><b>${m.applied_date ? new Date(m.applied_date).toLocaleDateString('th-TH') : '-'}</b></div>
             <div><span>วันหมดอายุสมาชิกภาพ</span><b>${m.membership_expire_date ? new Date(m.membership_expire_date).toLocaleDateString('th-TH') : '-'}</b></div>

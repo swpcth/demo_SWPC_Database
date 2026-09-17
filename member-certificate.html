@@ -14,7 +14,13 @@
     <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
     <nav>
       <a href="member-dashboard.html">ข้อมูลของฉัน</a>
-      <a href="member-certificate.html" class="active">ใบรับรองสมาชิกวิสามัญ</a>
+      <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
+      <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
+      <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
+      <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-certificate.html" id="navCertificate" class="active">ใบรับรองสมาชิกวิสามัญ</a>
+      <a href="member-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="member-receipts.html">ใบเสร็จของฉัน</a>
       <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -43,6 +49,7 @@ async function load() {
       return;
     }
     const org = data.profile;
+    updateNavVisibility({ profile_kind: 'organization' });
     const verifyUrl = location.origin + location.pathname.replace('member-certificate.html', '') + 'verify-card.html?token=' + data.card.qr_token;
 
     el.innerHTML = `

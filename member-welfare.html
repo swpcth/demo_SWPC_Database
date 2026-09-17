@@ -15,8 +15,9 @@
       <a href="member-dashboard.html">ข้อมูลของฉัน</a>
       <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
       <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
-      <a href="member-license.html" id="navLicense">ใบอนุญาต</a>
+      <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
       <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
       <a href="member-welfare.html" class="active">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
       <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
@@ -240,10 +241,12 @@ async function loadMyRequests() {
 }
 
 async function initWelfarePage() {
+  let profile;
   try {
     // เช็คสิทธิ์ก่อนโหลดเนื้อหาหลัก — ถ้าบัญชีนี้ยังไม่ผูกกับข้อมูลสมาชิก (เช่น ใบสมัครยังไม่อนุมัติ) จะได้แจ้งข้อความเดียวที่ชัดเจน
     // แทนที่จะให้แต่ละส่วนของหน้า (ผู้รับผลประโยชน์/แบบฟอร์ม/ประวัติ) ขึ้น error ซ้ำกันหลายจุด
-    await apiCall('getMyProfile');
+    profile = await apiCall('getMyProfile');
+    updateNavVisibility(profile);
   } catch (err) {
     document.getElementById('welfareContent').style.display = 'none';
     const panel = document.getElementById('blockedPanel');

@@ -17,8 +17,9 @@
       <a href="member-dashboard.html">ข้อมูลของฉัน</a>
       <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
       <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
-      <a href="member-license.html" id="navLicense" class="active">ใบอนุญาต</a>
+      <a href="member-license.html" id="navLicense" class="active">ใบอนุญาตของฉัน</a>
       <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
       <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
@@ -174,7 +175,7 @@ function renderCard(data) {
       <div class="card-no-label">เลขที่ใบอนุญาต<br><b>${lic ? lic.license_no : 'ยังไม่มี'}</b><br>License No.</div>
     </div>
     <div class="card-signature">
-      <div class="sig-line"></div>
+      ${data.signatory.signature_url ? `<img class="sig-image" src="${toEmbeddableImageUrl(data.signatory.signature_url)}">` : '<div class="sig-line"></div>'}
       <div class="sig-name">(${data.signatory.name})</div>
       <div class="sig-position">${data.signatory.position}</div>
     </div>
@@ -441,6 +442,7 @@ async function loadAll() {
 
     document.getElementById('blockedPanel').style.display = 'none';
     document.getElementById('cardSection').style.display = 'block';
+    updateNavVisibility(data.member);
     renderCard(data);
     renderPaymentHistory(data);
     await loadEligibilityPanels();

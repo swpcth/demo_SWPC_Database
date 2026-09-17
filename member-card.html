@@ -19,6 +19,7 @@
       <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
       <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
       <a href="member-card.html" id="navCard" class="active">บัตรสมาชิก</a>
+      <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
       <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
@@ -68,6 +69,7 @@ async function load() {
     }
 
     const m = data.profile;
+    updateNavVisibility(m);
     const days = daysUntilClient(m.membership_expire_date);
     const st = statusInfo(days);
     const isGold = m.member_type === 'สามัญ';
@@ -107,7 +109,7 @@ async function load() {
             <div class="card-no-label">เลขที่สมาชิก<br><b>${m.member_no || '-'}</b><br>Membership No.</div>
           </div>
           <div class="card-signature">
-            <div class="sig-line"></div>
+            ${data.signatory.signature_url ? `<img class="sig-image" src="${toEmbeddableImageUrl(data.signatory.signature_url)}">` : '<div class="sig-line"></div>'}
             <div class="sig-name">(${data.signatory.name})</div>
             <div class="sig-position">${data.signatory.position}</div>
           </div>

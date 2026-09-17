@@ -17,6 +17,7 @@
       <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
       <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
       <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
       <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
@@ -868,7 +869,13 @@ async function submitSlip(applicationId) {
 }
 
 async function checkAlreadyMemberAndAdjustPage() {
-  const profile = await applyMemberNavVisibility();
+  let profile = null;
+  try {
+    profile = await apiCall('getMyProfile');
+    updateNavVisibility(profile);
+  } catch (err) {
+    return; // ยังไม่ผูกกับข้อมูลสมาชิก (ผู้สมัครใหม่/รออนุมัติ) — ไม่ต้องทำอะไรเพิ่ม ปล่อยให้เห็นฟอร์มสมัครตามปกติ
+  }
   if (profile) {
     // เป็นสมาชิกอยู่แล้ว (บุคคลหรือองค์กร) — ไม่ต้องยื่นใบสมัครซ้ำ ซ่อนแบบฟอร์มสมัครใหม่
     const newAppPanel = document.getElementById('newApplicationPanel');

@@ -617,3 +617,57 @@ function buildYearOptionsBE(yearsBack) {
   for (let y = currentBE; y >= currentBE - (yearsBack || 60); y--) years.push(y);
   return years;
 }
+
+/** ปรับการแสดงเมนูด้านข้างให้ตรงกับประเภทสมาชิก (บุคคล/องค์กร) — ใช้ร่วมกันทุกหน้าฝั่งสมาชิก เรียกหลังโหลดโปรไฟล์สำเร็จเสมอ
+ * ถ้าไม่มีเมนูรายการไหนอยู่ในหน้านั้น (เช่นบาง id ไม่ได้ใส่ไว้) จะข้ามไปเงียบๆ ไม่ error
+ */
+function updateNavVisibility(profile) {
+  const navApply = document.getElementById('navApply');
+  const navTypeChange = document.getElementById('navTypeChange');
+  const navLicense = document.getElementById('navLicense');
+  const navCard = document.getElementById('navCard');
+  const navCertificate = document.getElementById('navCertificate');
+  if (navApply) navApply.style.display = 'none'; // มีโปรไฟล์แล้ว = เป็นสมาชิกแล้ว ไม่ต้องสมัครซ้ำ
+  const isOrg = profile.profile_kind === 'organization';
+  if (navTypeChange && (isOrg || profile.member_type === 'สามัญ')) navTypeChange.style.display = 'none';
+  if (isOrg) {
+    if (navLicense) navLicense.style.display = 'none';
+    if (navCard) navCard.style.display = 'none';
+    if (navCertificate) navCertificate.style.display = '';
+  }
+}
+
+/** เมนูมือถือ (hamburger + drawer) — ใช้ร่วมกันทุกหน้าที่มี .sidebar
+ * ทำงานอัตโนมัติ ไม่ต้องแก้ไฟล์ HTML แต่ละหน้า แค่โหลด api.js ก็ใช้ได้ทันที
+ */
+function initMobileNav() {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+  const toggle = document.createElement('button');
+  toggle.className = 'mobile-nav-toggle';
+  toggle.innerHTML = '☰';
+  toggle.setAttribute('aria-label', 'เปิดเมนู');
+  toggle.type = 'button';
+  const backdrop = document.createElement('div');
+  backdrop.className = 'mobile-nav-backdrop';
+  document.body.appendChild(backdrop);
+  document.body.appendChild(toggle);
+  function closeNav() {
+    sidebar.classList.remove('mobile-open');
+    backdrop.classList.remove('active');
+    toggle.innerHTML = '☰';
+  }
+  function toggleNav() {
+    const isOpen = sidebar.classList.toggle('mobile-open');
+    backdrop.classList.toggle('active', isOpen);
+    toggle.innerHTML = isOpen ? '✕' : '☰';
+  }
+  toggle.addEventListener('click', toggleNav);
+  backdrop.addEventListener('click', closeNav);
+  sidebar.querySelectorAll('a').forEach(a => a.addEventListener('click', closeNav));
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMobileNav);
+} else {
+  initMobileNav();
+}
