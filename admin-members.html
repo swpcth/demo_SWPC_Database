@@ -47,6 +47,7 @@
         <a href="admin-users.html">ผู้ใช้งานระบบ</a>
         <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
         <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
+        <a href="admin-notifications.html">ประวัติการแจ้งเตือน</a>
       </div>
 <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
@@ -100,9 +101,9 @@
 
       <table>
         <thead>
-          <tr><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>สถานะ</th><th>จังหวัดที่ปฏิบัติงาน</th><th></th></tr>
+          <tr><th>รูป</th><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>สถานะ</th><th>จังหวัดที่ปฏิบัติงาน</th><th></th></tr>
         </thead>
-        <tbody id="rows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+        <tbody id="rows"><tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
 
@@ -219,11 +220,12 @@ function renderIndividual() {
   document.getElementById('countLine').textContent = 'รายชื่อสมาชิกทั้งหมด ' + rows.length + ' คน';
   const tbody = document.getElementById('rows');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่พบข้อมูลสมาชิก</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่พบข้อมูลสมาชิก</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(m => `
     <tr>
+      <td>${m.photo_url ? `<img src="${toEmbeddableImageUrl(m.photo_url)}" style="width:36px; height:36px; object-fit:cover; border-radius:50%; border:1px solid var(--line)">` : '<span style="color:var(--muted); font-size:18px">👤</span>'}</td>
       <td>${m.member_no || '-'}</td>
       <td>${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</td>
       <td>${statusBadge(m.member_status)}</td>
@@ -381,10 +383,11 @@ function renderOrgEditForm(o) {
   document.getElementById('oe_logo').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];
     if (!file) return;
+    // แสดงรูปที่เพิ่งเลือกจากเครื่องทันที ไม่ต้องรอ Google Drive ประมวลผล thumbnail เสร็จ (ดูหมายเหตุเดียวกับรูปถ่ายสมาชิกด้านบน)
+    document.getElementById('oeLogoPreview').innerHTML = `<img src="${URL.createObjectURL(file)}">`;
     try {
       const uploaded = await uploadDocument(file, 'โลโก้หน่วยงาน');
       currentOeLogoUrl = uploaded.url;
-      document.getElementById('oeLogoPreview').innerHTML = `<img src="${toEmbeddableImageUrl(uploaded.url)}">`;
     } catch (err) {
       showToast('อัปโหลดโลโก้ไม่สำเร็จ: ' + err.message, 'error');
     }
@@ -705,10 +708,12 @@ function renderEditForm(data) {
   document.getElementById('e_photo').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];
     if (!file) return;
+    // แสดงรูปที่เพิ่งเลือกจากเครื่องทันที ไม่ต้องรอ Google Drive ประมวลผล thumbnail เสร็จ — ไฟล์ที่เพิ่งอัปโหลด/แชร์ใหม่
+    // บางครั้งยังโหลดผ่าน lh3.googleusercontent.com ไม่ติดทันที ทำให้ดูเหมือน "บันทึกแล้วแต่รูปไม่เปลี่ยน" ทั้งที่จริงบันทึกสำเร็จแล้ว
+    document.getElementById('photoPreview').innerHTML = `<img src="${URL.createObjectURL(file)}">`;
     try {
       const uploaded = await uploadDocument(file, 'รูปถ่าย');
       currentEditPhotoUrl = uploaded.url;
-      document.getElementById('photoPreview').innerHTML = `<img src="${toEmbeddableImageUrl(uploaded.url)}">`;
     } catch (err) {
       showToast('อัปโหลดรูปไม่สำเร็จ: ' + err.message, 'error');    }
   });

@@ -246,9 +246,12 @@ async function load() {
         const file = ev.target.files[0];
         if (!file) return;
         try {
+          // แสดงรูปที่เพิ่งเลือกจากเครื่องผู้ใช้ทันที (ไม่รอ URL จาก Google Drive) เพราะไฟล์ที่เพิ่งอัปโหลด/แชร์ใหม่
+          // บางครั้ง Drive ยังประมวลผล thumbnail ผ่าน lh3.googleusercontent.com ไม่เสร็จทันที ทำให้ดูเหมือน "บันทึกแล้วแต่รูปไม่เปลี่ยน"
+          // ทั้งที่จริงบันทึกสำเร็จแล้ว — ใช้ไฟล์ในเครื่องแสดงผลแทนไปก่อน ส่วน URL จริงจะใช้แสดงถูกต้องเมื่อโหลดหน้าใหม่ครั้งถัดไป
+          document.getElementById('orgLogoPreview').innerHTML = `<img src="${URL.createObjectURL(file)}">`;
           const uploaded = await uploadDocument(file, 'โลโก้หน่วยงาน');
           await apiCall('updateOrgProfile', { patch: { logo_url: uploaded.url } });
-          document.getElementById('orgLogoPreview').innerHTML = `<img src="${toEmbeddableImageUrl(uploaded.url)}">`;
           showToast('อัปโหลดโลโก้สำเร็จ', 'success');
         } catch (err) {
           showToast('อัปโหลดโลโก้ไม่สำเร็จ: ' + err.message, 'error');
@@ -463,10 +466,11 @@ async function load() {
     document.getElementById('s_photo').addEventListener('change', async (ev) => {
       const file = ev.target.files[0];
       if (!file) return;
+      // แสดงรูปที่เพิ่งเลือกจากเครื่องผู้ใช้ทันที ไม่ต้องรอ Drive ประมวลผล thumbnail เสร็จ (ดูหมายเหตุเดียวกับโลโก้องค์กรด้านบน)
+      document.getElementById('photoPreview').innerHTML = `<img src="${URL.createObjectURL(file)}">`;
       const uploadTask = (async () => {
         const uploaded = await uploadDocument(file, 'รูปถ่าย');
         currentPhotoUrl = uploaded.url;
-        document.getElementById('photoPreview').innerHTML = `<img src="${toEmbeddableImageUrl(uploaded.url)}">`;
       })();
       photoUploadPromise = uploadTask;
       try {

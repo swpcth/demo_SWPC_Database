@@ -420,7 +420,7 @@ function createSignaturePad(canvasId) {
 // ---------- ตรวจสอบว่า Deploy เวอร์ชันล่าสุดของ backend แล้วหรือยัง ----------
 // ต้องตรงกับ BACKEND_VERSION ใน Code.gs — อัปเดตทุกครั้งที่ส่งมอบไฟล์ Code.gs ชุดใหม่
 // ป้องกันปัญหา "อัปโหลดไฟล์เว็บแล้วแต่ลืม Deploy Apps Script ใหม่" ซึ่งทำให้ฟีเจอร์ใหม่ไม่ทำงานโดยไม่รู้ตัว
-const EXPECTED_BACKEND_VERSION = '2026-09-25-change-history';
+const EXPECTED_BACKEND_VERSION = '2026-09-25-notif-menu-photos';
 
 async function checkBackendVersionAndWarn() {
   try {
@@ -478,6 +478,32 @@ function toEmbeddableImageUrl(url) {
   if (!m) return url;
   return 'https://lh3.googleusercontent.com/d/' + m[0];
 }
+
+/** รูปภาพจาก Google Drive (รูปถ่าย/โลโก้/ลายเซ็น) ที่เพิ่งอัปโหลด+แชร์ใหม่ บางครั้ง Drive ยังประมวลผล thumbnail
+ * ผ่าน lh3.googleusercontent.com ไม่เสร็จทันที ทำให้ <img> โหลดไม่ขึ้น (ดูเหมือน "บันทึกแล้วแต่รูปไม่เปลี่ยน" ทั้งที่บันทึกสำเร็จแล้วจริง)
+ * ดักจับ error ของ <img> ที่ชี้ไป Drive ทุกจุดในระบบแบบรวมศูนย์ที่นี่ที่เดียว (ไม่ต้องแก้ทุกหน้า) แล้วลอง URL รูปแบบสำรอง
+ * และลองใหม่อีกครั้งหลังหน่วงเวลาสั้นๆ ก่อนปล่อยให้แสดงเป็นรูปหายไปตามปกติถ้ายังไม่สำเร็จ
+ */
+document.addEventListener('error', function (ev) {
+  const img = ev.target;
+  if (!img || img.tagName !== 'IMG') return;
+  const src = img.src || '';
+  if (src.indexOf('lh3.googleusercontent.com') === -1 && src.indexOf('drive.google.com') === -1) return;
+  const idMatch = src.match(/[-\w]{25,}/);
+  if (!idMatch) return;
+  const fileId = idMatch[0];
+  const stage = parseInt(img.dataset.driveRetry || '0', 10);
+  if (stage === 0) {
+    img.dataset.driveRetry = '1';
+    img.src = 'https://drive.google.com/uc?export=view&id=' + fileId;
+  } else if (stage === 1) {
+    img.dataset.driveRetry = '2';
+    setTimeout(function () {
+      img.src = 'https://lh3.googleusercontent.com/d/' + fileId;
+    }, 4000);
+  }
+  // stage >= 2: ลองครบทุกรูปแบบและรออีกรอบแล้วยังไม่สำเร็จ — ปล่อยให้แสดงเป็นรูปหายไปตามปกติ ไม่วนลูปซ้ำ
+}, true);
 
 /** ตรวจสอบค่า boolean ที่มาจากฐานข้อมูล (ตรงกับ isTrue_ ฝั่ง backend) — Google Sheets อาจแปลง "true"/"false" ที่เก็บไว้
  * ให้กลายเป็นชนิด Boolean จริงโดยอัตโนมัติ ทำให้เทียบด้วย === 'true' ตรงๆ พลาดได้ ฟังก์ชันนี้รองรับทั้งสองรูปแบบ

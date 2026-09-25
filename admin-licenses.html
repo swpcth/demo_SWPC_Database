@@ -47,6 +47,7 @@
         <a href="admin-users.html">ผู้ใช้งานระบบ</a>
         <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
         <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
+        <a href="admin-notifications.html">ประวัติการแจ้งเตือน</a>
       </div>
 <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
@@ -57,7 +58,6 @@
   <main class="main">
     <header>
       <h1>ข้อมูลใบอนุญาต</h1>
-      <button class="btn small secondary" onclick="runCheckNow()">ตรวจสอบวันหมดอายุตอนนี้</button>
     </header>
 
     <div class="stat-grid" id="regStats"></div>
@@ -78,20 +78,9 @@
       <p class="count-line" id="countLine">ทั้งหมด 0 รายการ</p>
       <table>
         <thead>
-          <tr><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>เลขใบอนุญาต</th><th>วันออกใบอนุญาต</th><th>วันหมดอายุใบอนุญาต</th><th>สถานะใบอนุญาต</th><th></th></tr>
+          <tr><th>รูป</th><th>เลขสมาชิก</th><th>ชื่อ-นามสกุล</th><th>เลขใบอนุญาต</th><th>วันออกใบอนุญาต</th><th>วันหมดอายุใบอนุญาต</th><th>สถานะใบอนุญาต</th><th></th></tr>
         </thead>
-        <tbody id="rows"><tr><td colspan="7" class="empty-state">กำลังโหลด...</td></tr></tbody>
-      </table>
-    </div>
-
-    <div class="panel">
-      <h2>ประวัติการแจ้งเตือน (TOR ข้อ 3.3)</h2>
-      <div class="list-toolbar">
-        <button class="btn small secondary" onclick="exportNotifCsv()">ส่งออกรายการแจ้งเตือน (CSV)</button>
-      </div>
-      <table>
-        <thead><tr><th>วันที่ส่ง</th><th>ประเภทการแจ้งเตือน</th><th>ส่งถึง</th><th>หัวข้อ</th><th>สถานะ</th></tr></thead>
-        <tbody id="notifRows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+        <tbody id="rows"><tr><td colspan="8" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
   </main>
@@ -110,7 +99,6 @@ Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
 
 let registry = [];
-let notifications = [];
 
 function licBadgeClass(status) {
   if (status === 'ปกติ') return 'ok';
@@ -141,11 +129,12 @@ function renderRegistry() {
   document.getElementById('countLine').textContent = 'ทั้งหมด ' + rows.length + ' รายการ';
   const tbody = document.getElementById('rows');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่พบข้อมูล</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">ไม่พบข้อมูล</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(r => `
     <tr>
+      <td>${r.photo_url ? `<img src="${toEmbeddableImageUrl(r.photo_url)}" style="width:36px; height:36px; object-fit:cover; border-radius:50%; border:1px solid var(--line)">` : '<span style="color:var(--muted); font-size:18px">👤</span>'}</td>
       <td>${r.member_no || '-'}</td>
       <td>${r.name}</td>
       <td>${r.license_no || '-'}</td>
@@ -199,8 +188,13 @@ async function viewRegistry(memberId) {
       : '<p class="empty-state">ยังไม่เคยส่งแจ้งเตือน</p>';
 
     document.getElementById('detailBody').innerHTML = `
-      <h2>ข้อมูลใบอนุญาต — ${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
-      <p>เลขสมาชิก <b>${m.member_no}</b> • สมาชิก${m.member_type} • <span class="badge ${m.member_status==='ปกติ'?'ok':'warn'}">${m.member_status}</span></p>
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px">
+        <div class="detail-photo" style="width:56px; height:56px; border-radius:50%; overflow:hidden; flex-shrink:0">${m.photo_url ? `<img src="${toEmbeddableImageUrl(m.photo_url)}" style="width:100%; height:100%; object-fit:cover">` : '<span style="font-size:28px">👤</span>'}</div>
+        <div>
+          <h2 style="margin:0">ข้อมูลใบอนุญาต — ${m.prefix_th || ''} ${m.first_name_th || ''} ${m.last_name_th || ''}</h2>
+          <p style="margin:2px 0 0">เลขสมาชิก <b>${m.member_no}</b> • สมาชิก${m.member_type} • <span class="badge ${m.member_status==='ปกติ'?'ok':'warn'}">${m.member_status}</span></p>
+        </div>
+      </div>
 
       <h3>ข้อมูลทะเบียน (TOR ข้อ 3.1)</h3>
       <p><b>วันที่สมัคร:</b> ${fmtDate(m.applied_date)}</p>
@@ -285,57 +279,13 @@ async function renewMembership(memberId) {
     showToast('ต่ออายุไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
-async function runCheckNow() {
-  try {
-    const res = await apiCall('runExpiryCheckNow');
-    showToast('ตรวจสอบเสร็จสิ้น — ส่งอีเมลแจ้งเตือนไป ' + res.notifications_sent + ' ฉบับ', 'info');    load();
-  } catch (err) {
-    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');  }
-}
-
-function renderNotifications() {
-  const tbody = document.getElementById('notifRows');
-  if (!notifications.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ยังไม่มีประวัติการแจ้งเตือน</td></tr>';
-    return;
-  }
-  tbody.innerHTML = notifications.slice(0, 50).map(n => `
-    <tr>
-      <td>${fmtDate(n.sent_at)}</td>
-      <td>${n.type === 'expired' ? 'หมดอายุแล้ว' : 'ใกล้หมดอายุ'}</td>
-      <td>${n.email_to}</td>
-      <td>${n.subject}</td>
-      <td>${n.status}</td>
-    </tr>
-  `).join('');
-}
-
-function exportNotifCsv() {
-  const headers = ['วันที่ส่ง', 'ประเภท', 'ส่งถึง', 'หัวข้อ', 'สถานะ'];
-  const lines = [headers.join(',')].concat(notifications.map(n => [
-    fmtDate(n.sent_at), n.type, n.email_to, n.subject, n.status
-  ].map(v => '"' + String(v || '').replace(/"/g, '""') + '"').join(',')));
-  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'ประวัติการแจ้งเตือน.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 async function load() {
   try {
     registry = await apiCall('listRegistry');
     renderStats();
     renderRegistry();
   } catch (err) {
-    document.getElementById('rows').innerHTML = `<tr><td colspan="7" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
-  }
-  try {
-    notifications = await apiCall('listNotifications');
-    renderNotifications();
-  } catch (err) {
-    document.getElementById('notifRows').innerHTML = `<tr><td colspan="5" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+    document.getElementById('rows').innerHTML = `<tr><td colspan="8" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
   }
 }
 load();

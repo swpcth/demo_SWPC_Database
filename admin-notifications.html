@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ประวัติการแจ้งเตือน — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+
+      <div class="nav-group-label">สมาชิก</div>
+      <div class="nav-group">
+        <a href="admin-members.html">ข้อมูลสมาชิก</a>
+        <a href="admin-name-change.html">คำขอเปลี่ยนชื่อ-นามสกุล</a>
+        <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+        <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      </div>
+
+      <div class="nav-group-label">ใบอนุญาต</div>
+      <div class="nav-group">
+        <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+        <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+        <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
+      </div>
+
+      <div class="nav-group-label">การเงิน</div>
+      <div class="nav-group">
+        <a href="admin-payments.html">การชำระเงิน</a>
+        <a href="admin-refunds.html">คืนเงิน</a>
+        <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
+      </div>
+
+      <div class="nav-group-label">สวัสดิการและรายงาน</div>
+      <div class="nav-group">
+        <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+        <a href="admin-reports.html">รายงาน</a>
+      </div>
+
+      <div class="nav-group-label">ระบบ</div>
+      <div class="nav-group">
+        <a href="admin-users.html">ผู้ใช้งานระบบ</a>
+        <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
+        <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
+        <a href="admin-notifications.html" class="active">ประวัติการแจ้งเตือน</a>
+      </div>
+<a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header>
+      <h1>ประวัติการแจ้งเตือน (TOR ข้อ 3.3)</h1>
+      <button class="btn small secondary" onclick="runCheckNow()">ตรวจสอบวันหมดอายุตอนนี้</button>
+    </header>
+    <p style="color:var(--muted); font-size:13px; margin-top:-8px">ระบบตรวจสอบวันหมดอายุสมาชิกภาพ/ใบอนุญาตอัตโนมัติทุกวัน แล้วส่งอีเมลแจ้งเตือนสมาชิกที่ใกล้หมดอายุหรือหมดอายุแล้ว — หน้านี้แสดงประวัติการแจ้งเตือนที่ระบบเคยส่งไปทั้งหมด เพื่อให้เจ้าหน้าที่ติดตามได้ว่าใครได้รับแจ้งเตือนไปแล้วบ้าง</p>
+
+    <div class="panel">
+      <div class="list-toolbar">
+        <button class="btn small secondary" onclick="exportNotifCsv()">ส่งออกรายการแจ้งเตือน (CSV)</button>
+      </div>
+      <p class="count-line" id="countLine">ทั้งหมด 0 รายการ</p>
+      <table>
+        <thead><tr><th>วันที่ส่ง</th><th>ประเภทการแจ้งเตือน</th><th>ส่งถึง</th><th>หัวข้อ</th><th>สถานะ</th></tr></thead>
+        <tbody id="notifRows"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+let notifications = [];
+
+function fmtDate(iso) {
+  return iso ? new Date(iso).toLocaleDateString('th-TH') : '-';
+}
+
+function renderNotifications() {
+  const tbody = document.getElementById('notifRows');
+  document.getElementById('countLine').textContent = 'ทั้งหมด ' + notifications.length + ' รายการ';
+  if (!notifications.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ยังไม่มีประวัติการแจ้งเตือน</td></tr>';
+    return;
+  }
+  tbody.innerHTML = notifications.slice(0, 50).map(n => `
+    <tr>
+      <td>${fmtDate(n.sent_at)}</td>
+      <td>${n.type === 'expired' ? 'หมดอายุแล้ว' : 'ใกล้หมดอายุ'}</td>
+      <td>${n.email_to}</td>
+      <td>${n.subject}</td>
+      <td>${n.status}</td>
+    </tr>
+  `).join('');
+}
+
+function exportNotifCsv() {
+  const headers = ['วันที่ส่ง', 'ประเภท', 'ส่งถึง', 'หัวข้อ', 'สถานะ'];
+  const lines = [headers.join(',')].concat(notifications.map(n => [
+    fmtDate(n.sent_at), n.type, n.email_to, n.subject, n.status
+  ].map(v => '"' + String(v || '').replace(/"/g, '""') + '"').join(',')));
+  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'ประวัติการแจ้งเตือน.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function runCheckNow() {
+  try {
+    const res = await apiCall('runExpiryCheckNow');
+    showToast('ตรวจสอบเสร็จสิ้น — ส่งอีเมลแจ้งเตือนไป ' + res.notifications_sent + ' ฉบับ', 'info');
+    load();
+  } catch (err) {
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function load() {
+  try {
+    notifications = await apiCall('listNotifications');
+    renderNotifications();
+  } catch (err) {
+    document.getElementById('notifRows').innerHTML = `<tr><td colspan="5" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+load();
+</script>
+</body>
+</html>

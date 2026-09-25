@@ -47,6 +47,7 @@
         <a href="admin-users.html">ผู้ใช้งานระบบ</a>
         <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
         <a href="admin-council-officers.html" class="active">นายกสภาฯ/เลขาธิการฯ</a>
+        <a href="admin-notifications.html">ประวัติการแจ้งเตือน</a>
       </div>
 
       <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
@@ -141,10 +142,11 @@ function editOfficer(o) {
 document.getElementById('of_signature').addEventListener('change', async (ev) => {
   const file = ev.target.files[0];
   if (!file) return;
+  // แสดงรูปที่เพิ่งเลือกจากเครื่องทันที ไม่ต้องรอ Google Drive ประมวลผล thumbnail เสร็จ (ดูหมายเหตุเดียวกับรูปถ่าย/โลโก้ในหน้าสมาชิก)
+  document.getElementById('ofSigPreview').innerHTML = `<img src="${URL.createObjectURL(file)}" style="max-width:100%; max-height:100%">`;
   try {
     const uploaded = await uploadDocument(file, 'ลายเซ็น');
     currentOfSignatureUrl = uploaded.url;
-    document.getElementById('ofSigPreview').innerHTML = `<img src="${toEmbeddableImageUrl(uploaded.url)}" style="max-width:100%; max-height:100%">`;
     showToast('อัปโหลดลายเซ็นสำเร็จ', 'success');
   } catch (err) {
     showToast('อัปโหลดลายเซ็นไม่สำเร็จ: ' + err.message, 'error');

@@ -47,6 +47,7 @@
         <a href="admin-users.html">ผู้ใช้งานระบบ</a>
         <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
         <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
+        <a href="admin-notifications.html">ประวัติการแจ้งเตือน</a>
       </div>
 <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
@@ -64,8 +65,8 @@
 
     <div class="panel">
       <table>
-        <thead><tr><th>เลขที่คำขอ</th><th>เปลี่ยนจาก → เป็น</th><th>เหตุผลที่ขอเปลี่ยน</th><th>วันที่ยื่น</th><th>สถานะ</th><th></th></tr></thead>
-        <tbody id="rows"><tr><td colspan="6" class="empty-state">กำลังโหลด...</td></tr></tbody>
+        <thead><tr><th>รูป</th><th>เลขที่คำขอ</th><th>เปลี่ยนจาก → เป็น</th><th>เหตุผลที่ขอเปลี่ยน</th><th>วันที่ยื่น</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="7" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
   </main>
@@ -148,13 +149,14 @@ function renderRequests() {
   const pendingStatuses = ['รอตรวจสอบ', 'รอเอกสารเพิ่มเติม', 'รออนุมัติ'];
   const rows = allRequests.filter(a => currentTab === 'pending' ? pendingStatuses.indexOf(a.status) !== -1 : pendingStatuses.indexOf(a.status) === -1);
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่มีรายการ</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่มีรายการ</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(a => {
     const { oldName, newName, reason } = oldNewNames(a);
     return `
       <tr>
+        <td>${a.member_photo_url ? `<img src="${toEmbeddableImageUrl(a.member_photo_url)}" style="width:32px; height:32px; object-fit:cover; border-radius:50%; border:1px solid var(--line)">` : '<span style="color:var(--muted); font-size:16px">👤</span>'}</td>
         <td>${a.application_id}</td>
         <td>${escapeHtml(oldName)} → ${escapeHtml(newName)}</td>
         <td>${escapeHtml(reason)}</td>
@@ -195,7 +197,7 @@ async function loadAll() {
     allRequests = await apiCall('listNameChangeRequests');
     renderRequests();
   } catch (err) {
-    document.getElementById('rows').innerHTML = `<tr><td colspan="6" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+    document.getElementById('rows').innerHTML = `<tr><td colspan="7" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
   }
 }
 loadAll();
