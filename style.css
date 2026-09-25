@@ -173,6 +173,12 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 
 .btn:hover { background: var(--navy); }
 
+.btn:disabled, .btn:disabled:hover, .btn.disabled, .btn.disabled:hover {
+  background: #c7cdd4;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
 .btn.secondary {
   background: transparent;
   color: var(--navy-deep);
