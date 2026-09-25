@@ -97,15 +97,20 @@
       </div>
 
       <div class="panel">
-        <h2>ประวัติการชำระเงิน (ต่ออายุ)</h2>
+        <h2>ติดตามคำขอขึ้นทะเบียน/ต่ออายุใบอนุญาต</h2>
+        <p style="color:var(--muted); font-size:13px">ดูสถานะ เอกสารที่แนบ และผลการพิจารณาของทุกคำขอที่เคยยื่นไว้</p>
         <div id="myRequests"></div>
       </div>
 
       <div class="panel" id="registerPanel" style="display:none">
         <h2>ขึ้นทะเบียนรับใบอนุญาต</h2>
-        <p style="color:var(--muted); font-size:13px">แนบเอกสารประกอบการพิจารณา แล้วรอเจ้าหน้าที่ตรวจสอบ</p>
+        <p style="color:var(--muted); font-size:13px">ต้องมีสถานภาพเป็นสมาชิกสามัญปกติ และแนบผลสอบข้อเขียนครบ 2 วิชา พร้อมผลการสอบสัมภาษณ์ ให้ครบก่อนยื่นคำขอ (TOR ข้อ 4.1.1) แล้วรอเจ้าหน้าที่ตรวจสอบ</p>
         <div id="registerError" class="error-box"></div>
-        <div class="doc-row"><label>เอกสารประกอบการขึ้นทะเบียน</label><input type="file" id="reg_doc" accept=".pdf,.jpg,.jpeg,.png"></div>
+        <div id="registerDocsBox">
+          <div class="doc-row"><label id="reg_subject1_label">ผลสอบข้อเขียน วิชาที่ 1 *</label><input type="file" id="reg_doc_subject1" accept=".pdf,.jpg,.jpeg,.png"></div>
+          <div class="doc-row"><label id="reg_subject2_label">ผลสอบข้อเขียน วิชาที่ 2 *</label><input type="file" id="reg_doc_subject2" accept=".pdf,.jpg,.jpeg,.png"></div>
+          <div class="doc-row"><label id="reg_interview_label">ผลการสอบสัมภาษณ์ *</label><input type="file" id="reg_doc_interview" accept=".pdf,.jpg,.jpeg,.png"></div>
+        </div>
         <button class="btn" style="width:auto; margin-top:12px" onclick="submitRegistration()">ยื่นคำขอขึ้นทะเบียน</button>
       </div>
 
@@ -150,6 +155,7 @@ function statusBadgeClass(status) {
 
 let currentData = null;
 let currentExamSubjects = ['วิชาที่ 1', 'วิชาที่ 2'];
+let currentInterviewLabel = 'ผลการสอบสัมภาษณ์';
 
 function showSide(side) {
   document.getElementById('cardFront').style.display = side === 'front' ? 'block' : 'none';
@@ -265,36 +271,77 @@ async function submitSlip(applicationId) {
     showToast('แนบสลิปไม่สำเร็จ: ' + err.message, 'error');  }
 }
 
-function renderPaymentHistory(data) {
+const RENEWAL_METHOD_LABEL = {
+  CE_before: 'ต่อก่อนหมดอายุด้วยผลการศึกษาต่อเนื่อง (CE)',
+  CE_after: 'ต่อหลังหมดอายุด้วยผลการศึกษาต่อเนื่อง (CE)',
+  exam: 'ต่อด้วยผลสอบข้อเขียนใหม่'
+};
+
+function requestDocsHtml(a) {
+  let docs = [];
+  try { docs = JSON.parse(a.documents_json || '[]'); } catch (e) { docs = []; }
+  if (!docs.length) return '';
+  return `<div style="margin-top:8px">
+    <p style="font-size:12px; color:var(--muted); margin-bottom:4px">เอกสารที่แนบ</p>
+    ${docs.map(d => `<div class="doc-item"><span>${d.doc_type || d.name}</span><a href="${d.url}" target="_blank">ดูเอกสาร</a></div>`).join('')}
+  </div>`;
+}
+
+function renderRequestHistory(data) {
   const el = document.getElementById('myRequests');
-  if (!data.renewalApplications.length) {
-    el.innerHTML = '<p class="empty-state">ไม่มีประวัติการชำระเงิน</p>';
+  const regApps = (data.registrationApplications || []).map(a => ({ a, kind: 'ขึ้นทะเบียนรับใบอนุญาต' }));
+  const renApps = (data.renewalApplications || []).map(a => {
+    let method = '';
+    try { method = (JSON.parse(a.ref_data_json || '{}').method) || ''; } catch (e) {}
+    return { a, kind: 'ต่ออายุใบอนุญาต' + (RENEWAL_METHOD_LABEL[method] ? ' — ' + RENEWAL_METHOD_LABEL[method] : '') };
+  });
+  const all = regApps.concat(renApps).sort((x, y) => new Date(y.a.submitted_at) - new Date(x.a.submitted_at));
+
+  if (!all.length) {
+    el.innerHTML = '<p class="empty-state">ยังไม่เคยยื่นคำขอขึ้นทะเบียน/ต่ออายุใบอนุญาต</p>';
     return;
   }
-  el.innerHTML = data.renewalApplications.map(a => {
+
+  el.innerHTML = all.map(({ a, kind }) => {
     const pm = data.payments.find(p => p.ref_id === a.application_id);
     const receiptUrl = pm && pm.slip_url ? pm.slip_url : null;
     return `
       <div class="app-status-card">
         <div>
-          <b>ต่ออายุใบอนุญาต</b> — ${fmtDate(a.submitted_at)}<br>
-          <span style="color:var(--muted); font-size:13px">เลขที่คำขอ ${a.application_id}</span>
+          <b>${kind}</b> — ยื่นเมื่อ ${fmtDate(a.submitted_at)}<br>
+          <span style="color:var(--muted); font-size:13px">เลขที่คำขอ ${a.application_id} • ค่าธรรมเนียม ${a.fee_amount} บาท</span>
         </div>
         <span class="badge ${statusBadgeClass(a.status)}">${a.status}</span>
-        ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn); font-size:13px">เหตุผล: ' + a.reject_reason + '</p>' : ''}
+        ${a.reviewed_at ? `<p style="color:var(--muted); font-size:12px">เจ้าหน้าที่ตรวจสอบแล้วเมื่อ ${fmtDate(a.reviewed_at)}</p>` : ''}
+        ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn); font-size:13px">เหตุผลที่ไม่อนุมัติ: ' + a.reject_reason + '</p>' : ''}
+        ${requestDocsHtml(a)}
         ${a.status === 'รอชำระเงิน' ? renderPaySlipForm(a) : ''}
-        ${receiptUrl ? `<a class="btn small secondary" style="width:auto" href="${receiptUrl}" target="_blank">ดูใบเสร็จ</a>` : ''}
+        ${pm && pm.status === 'ชำระแล้ว' ? '<p style="color:var(--ok, green); font-size:13px; margin-top:6px">ชำระเงินแล้ว' + (pm.paid_at ? ' เมื่อ ' + fmtDate(pm.paid_at) : '') + '</p>' : ''}
+        ${receiptUrl ? `<a class="btn small secondary" style="width:auto" href="${receiptUrl}" target="_blank">ดูใบเสร็จ/สลิป</a>` : ''}
       </div>`;
   }).join('');
+}
+
+function renderRegisterPanel(eligibility) {
+  currentExamSubjects = eligibility.examSubjects || ['วิชาที่ 1', 'วิชาที่ 2'];
+  currentInterviewLabel = eligibility.interviewDocLabel || 'ผลการสอบสัมภาษณ์';
+  document.getElementById('reg_subject1_label').textContent = 'ผลสอบข้อเขียน ' + currentExamSubjects[0] + ' *';
+  document.getElementById('reg_subject2_label').textContent = 'ผลสอบข้อเขียน ' + currentExamSubjects[1] + ' *';
+  document.getElementById('reg_interview_label').textContent = currentInterviewLabel + ' *';
 }
 
 async function submitRegistration() {
   const errBox = document.getElementById('registerError');
   errBox.style.display = 'none';
   try {
+    const f1 = document.getElementById('reg_doc_subject1').files[0];
+    const f2 = document.getElementById('reg_doc_subject2').files[0];
+    const f3 = document.getElementById('reg_doc_interview').files[0];
+    if (!f1 || !f2 || !f3) throw new Error('กรุณาแนบผลสอบข้อเขียนทั้ง 2 วิชา และผลการสอบสัมภาษณ์ให้ครบ');
     const documents = [];
-    const file = document.getElementById('reg_doc').files[0];
-    if (file) documents.push(await uploadDocument(file, 'เอกสารขึ้นทะเบียน'));
+    documents.push(await uploadDocument(f1, 'ผลสอบข้อเขียน ' + currentExamSubjects[0]));
+    documents.push(await uploadDocument(f2, 'ผลสอบข้อเขียน ' + currentExamSubjects[1]));
+    documents.push(await uploadDocument(f3, currentInterviewLabel));
     const res = await apiCall('submitLicenseRegistration', { documents });
     showToast('ยื่นคำขอขึ้นทะเบียนสำเร็จ เลขที่คำขอ ' + res.application_id, 'success');    loadAll();
   } catch (err) {
@@ -308,6 +355,7 @@ function renderRenewForm(eligibility) {
   const ceQualified = eligibility.ceQualified;
   const ceOptionLabel = isAfter ? 'ต่อหลังหมดอายุด้วยผลการศึกษาต่อเนื่อง (CE)' : 'ต่อก่อนหมดอายุด้วยผลการศึกษาต่อเนื่อง (CE)';
   currentExamSubjects = eligibility.examSubjects || ['วิชาที่ 1', 'วิชาที่ 2'];
+  currentInterviewLabel = eligibility.interviewDocLabel || 'ผลการสอบสัมภาษณ์';
   const examFeeTotal = (eligibility.examSubjectFee || 0) * currentExamSubjects.length;
 
   document.getElementById('renewForm').innerHTML = `
@@ -353,7 +401,7 @@ async function submitRenewal(isAfter) {
     if (method === 'CE_after') {
       const file = document.getElementById('doc_interview_ce').files[0];
       if (!file) throw new Error('กรุณาแนบผลการสอบสัมภาษณ์');
-      documents.push(await uploadDocument(file, 'ผลสอบสัมภาษณ์'));
+      documents.push(await uploadDocument(file, currentInterviewLabel));
     }
     if (method === 'exam') {
       const f1 = document.getElementById('doc_subject1').files[0];
@@ -362,7 +410,7 @@ async function submitRenewal(isAfter) {
       if (!f1 || !f2 || !f3) throw new Error('กรุณาแนบผลสอบข้อเขียนทั้ง 2 วิชา และผลสอบสัมภาษณ์ให้ครบ');
       documents.push(await uploadDocument(f1, 'ผลสอบข้อเขียน ' + currentExamSubjects[0]));
       documents.push(await uploadDocument(f2, 'ผลสอบข้อเขียน ' + currentExamSubjects[1]));
-      documents.push(await uploadDocument(f3, 'ผลสอบสัมภาษณ์'));
+      documents.push(await uploadDocument(f3, currentInterviewLabel));
     }
     const payload = { method, documents };
     const res = await apiCall('submitLicenseRenewal', payload);
@@ -400,6 +448,7 @@ async function loadEligibilityPanels() {
     const regCheck = await apiCall('getRegistrationEligibility');
     if (regCheck.eligible) {
       document.getElementById('registerPanel').style.display = 'block';
+      renderRegisterPanel(regCheck);
       return;
     }
     const renewCheck = await apiCall('getRenewalEligibility');
@@ -445,7 +494,7 @@ async function loadAll() {
     document.getElementById('cardSection').style.display = 'block';
     updateNavVisibility(data.member);
     renderCard(data);
-    renderPaymentHistory(data);
+    renderRequestHistory(data);
     await loadEligibilityPanels();
 
     const panel = document.getElementById('professionalTitlePanel');

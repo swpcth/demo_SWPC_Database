@@ -160,9 +160,9 @@ function viewDetail(applicationId) {
   if (!a) return;
   const d = JSON.parse(a.ref_data_json || '{}');
   const docs = JSON.parse(a.documents_json || '[]');
-  let docsHtml = a.applicant_type === 'ขึ้นทะเบียน'
-    ? docItem(docs, 'เอกสารขึ้นทะเบียน')
-    : (docs.length ? docs.map(doc => docItem(docs, doc.doc_type)).join('') : '<p class="empty-state">ไม่มีเอกสารแนบ (อาจเป็นการต่อก่อนหมดอายุด้วย CE ที่ไม่ต้องแนบเอกสาร)</p>');
+  let docsHtml = docs.length
+    ? docs.map(doc => docItem(docs, doc.doc_type)).join('')
+    : '<p class="empty-state">ไม่มีเอกสารแนบ (อาจเป็นการต่อก่อนหมดอายุด้วย CE ที่ไม่ต้องแนบเอกสาร)</p>';
   document.getElementById('detailBody').innerHTML = `
     <h2>${a.applicant_type} — ${a.application_id}</h2>
     <p><span class="badge pending">${a.status}</span> • ค่าธรรมเนียม ${a.fee_amount} บาท</p>
