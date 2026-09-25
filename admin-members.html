@@ -17,6 +17,7 @@
       <div class="nav-group-label">สมาชิก</div>
       <div class="nav-group">
         <a href="admin-members.html" class="active">ข้อมูลสมาชิก</a>
+        <a href="admin-name-change.html">คำขอเปลี่ยนชื่อ-นามสกุล</a>
         <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
         <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
       </div>
@@ -362,7 +363,13 @@ function renderOrgEditForm(o) {
       <button class="btn" onclick="saveOrgEdit('${o.org_id}')">บันทึก</button>
       <button class="btn secondary" onclick="closeMemberDetail()">ยกเลิก</button>
     </div>
+
+    <fieldset>
+      <legend>ประวัติการเปลี่ยนแปลง</legend>
+      <div id="memberHistoryList"><p class="empty-state">กำลังโหลด...</p></div>
+    </fieldset>
   `;
+  loadMemberHistory(o.org_id);
 
   if (typeof initThaiAddressCascade === 'function') {
     initThaiAddressCascade('oe_addr', {
@@ -484,6 +491,25 @@ function collectEditEducation() {
       institute: fieldValue('edu-institute')
     };
   }).filter(e => e.level || e.degree || e.institute);
+}
+
+async function loadMemberHistory(memberId) {
+  const el = document.getElementById('memberHistoryList');
+  if (!el) return;
+  try {
+    const rows = await apiCall('getMemberChangeHistory', { member_id: memberId });
+    if (!rows.length) { el.innerHTML = '<p class="empty-state">ยังไม่มีประวัติการเปลี่ยนแปลง</p>'; return; }
+    el.innerHTML = '<table><thead><tr><th>วันที่</th><th>รายการ</th><th>รายละเอียด</th><th>ผู้ดำเนินการ</th></tr></thead><tbody>' +
+      rows.map(r => `
+        <tr>
+          <td>${new Date(r.created_at).toLocaleString('th-TH')}</td>
+          <td>${escapeHtml(r.action_label)}</td>
+          <td>${r.summary ? escapeHtml(r.summary) : '-'}</td>
+          <td>${escapeHtml(r.actor_label)}</td>
+        </tr>`).join('') + '</tbody></table>';
+  } catch (err) {
+    el.innerHTML = '<p class="empty-state">โหลดประวัติไม่สำเร็จ: ' + escapeHtml(err.message) + '</p>';
+  }
 }
 
 async function viewMember(memberId) {
@@ -642,9 +668,16 @@ function renderEditForm(data) {
       <button class="btn" onclick="saveMemberEdit('${m.member_id}')">บันทึก</button>
       <button class="btn secondary" onclick="closeMemberDetail()">ยกเลิก</button>
     </div>
+
+    <fieldset>
+      <legend>ประวัติการเปลี่ยนแปลง</legend>
+      <p style="color:var(--muted); font-size:13px; margin-top:-4px">รายการแก้ไข/อนุมัติทั้งหมดของสมาชิกคนนี้ ไม่ว่าจะทำโดยสมาชิกเองหรือเจ้าหน้าที่ (รวมทุกระบบ: ข้อมูลส่วนตัว, เปลี่ยนชื่อ, เปลี่ยนประเภท, ใบอนุญาต, สวัสดิการ, การชำระเงิน/คืนเงิน)</p>
+      <div id="memberHistoryList"><p class="empty-state">กำลังโหลด...</p></div>
+    </fieldset>
   `;
   edu.forEach(e => addEditEduRow(e));
   if (!edu.length) addEditEduRow();
+  loadMemberHistory(m.member_id);
 
   if (typeof initThaiAddressCascade === 'function') {
     initThaiAddressCascade('e_cur', {

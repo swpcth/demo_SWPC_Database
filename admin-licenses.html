@@ -17,6 +17,7 @@
       <div class="nav-group-label">สมาชิก</div>
       <div class="nav-group">
         <a href="admin-members.html">ข้อมูลสมาชิก</a>
+        <a href="admin-name-change.html">คำขอเปลี่ยนชื่อ-นามสกุล</a>
         <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
         <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
       </div>
@@ -45,6 +46,7 @@
       <div class="nav-group">
         <a href="admin-users.html">ผู้ใช้งานระบบ</a>
         <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
+        <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
       </div>
 <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
@@ -155,6 +157,25 @@ function renderRegistry() {
   `).join('');
 }
 
+async function loadMemberHistory(memberId) {
+  const el = document.getElementById('memberHistoryList');
+  if (!el) return;
+  try {
+    const rows = await apiCall('getMemberChangeHistory', { member_id: memberId });
+    if (!rows.length) { el.innerHTML = '<p class="empty-state">ยังไม่มีประวัติการเปลี่ยนแปลง</p>'; return; }
+    el.innerHTML = '<table><thead><tr><th>วันที่</th><th>รายการ</th><th>รายละเอียด</th><th>ผู้ดำเนินการ</th></tr></thead><tbody>' +
+      rows.map(r => `
+        <tr>
+          <td>${new Date(r.created_at).toLocaleString('th-TH')}</td>
+          <td>${escapeHtml(r.action_label)}</td>
+          <td>${r.summary ? escapeHtml(r.summary) : '-'}</td>
+          <td>${escapeHtml(r.actor_label)}</td>
+        </tr>`).join('') + '</tbody></table>';
+  } catch (err) {
+    el.innerHTML = '<p class="empty-state">โหลดประวัติไม่สำเร็จ: ' + escapeHtml(err.message) + '</p>';
+  }
+}
+
 async function viewRegistry(memberId) {
   document.getElementById('detailBody').innerHTML = '<p class="empty-state">กำลังโหลด...</p>';
   document.getElementById('detailOverlay').style.display = 'flex';
@@ -217,7 +238,11 @@ async function viewRegistry(memberId) {
         <button class="btn" onclick="renewMembership('${m.member_id}')">ต่ออายุสมาชิกภาพ</button>
         ${lic.license_no ? `<button class="btn secondary" onclick="printLicense('${m.member_id}')">พิมพ์ใบอนุญาต</button>` : ''}
       </div>
+
+      <h3>ประวัติการเปลี่ยนแปลงทั้งหมด (ทุกระบบ)</h3>
+      <div id="memberHistoryList"><p class="empty-state">กำลังโหลด...</p></div>
     `;
+    loadMemberHistory(m.member_id);
   } catch (err) {
     document.getElementById('detailBody').innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
   }

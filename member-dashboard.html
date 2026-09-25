@@ -14,6 +14,7 @@
     <nav>
       <a href="member-dashboard.html" class="active">ข้อมูลของฉัน</a>
       <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
+      <a href="member-name-change.html" id="navNameChange">ขอเปลี่ยนชื่อ-นามสกุล</a>
       <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
       <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
       <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
@@ -122,6 +123,25 @@ async function copyCurrentToRegistered() {
   }
 }
 
+async function loadMyHistory() {
+  const el = document.getElementById('historyList');
+  if (!el) return;
+  try {
+    const rows = await apiCall('getMyChangeHistory');
+    if (!rows.length) { el.innerHTML = '<p class="empty-state">ยังไม่มีประวัติการเปลี่ยนแปลง</p>'; return; }
+    el.innerHTML = '<table><thead><tr><th>วันที่</th><th>รายการ</th><th>รายละเอียด</th><th>ผู้ดำเนินการ</th></tr></thead><tbody>' +
+      rows.map(r => `
+        <tr>
+          <td>${new Date(r.created_at).toLocaleString('th-TH')}</td>
+          <td>${escapeHtml(r.action_label)}</td>
+          <td>${r.summary ? escapeHtml(r.summary) : '-'}</td>
+          <td>${escapeHtml(r.actor_label)}</td>
+        </tr>`).join('') + '</tbody></table>';
+  } catch (err) {
+    el.innerHTML = '<p class="empty-state">โหลดประวัติไม่สำเร็จ: ' + escapeHtml(err.message) + '</p>';
+  }
+}
+
 async function load() {
   const el = document.getElementById('content');
   let m;
@@ -206,8 +226,14 @@ async function load() {
         </fieldset>
 
         <button class="btn" style="width:auto" onclick="saveOrgProfile()">บันทึกข้อมูล</button>
+
+        <div class="panel">
+          <h2>ประวัติการเปลี่ยนแปลง</h2>
+          <div id="historyList"><p class="empty-state">กำลังโหลด...</p></div>
+        </div>
       `;
       updateNavVisibility(m);
+      loadMyHistory();
       if (typeof initThaiAddressCascade === 'function') {
         initThaiAddressCascade('o_addr', {
           province: m.addr_province, district: m.addr_district,
@@ -397,8 +423,15 @@ async function load() {
       </fieldset>
 
       <button class="btn" style="width:auto" onclick="saveProfile()">บันทึกข้อมูล</button>
+
+      <div class="panel">
+        <h2>ประวัติการเปลี่ยนแปลง</h2>
+        <p style="color:var(--muted); font-size:13px; margin-top:-6px">รายการแก้ไข/อนุมัติทั้งหมดที่เกี่ยวกับข้อมูลของท่าน ไม่ว่าจะทำโดยตัวท่านเองหรือเจ้าหน้าที่</p>
+        <div id="historyList"><p class="empty-state">กำลังโหลด...</p></div>
+      </div>
     `;
 
+    loadMyHistory();
     edu.forEach(e => addEduRow(e));
     if (!edu.length) addEduRow();
 

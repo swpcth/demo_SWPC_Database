@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ขอเปลี่ยนชื่อ-นามสกุล</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
+    <nav>
+      <a href="member-dashboard.html">ข้อมูลของฉัน</a>
+      <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
+      <a href="member-name-change.html" id="navNameChange" class="active">ขอเปลี่ยนชื่อ-นามสกุล</a>
+      <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
+      <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
+      <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
+      <a href="member-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>ขอเปลี่ยนชื่อ-นามสกุล (ภาษาไทย)</h1></header>
+    <p style="color:var(--muted); font-size:13px; margin-top:-8px">การเปลี่ยนชื่อ-นามสกุลภาษาไทยต้องผ่านการตรวจสอบและอนุมัติจากเจ้าหน้าที่ทุกครั้ง เนื่องจากเป็นข้อมูลที่ต้องตรงกับบัตรประชาชน
+    (ต้องการแก้ไขเฉพาะชื่อ-นามสกุลภาษาอังกฤษ ให้แก้ไขได้ทันทีที่หน้า "ข้อมูลของฉัน")</p>
+
+    <div class="panel">
+      <h2>สถานะคำขอของฉัน</h2>
+      <div id="myRequests"><p class="empty-state">กำลังโหลด...</p></div>
+    </div>
+
+    <div class="panel" id="formPanel" style="display:none">
+      <h2>ยื่นคำขอเปลี่ยนชื่อ-นามสกุล</h2>
+
+      <div id="error" class="error-box"></div>
+
+      <form id="form-namechange" onsubmit="return submitNameChange(event)">
+        <p>ชื่อ-นามสกุลปัจจุบัน: <b id="currentNameDisplay">-</b></p>
+
+        <div class="grid-2">
+          <div><label>คำนำหน้าใหม่ *</label><input type="text" id="nc_prefix" required placeholder="เช่น นาย, นาง, นางสาว, สค.ร."></div>
+          <div><label>ชื่อใหม่ *</label><input type="text" id="nc_first" required></div>
+        </div>
+        <label>นามสกุลใหม่ *</label>
+        <input type="text" id="nc_last" required>
+
+        <label style="margin-top:12px">เหตุผลการขอเปลี่ยนชื่อ-นามสกุล *</label>
+        <select id="nc_reason_type" onchange="toggleReasonOther()">
+          <option value="สมรส">สมรส</option>
+          <option value="หย่า">หย่า/หย่าร้าง</option>
+          <option value="เปลี่ยนชื่อตามกฎหมาย">เปลี่ยนชื่อ-นามสกุลตามกฎหมาย (สำนักทะเบียน)</option>
+          <option value="แก้ไขข้อผิดพลาด">แก้ไขข้อผิดพลาดของข้อมูลเดิม</option>
+          <option value="อื่นๆ">อื่นๆ (ระบุ)</option>
+        </select>
+        <input type="text" id="nc_reason_other" placeholder="ระบุเหตุผล" style="display:none; margin-top:6px">
+
+        <div class="doc-row" style="margin-top:14px">
+          <label>เอกสารหลักฐานประกอบ * <span style="color:var(--muted); font-weight:400">(เช่น หนังสือรับรองการเปลี่ยนชื่อ-นามสกุล, ใบสำคัญการสมรส/หย่า, ใบเปลี่ยนชื่อจากสำนักทะเบียน — แนบได้มากกว่า 1 ไฟล์)</span></label>
+          <input type="file" id="doc_namechange_1" accept=".pdf,.jpg,.jpeg,.png">
+        </div>
+        <div class="doc-row">
+          <label>เอกสารเพิ่มเติม (ถ้ามี)</label>
+          <input type="file" id="doc_namechange_2" accept=".pdf,.jpg,.jpeg,.png">
+        </div>
+
+        <label style="margin-top:12px">ลงลายมือชื่อผู้ยื่นคำขอ * <span style="color:var(--muted); font-weight:400">(วาดด้วยเมาส์หรือนิ้วในกรอบด้านล่าง)</span></label>
+        <div class="signature-pad-wrap">
+          <canvas id="ncSignaturePad" class="signature-pad-canvas" width="420" height="160"></canvas>
+          <div class="signature-pad-actions">
+            <span>ลงชื่อในกรอบด้านบน</span>
+            <button type="button" class="btn small secondary" onclick="ncSigPad.clear()">ล้างลายเซ็น</button>
+          </div>
+        </div>
+
+        <button class="btn" type="submit" id="submitBtn" style="margin-top:16px">ส่งคำขอเปลี่ยนชื่อ-นามสกุล</button>
+      </form>
+    </div>
+
+    <div class="panel" id="notEligibleNotice" style="display:none">
+      <p class="empty-state" id="notEligibleText"></p>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(['member'], 'index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+function toggleReasonOther() {
+  const isOther = document.getElementById('nc_reason_type').value === 'อื่นๆ';
+  document.getElementById('nc_reason_other').style.display = isOther ? 'block' : 'none';
+}
+
+function statusBadgeClass(status) {
+  if (status === 'สำเร็จ') return 'ok';
+  if (status === 'ไม่อนุมัติ') return 'warn';
+  if (status === 'รอเอกสารเพิ่มเติม') return 'warn';
+  return 'pending';
+}
+
+function additionalDocsForm(a) {
+  return `
+    <div class="pay-box">
+      <p style="color:var(--warn)"><b>เจ้าหน้าที่ขอเอกสารเพิ่มเติม:</b> ${escapeHtml(a.reject_reason || '')}</p>
+      <input type="file" id="moredoc_${a.application_id}" accept=".pdf,.jpg,.jpeg,.png">
+      <button type="button" class="btn small" onclick="submitMoreDocs('${a.application_id}')">แนบเอกสารเพิ่มเติม</button>
+    </div>`;
+}
+
+async function submitMoreDocs(applicationId) {
+  const input = document.getElementById('moredoc_' + applicationId);
+  if (!input.files[0]) { showToast('กรุณาเลือกไฟล์ก่อน', 'info'); return; }
+  try {
+    const uploaded = await uploadDocument(input.files[0], 'เอกสารเพิ่มเติม (แนบภายหลัง)');
+    await apiCall('submitAdditionalNameChangeDocs', { application_id: applicationId, documents: [uploaded] });
+    showToast('แนบเอกสารเพิ่มเติมสำเร็จ ส่งกลับเข้าคิวรอตรวจสอบแล้ว', 'success');
+    loadAll();
+  } catch (err) {
+    showToast('แนบเอกสารไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+let hasPendingRequest = false;
+
+async function loadMyRequests() {
+  const el = document.getElementById('myRequests');
+  try {
+    const apps = (await apiCall('myApplications')).filter(a => a.applicant_type === 'name_change');
+    hasPendingRequest = apps.some(a => ['รอตรวจสอบ', 'รอเอกสารเพิ่มเติม', 'รออนุมัติ'].indexOf(a.status) !== -1);
+    if (!apps.length) { el.innerHTML = '<p class="empty-state">ยังไม่เคยยื่นคำขอเปลี่ยนชื่อ-นามสกุล</p>'; return; }
+    el.innerHTML = apps.map(a => {
+      const d = JSON.parse(a.ref_data_json || '{}');
+      const oldName = [d.old_name && d.old_name.prefix_th, d.old_name && d.old_name.first_name_th, d.old_name && d.old_name.last_name_th].filter(Boolean).join(' ') || '-';
+      const newName = [d.patch && d.patch.prefix_th, d.patch && d.patch.first_name_th, d.patch && d.patch.last_name_th].filter(Boolean).join(' ') || '-';
+      return `
+        <div class="app-status-card">
+          <div>
+            <b>${escapeHtml(oldName)} → ${escapeHtml(newName)}</b> — เลขที่คำขอ ${a.application_id}<br>
+            <span style="color:var(--muted); font-size:13px">ยื่นเมื่อ ${new Date(a.submitted_at).toLocaleDateString('th-TH')}${d.reason ? ' • เหตุผล: ' + escapeHtml(d.reason) : ''}</span>
+          </div>
+          <span class="badge ${statusBadgeClass(a.status)}">${a.status}</span>
+          ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn); font-size:13px">เหตุผลที่ไม่อนุมัติ: ' + escapeHtml(a.reject_reason) + '</p>' : ''}
+          ${a.status === 'รอเอกสารเพิ่มเติม' ? additionalDocsForm(a) : ''}
+        </div>`;
+    }).join('');
+  } catch (err) {
+    el.innerHTML = '<p class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+
+async function loadProfile() {
+  try {
+    const profile = await apiCall('getMyProfile');
+    updateNavVisibility(profile);
+    if (profile.profile_kind === 'organization') {
+      showNotice('เมนูนี้ใช้สำหรับสมาชิกบุคคล (สามัญ/สมทบ) เท่านั้น — สมาชิกวิสามัญ (องค์กร) แก้ไขชื่อหน่วยงานได้ที่หน้า "ข้อมูลของฉัน" หรือติดต่อเจ้าหน้าที่โดยตรง');
+      return;
+    }
+    document.getElementById('currentNameDisplay').textContent =
+      [profile.prefix_th, profile.first_name_th, profile.last_name_th].filter(Boolean).join(' ') || '-';
+    if (hasPendingRequest) {
+      showNotice('มีคำขอเปลี่ยนชื่อ-นามสกุลที่ยังไม่เสร็จสิ้นอยู่แล้ว ดูสถานะได้ด้านบน กรุณารอผลการพิจารณาก่อนยื่นคำขอใหม่');
+      return;
+    }
+    document.getElementById('formPanel').style.display = 'block';
+  } catch (err) {
+    showNotice('ยังไม่พบข้อมูลสมาชิกของบัญชีนี้ — ต้องเป็นสมาชิกก่อนจึงจะยื่นคำขอเปลี่ยนชื่อ-นามสกุลได้');
+  }
+}
+
+function showNotice(text) {
+  document.getElementById('notEligibleText').textContent = text;
+  document.getElementById('notEligibleNotice').style.display = 'block';
+  document.getElementById('formPanel').style.display = 'none';
+}
+
+async function submitNameChange(e) {
+  e.preventDefault();
+  const errBox = document.getElementById('error');
+  errBox.style.display = 'none';
+
+  if (ncSigPad.isEmpty()) {
+    errBox.textContent = 'กรุณาลงลายมือชื่อผู้ยื่นคำขอในกรอบลายเซ็นก่อนส่งคำขอ';
+    errBox.style.display = 'block';
+    return;
+  }
+  const file1 = document.getElementById('doc_namechange_1').files[0];
+  if (!file1) {
+    errBox.textContent = 'กรุณาแนบเอกสารหลักฐานประกอบอย่างน้อย 1 ไฟล์ (เช่น หนังสือรับรองการเปลี่ยนชื่อ)';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+  try {
+    const reasonType = document.getElementById('nc_reason_type').value;
+    const reasonOther = document.getElementById('nc_reason_other').value.trim();
+    const reason = reasonType === 'อื่นๆ' ? (reasonOther || 'อื่นๆ') : reasonType;
+
+    const documents = [];
+    documents.push(await uploadDocument(file1, 'หลักฐานประกอบการเปลี่ยนชื่อ-นามสกุล'));
+    const file2 = document.getElementById('doc_namechange_2').files[0];
+    if (file2) documents.push(await uploadDocument(file2, 'เอกสารเพิ่มเติม'));
+    const sigFile = await ncSigPad.toFile('signature_' + Date.now() + '.png');
+    documents.push(await uploadDocument(sigFile, 'ลายมือชื่อผู้ยื่นคำขอ (ดิจิทัล)'));
+
+    const patch = {
+      prefix_th: document.getElementById('nc_prefix').value.trim(),
+      first_name_th: document.getElementById('nc_first').value.trim(),
+      last_name_th: document.getElementById('nc_last').value.trim()
+    };
+    const res = await apiCall('updateMember', { patch, documents, reason });
+    showToast('ส่งคำขอเปลี่ยนชื่อ-นามสกุลสำเร็จ เลขที่คำขอ ' + res.application_id + '\nกรุณารอเจ้าหน้าที่ตรวจสอบ', 'success');
+    window.location.reload();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'ส่งคำขอเปลี่ยนชื่อ-นามสกุล';
+  }
+  return false;
+}
+
+async function loadAll() {
+  await loadMyRequests();
+  await loadProfile();
+}
+loadAll();
+let ncSigPad = createSignaturePad('ncSignaturePad');
+</script>
+</body>
+</html>

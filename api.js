@@ -420,7 +420,7 @@ function createSignaturePad(canvasId) {
 // ---------- ตรวจสอบว่า Deploy เวอร์ชันล่าสุดของ backend แล้วหรือยัง ----------
 // ต้องตรงกับ BACKEND_VERSION ใน Code.gs — อัปเดตทุกครั้งที่ส่งมอบไฟล์ Code.gs ชุดใหม่
 // ป้องกันปัญหา "อัปโหลดไฟล์เว็บแล้วแต่ลืม Deploy Apps Script ใหม่" ซึ่งทำให้ฟีเจอร์ใหม่ไม่ทำงานโดยไม่รู้ตัว
-const EXPECTED_BACKEND_VERSION = '2026-09-17-multi-fixes-round';
+const EXPECTED_BACKEND_VERSION = '2026-09-25-change-history';
 
 async function checkBackendVersionAndWarn() {
   try {
@@ -624,6 +624,7 @@ function buildYearOptionsBE(yearsBack) {
 function updateNavVisibility(profile) {
   const navApply = document.getElementById('navApply');
   const navTypeChange = document.getElementById('navTypeChange');
+  const navNameChange = document.getElementById('navNameChange');
   const navLicense = document.getElementById('navLicense');
   const navCard = document.getElementById('navCard');
   const navCertificate = document.getElementById('navCertificate');
@@ -631,6 +632,7 @@ function updateNavVisibility(profile) {
   const isOrg = profile.profile_kind === 'organization';
   if (navTypeChange && (isOrg || profile.member_type === 'สามัญ')) navTypeChange.style.display = 'none';
   if (isOrg) {
+    if (navNameChange) navNameChange.style.display = 'none'; // ขอเปลี่ยนชื่อ-นามสกุล ใช้กับสมาชิกบุคคลเท่านั้น องค์กรแก้ชื่อหน่วยงานคนละหน้า
     if (navLicense) navLicense.style.display = 'none';
     if (navCard) navCard.style.display = 'none';
     if (navCertificate) navCertificate.style.display = '';
