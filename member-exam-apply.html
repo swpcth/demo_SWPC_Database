@@ -175,7 +175,7 @@ async function onRoundChange() {
   const round = openRounds.find(r => r.round_id === roundId);
   document.getElementById('roundCloseNote').textContent = round ? ('ปิดรับสมัคร ' + fmtDate(round.close_date) + (round.exam_date ? ' • วันสอบ ' + fmtDate(round.exam_date) : '')) : '';
   try {
-    eligibilityInfo = await apiCall('getExamApplicationEligibility', { exam_type: currentTab, round_id: roundId });
+    eligibilityInfo = await apiCall('getExamApplicationEligibility', { exam_type: currentTab, round_id: roundId, exclude_application_id: editingApp ? editingApp.application_id : undefined });
     if (!eligibilityInfo.eligible) {
       document.getElementById('applyError').textContent = eligibilityInfo.reason;
       document.getElementById('applyError').style.display = 'block';
