@@ -42,11 +42,19 @@
           <button class="tab-chip" id="tab_สัมภาษณ์" onclick="switchTab('สัมภาษณ์')">สมัครสอบสัมภาษณ์</button>
         </div>
 
+        <div id="editingBanner" class="empty-state" style="display:none; background:var(--bg-soft,#f4f6f8); border-radius:8px; padding:8px 12px; margin-bottom:10px">
+          กำลังแก้ไขใบสมัครเลขที่ <b id="editingId"></b> — <a href="#" onclick="cancelEdit(); return false;">ยกเลิกการแก้ไข</a>
+        </div>
+
         <div id="applyError" class="error-box"></div>
+        <div id="renewLinkBox" style="display:none; margin-bottom:10px">
+          <a class="btn small" style="width:auto; display:inline-block" href="member-card.html">ไปต่ออายุสมาชิกภาพ</a>
+        </div>
 
         <div id="roundSelectBox">
           <label>เลือกรอบสอบที่เปิดรับสมัคร</label>
           <select id="round_select" onchange="onRoundChange()"></select>
+          <p id="roundCloseNote" style="color:var(--muted); font-size:12px; margin-top:2px"></p>
           <p id="noRoundMsg" class="empty-state" style="display:none">ขณะนี้ไม่มีรอบสอบที่เปิดรับสมัคร กรุณาติดตามประกาศจากสภาฯ</p>
         </div>
 
@@ -57,13 +65,28 @@
             <option value="onsite">Onsite (ตามสถานที่ที่สภาฯ ประกาศ)</option>
           </select>
 
+          <label>ตำแหน่งงาน</label>
+          <input type="text" id="f_position" placeholder="เช่น นักสังคมสงเคราะห์">
+          <label>หน่วยงาน</label>
+          <input type="text" id="f_agency" placeholder="ชื่อหน่วยงาน/องค์กรที่ปฏิบัติงาน">
+          <label>เบอร์โทรศัพท์มือถือ *</label>
+          <input type="text" id="f_phone" placeholder="08x-xxx-xxxx">
+
           <div id="writtenBox" style="display:none">
+            <label style="margin-top:10px">ประวัติการสอบข้อเขียนที่ผ่านมา *</label>
+            <div id="examHistoryRadios"></div>
+
             <label style="margin-top:10px">วิชาที่ต้องการสมัครสอบ (เลือกได้มากกว่า 1 วิชา)</label>
             <div id="subjectCheckboxes"></div>
             <p id="feePreview" style="color:var(--muted); font-size:13px; margin-top:6px"></p>
             <div class="doc-row"><label>สำเนาบัตรประชาชน *</label><input type="file" id="doc_id" accept=".pdf,.jpg,.jpeg,.png"></div>
             <div class="doc-row"><label>รูปถ่าย *</label><input type="file" id="doc_photo" accept=".jpg,.jpeg,.png"></div>
             <div class="doc-row" id="doc_degree_row"><label>สำเนาวุฒิการศึกษา *</label><input type="file" id="doc_degree" accept=".pdf,.jpg,.jpeg,.png"></div>
+
+            <label style="display:flex; align-items:flex-start; gap:8px; width:auto; margin-top:10px">
+              <input type="checkbox" id="f_consent" style="width:auto; margin-top:3px">
+              <span style="font-size:13px; color:var(--muted)">ข้าพเจ้ารับทราบว่าเมื่อสมัครสอบและชำระเงินแล้ว จะไม่สามารถขอคืนเงินค่าสมัครสอบ หรือขอเปลี่ยนแปลงรอบสอบ/วิชาที่สมัครได้ไม่ว่ากรณีใดๆ *</span>
+            </label>
           </div>
 
           <div id="interviewBox" style="display:none">
@@ -74,12 +97,13 @@
             <div class="doc-row"><label>หลักฐานสอบผ่านข้อเขียน 2 วิชา หรือหลักฐานผ่านเกณฑ์ CE *</label><input type="file" id="doc_exam_proof" accept=".pdf,.jpg,.jpeg,.png"></div>
           </div>
 
-          <button class="btn" style="width:auto; margin-top:12px" onclick="submitExam()">ยื่นใบสมัครสอบ</button>
+          <button class="btn" style="width:auto; margin-top:12px" id="submitBtn" onclick="submitExam()">ยื่นใบสมัครสอบ</button>
         </div>
       </div>
 
       <div class="panel">
         <h2>ติดตามใบสมัครสอบของฉัน</h2>
+        <p style="color:var(--muted); font-size:13px">แก้ไขใบสมัครได้ตราบเท่าที่ยังอยู่สถานะ "รอตรวจสอบ" — เมื่อแอดมินพิจารณาแล้วจะแก้ไขไม่ได้</p>
         <div id="myApps"></div>
       </div>
     </div>
@@ -97,10 +121,12 @@ let currentTab = 'เขียน';
 let openRounds = [];
 let eligibilityInfo = null;
 let myApps = [];
+let editingApp = null; // ใบสมัครที่กำลังแก้ไขอยู่ (ถ้ามี)
 
 function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
 
 function switchTab(type) {
+  if (editingApp) { cancelEdit(); }
   currentTab = type;
   document.getElementById('tab_เขียน').classList.toggle('active', type === 'เขียน');
   document.getElementById('tab_สัมภาษณ์').classList.toggle('active', type === 'สัมภาษณ์');
@@ -109,11 +135,24 @@ function switchTab(type) {
   loadRounds();
 }
 
-async function loadRounds() {
+function renderExamHistoryRadios(selected) {
+  const opts = (eligibilityInfo && eligibilityInfo.examHistoryOptions) || {};
+  document.getElementById('examHistoryRadios').innerHTML = Object.keys(opts).map(key =>
+    `<label style="display:flex; align-items:center; gap:6px; width:auto; margin-bottom:4px">
+      <input type="radio" name="exam_history" value="${key}" ${selected === key ? 'checked' : ''}> ${opts[key]}
+    </label>`).join('');
+}
+
+async function loadRounds(preselectRoundId) {
   document.getElementById('applyError').style.display = 'none';
+  document.getElementById('renewLinkBox').style.display = 'none';
   document.getElementById('formBox').style.display = 'none';
   try {
     openRounds = await apiCall('listExamRounds', { exam_type: currentTab, openOnly: true });
+    // ถ้ากำลังแก้ไขใบสมัครที่อ้างถึงรอบที่ปิดรับสมัครไปแล้ว ให้โชว์รอบนั้นเพิ่มเข้ามาด้วย (แก้ไขฟิลด์อื่นได้ แต่เปลี่ยนรอบไม่ได้)
+    if (editingApp && editingApp.round && openRounds.every(r => r.round_id !== editingApp.round.round_id)) {
+      openRounds = [editingApp.round].concat(openRounds);
+    }
     const sel = document.getElementById('round_select');
     if (!openRounds.length) {
       sel.innerHTML = '';
@@ -122,6 +161,7 @@ async function loadRounds() {
     }
     document.getElementById('noRoundMsg').style.display = 'none';
     sel.innerHTML = openRounds.map(r => `<option value="${r.round_id}">รอบ ${r.round_label} (ปิดรับสมัคร ${fmtDate(r.close_date)})</option>`).join('');
+    if (preselectRoundId) sel.value = preselectRoundId;
     onRoundChange();
   } catch (err) {
     document.getElementById('applyError').textContent = 'โหลดรอบสอบไม่สำเร็จ: ' + err.message;
@@ -132,28 +172,43 @@ async function loadRounds() {
 async function onRoundChange() {
   const roundId = document.getElementById('round_select').value;
   if (!roundId) return;
+  const round = openRounds.find(r => r.round_id === roundId);
+  document.getElementById('roundCloseNote').textContent = round ? ('ปิดรับสมัคร ' + fmtDate(round.close_date) + (round.exam_date ? ' • วันสอบ ' + fmtDate(round.exam_date) : '')) : '';
   try {
     eligibilityInfo = await apiCall('getExamApplicationEligibility', { exam_type: currentTab, round_id: roundId });
     if (!eligibilityInfo.eligible) {
       document.getElementById('applyError').textContent = eligibilityInfo.reason;
       document.getElementById('applyError').style.display = 'block';
+      document.getElementById('renewLinkBox').style.display = eligibilityInfo.needsRenewal ? 'block' : 'none';
       document.getElementById('formBox').style.display = 'none';
       return;
     }
     document.getElementById('applyError').style.display = 'none';
+    document.getElementById('renewLinkBox').style.display = 'none';
     document.getElementById('formBox').style.display = 'block';
+
+    const d = editingApp ? JSON.parse(editingApp.ref_data_json || '{}') : {};
+    document.getElementById('f_position').value = (editingApp ? d.position : eligibilityInfo.member.position) || '';
+    document.getElementById('f_agency').value = (editingApp ? d.agency : eligibilityInfo.member.agency) || '';
+    document.getElementById('f_phone').value = (editingApp ? d.phone : eligibilityInfo.member.phone) || '';
+    document.getElementById('f_format').value = (editingApp && d.format) || 'online';
+
     if (currentTab === 'เขียน') {
       const subjects = eligibilityInfo.examSubjects || [];
+      const selectedSubjects = editingApp ? (d.subjects || []) : subjects;
       document.getElementById('subjectCheckboxes').innerHTML = subjects.map((s, i) =>
         `<label style="display:flex; align-items:center; gap:6px; width:auto; margin-bottom:4px">
-          <input type="checkbox" class="subject_cb" value="${s}" onchange="updateFeePreview()" checked> ${s} (${eligibilityInfo.examSubjectFee} บาท)
+          <input type="checkbox" class="subject_cb" value="${s}" onchange="updateFeePreview()" ${selectedSubjects.indexOf(s) !== -1 ? 'checked' : ''}> ${s} (${eligibilityInfo.examSubjectFee} บาท)
         </label>`).join('');
       document.getElementById('doc_degree_row').style.display = eligibilityInfo.degreeWaived ? 'none' : 'flex';
+      renderExamHistoryRadios(editingApp ? d.exam_history : null);
+      document.getElementById('f_consent').checked = !!(editingApp && d.consent_no_refund);
       updateFeePreview();
     } else {
       const cats = eligibilityInfo.essayCategories || [];
       document.getElementById('f_essay_category').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
-      document.getElementById('doc_essay_label').textContent = 'ไฟล์เอกสาร: ' + (cats[0] || '') + ' *';
+      if (editingApp && d.essay_category) document.getElementById('f_essay_category').value = d.essay_category;
+      document.getElementById('doc_essay_label').textContent = 'ไฟล์เอกสาร: ' + (document.getElementById('f_essay_category').value || cats[0] || '') + ' *';
       document.getElementById('f_essay_category').onchange = function () {
         document.getElementById('doc_essay_label').textContent = 'ไฟล์เอกสาร: ' + this.value + ' *';
       };
@@ -171,40 +226,86 @@ function updateFeePreview() {
   document.getElementById('feePreview').textContent = 'ค่าธรรมเนียมรวม: ' + fee.toLocaleString() + ' บาท (โอนเข้าบัญชี 021-0-15582-5 ธนาคารกรุงไทย ชื่อบัญชี "สภาวิชาชีพสังคมสงเคราะห์" หลังได้รับอนุมัติ)';
 }
 
+function startEdit(applicationId) {
+  const a = myApps.find(x => x.application_id === applicationId);
+  if (!a) return;
+  editingApp = a;
+  document.getElementById('editingBanner').style.display = 'block';
+  document.getElementById('editingId').textContent = a.application_id;
+  document.getElementById('submitBtn').textContent = 'บันทึกการแก้ไข';
+  const type = a.applicant_type === 'สมัครสอบข้อเขียน' ? 'เขียน' : 'สัมภาษณ์';
+  currentTab = type;
+  document.getElementById('tab_เขียน').classList.toggle('active', type === 'เขียน');
+  document.getElementById('tab_สัมภาษณ์').classList.toggle('active', type === 'สัมภาษณ์');
+  document.getElementById('writtenBox').style.display = (type === 'เขียน') ? 'block' : 'none';
+  document.getElementById('interviewBox').style.display = (type === 'สัมภาษณ์') ? 'block' : 'none';
+  const d = JSON.parse(a.ref_data_json || '{}');
+  loadRounds(d.round_id);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  editingApp = null;
+  document.getElementById('editingBanner').style.display = 'none';
+  document.getElementById('submitBtn').textContent = 'ยื่นใบสมัครสอบ';
+  loadRounds();
+}
+
 async function submitExam() {
   const errBox = document.getElementById('applyError');
   errBox.style.display = 'none';
   const roundId = document.getElementById('round_select').value;
   const format = document.getElementById('f_format').value;
+  const position = document.getElementById('f_position').value.trim();
+  const agency = document.getElementById('f_agency').value.trim();
+  const phone = document.getElementById('f_phone').value.trim();
   try {
+    if (!phone) throw new Error('กรุณากรอกเบอร์โทรศัพท์มือถือ');
     const documents = [];
-    const payload = { exam_type: currentTab, round_id: roundId, format };
+    const payload = { exam_type: currentTab, round_id: roundId, format, position, agency, phone };
+    if (editingApp) payload.application_id = editingApp.application_id;
+
+    // ถ้าแก้ไขและไม่ได้แนบไฟล์ใหม่ ให้คงเอกสารเดิมไว้
+    const existingDocs = editingApp ? JSON.parse(editingApp.documents_json || '[]') : [];
+    function keepOrUpload(fileInput, docType) {
+      if (fileInput.files[0]) return uploadDocument(fileInput.files[0], docType);
+      const existing = existingDocs.find(d => d.doc_type === docType);
+      return existing ? Promise.resolve(existing) : Promise.resolve(null);
+    }
+
     if (currentTab === 'เขียน') {
       const subjects = Array.from(document.querySelectorAll('.subject_cb:checked')).map(c => c.value);
       if (!subjects.length) throw new Error('กรุณาเลือกวิชาที่ต้องการสมัครสอบอย่างน้อย 1 วิชา');
-      const fId = document.getElementById('doc_id').files[0];
-      const fPhoto = document.getElementById('doc_photo').files[0];
-      if (!fId || !fPhoto) throw new Error('กรุณาแนบสำเนาบัตรประชาชนและรูปถ่ายให้ครบ');
-      documents.push(await uploadDocument(fId, 'สำเนาบัตรประชาชน'));
-      documents.push(await uploadDocument(fPhoto, 'รูปถ่าย'));
+      const examHistoryEl = document.querySelector('input[name="exam_history"]:checked');
+      if (!examHistoryEl) throw new Error('กรุณาเลือกประวัติการสอบข้อเขียนที่ผ่านมา');
+      if (!document.getElementById('f_consent').checked) throw new Error('กรุณายอมรับเงื่อนไขการสมัครสอบก่อนยื่นใบสมัคร');
+
+      const dId = await keepOrUpload(document.getElementById('doc_id'), 'สำเนาบัตรประชาชน');
+      const dPhoto = await keepOrUpload(document.getElementById('doc_photo'), 'รูปถ่าย');
+      if (!dId || !dPhoto) throw new Error('กรุณาแนบสำเนาบัตรประชาชนและรูปถ่ายให้ครบ');
+      documents.push(dId, dPhoto);
       if (!eligibilityInfo.degreeWaived) {
-        const fDegree = document.getElementById('doc_degree').files[0];
-        if (!fDegree) throw new Error('กรุณาแนบสำเนาวุฒิการศึกษา');
-        documents.push(await uploadDocument(fDegree, 'สำเนาวุฒิการศึกษา'));
+        const dDegree = await keepOrUpload(document.getElementById('doc_degree'), 'สำเนาวุฒิการศึกษา');
+        if (!dDegree) throw new Error('กรุณาแนบสำเนาวุฒิการศึกษา');
+        documents.push(dDegree);
       }
       payload.subjects = subjects;
+      payload.exam_history = examHistoryEl.value;
+      payload.consent_no_refund = true;
     } else {
       const essayCategory = document.getElementById('f_essay_category').value;
-      const fEssay = document.getElementById('doc_essay').files[0];
-      const fProof = document.getElementById('doc_exam_proof').files[0];
-      if (!fEssay || !fProof) throw new Error('กรุณาแนบเอกสารแสดงทักษะและทัศนคติ และหลักฐานสอบผ่านข้อเขียน/CE ให้ครบ');
-      documents.push(await uploadDocument(fEssay, essayCategory));
-      documents.push(await uploadDocument(fProof, 'หลักฐานสอบผ่านข้อเขียน/ผลการศึกษาต่อเนื่อง (CE)'));
+      const dEssay = await keepOrUpload(document.getElementById('doc_essay'), essayCategory);
+      const dProof = await keepOrUpload(document.getElementById('doc_exam_proof'), 'หลักฐานสอบผ่านข้อเขียน/ผลการศึกษาต่อเนื่อง (CE)');
+      if (!dEssay || !dProof) throw new Error('กรุณาแนบเอกสารแสดงทักษะและทัศนคติ และหลักฐานสอบผ่านข้อเขียน/CE ให้ครบ');
+      documents.push(dEssay, dProof);
       payload.essay_category = essayCategory;
     }
     payload.documents = documents;
-    const res = await apiCall('submitExamApplication', payload);
-    showToast('ยื่นใบสมัครสอบสำเร็จ เลขที่คำขอ ' + res.application_id, 'success');
+    const res = editingApp
+      ? await apiCall('updateExamApplication', payload)
+      : await apiCall('submitExamApplication', payload);
+    showToast(editingApp ? 'บันทึกการแก้ไขใบสมัครสอบสำเร็จ' : ('ยื่นใบสมัครสอบสำเร็จ เลขที่คำขอ ' + res.application_id), 'success');
+    cancelEdit();
     loadAll();
   } catch (err) {
     errBox.textContent = err.message;
@@ -286,6 +387,7 @@ function renderMyApps() {
           <span style="color:var(--muted); font-size:13px">เลขที่คำขอ ${a.application_id} • ค่าธรรมเนียม ${a.fee_amount} บาท</span>
         </div>
         <span class="badge ${statusBadgeClass(a.status)}">${a.status}</span>
+        ${a.status === 'รอตรวจสอบ' ? `<div style="margin-top:6px"><button class="btn small secondary" onclick="startEdit('${a.application_id}')">แก้ไขใบสมัคร</button></div>` : ''}
         ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn); font-size:13px">เหตุผลที่ไม่อนุมัติ: ' + a.reject_reason + '</p>' : ''}
         ${d.subject_results ? '<p style="font-size:13px">' + Object.keys(d.subject_results).map(k => k + ': ' + d.subject_results[k]).join(' • ') + '</p>' : ''}
         ${docs.length ? `<div style="margin-top:8px">${docs.map(doc => `<div class="doc-item"><span>${doc.doc_type || doc.name}</span><a href="${doc.url}" target="_blank">ดูเอกสาร</a></div>`).join('')}</div>` : ''}

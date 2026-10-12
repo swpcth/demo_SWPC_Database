@@ -65,9 +65,21 @@
     <header><h1>คำขอสมัครสอบ</h1></header>
 
     <div class="panel">
+      <div class="card-tabs">
+        <button class="tab-chip active" id="tab_เขียน" onclick="switchTab('เขียน')">สอบข้อเขียน</button>
+        <button class="tab-chip" id="tab_สัมภาษณ์" onclick="switchTab('สัมภาษณ์')">สอบสัมภาษณ์</button>
+      </div>
+    </div>
+
+    <div class="panel">
       <h2>รอตรวจสอบเอกสาร</h2>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px">
+        <button class="btn small" id="bulkApproveBtn" onclick="bulkReview('approve')" disabled>อนุมัติที่เลือก</button>
+        <button class="btn small secondary" id="bulkRejectBtn" onclick="bulkReview('reject')" disabled>ไม่อนุมัติที่เลือก</button>
+        <span id="selectedCount" style="color:var(--muted); font-size:13px"></span>
+      </div>
       <table>
-        <thead><tr><th>รูป</th><th>เลขที่คำขอ</th><th>ประเภท</th><th>รอบสอบ</th><th>ชื่อสมาชิก</th><th>วันที่ยื่น</th><th>ค่าธรรมเนียม</th><th></th></tr></thead>
+        <thead><tr><th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>รูป</th><th>เลขที่คำขอ</th><th>รอบสอบ</th><th>ชื่อสมาชิก</th><th>วันที่ยื่น</th><th>ค่าธรรมเนียม</th><th></th></tr></thead>
         <tbody id="rowsReview"><tr><td colspan="8" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
@@ -83,8 +95,8 @@
     <div class="panel">
       <h2>รอผลสอบ — บันทึกผล</h2>
       <table>
-        <thead><tr><th>เลขที่คำขอ</th><th>ประเภท</th><th>รอบสอบ</th><th>ชื่อสมาชิก</th><th></th></tr></thead>
-        <tbody id="rowsResult"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+        <thead><tr><th>เลขที่คำขอ</th><th>รอบสอบ</th><th>ชื่อสมาชิก</th><th></th></tr></thead>
+        <tbody id="rowsResult"><tr><td colspan="4" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
   </main>
@@ -104,6 +116,8 @@ document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + A
 
 let allApps = [];
 let allPayments = [];
+let currentTab = 'เขียน';
+const currentApplicantType = () => currentTab === 'เขียน' ? 'สมัครสอบข้อเขียน' : 'สมัครสอบสัมภาษณ์';
 
 function docItem(docs, docType) {
   const found = docs.find(d => d.doc_type === docType);
@@ -113,6 +127,24 @@ function docItem(docs, docType) {
 
 function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
 function typeLabel(t) { return t === 'สมัครสอบข้อเขียน' ? 'สอบข้อเขียน' : 'สอบสัมภาษณ์'; }
+
+function switchTab(type) {
+  currentTab = type;
+  document.getElementById('tab_เขียน').classList.toggle('active', type === 'เขียน');
+  document.getElementById('tab_สัมภาษณ์').classList.toggle('active', type === 'สัมภาษณ์');
+  document.getElementById('selectAll').checked = false;
+  renderReview();
+  renderPay();
+  renderResult();
+  updateBulkButtons();
+}
+
+const EXAM_HISTORY_LABELS_CLIENT = {
+  never: 'ยังไม่เคยสอบข้อเขียนมาก่อน',
+  passed_subject1: 'เคยสอบผ่านวิชาหลักคิด ปรัชญา จริยธรรมทางสังคมสงเคราะห์แล้ว',
+  passed_subject2: 'เคยสอบผ่านวิชาการปฏิบัติงานสังคมสงเคราะห์แล้ว',
+  failed_both: 'เคยสอบข้อเขียนแล้วแต่ยังไม่ผ่านทั้ง 2 วิชา'
+};
 
 function viewDetail(applicationId) {
   const a = allApps.find(x => x.application_id === applicationId);
@@ -129,8 +161,10 @@ function viewDetail(applicationId) {
     <h2>${typeLabel(a.applicant_type)} — ${a.application_id}</h2>
     <p><span class="badge pending">${a.status}</span> • ค่าธรรมเนียม ${a.fee_amount} บาท</p>
     <p><b>ชื่อผู้สมัคร:</b> ${d.name || '-'}</p>
+    <p><b>ตำแหน่ง:</b> ${d.position || '-'} • <b>หน่วยงาน:</b> ${d.agency || '-'} • <b>โทร:</b> ${d.phone || '-'}</p>
     <p><b>รอบสอบ:</b> ${d.round_label || '-'} • <b>รูปแบบ:</b> ${d.format || '-'}</p>
     ${d.subjects ? '<p><b>วิชาที่สมัครสอบ:</b> ' + d.subjects.join(', ') + '</p>' : ''}
+    ${d.exam_history ? '<p><b>ประวัติการสอบ:</b> ' + (EXAM_HISTORY_LABELS_CLIENT[d.exam_history] || d.exam_history) + '</p>' : ''}
     ${d.essay_category ? '<p><b>ประเภทเอกสาร:</b> ' + d.essay_category + '</p>' : ''}
     <h3>เอกสารประกอบ</h3>
     <div class="doc-grid">${docsHtml}</div>
@@ -145,17 +179,29 @@ function viewDetail(applicationId) {
 }
 function closeDetail() { document.getElementById('detailOverlay').style.display = 'none'; }
 
+function toggleSelectAll(checkbox) {
+  document.querySelectorAll('.review_cb').forEach(cb => { cb.checked = checkbox.checked; });
+  updateBulkButtons();
+}
+
+function updateBulkButtons() {
+  const n = document.querySelectorAll('.review_cb:checked').length;
+  document.getElementById('bulkApproveBtn').disabled = n === 0;
+  document.getElementById('bulkRejectBtn').disabled = n === 0;
+  document.getElementById('selectedCount').textContent = n ? ('เลือกแล้ว ' + n + ' รายการ') : '';
+}
+
 function renderReview() {
   const tbody = document.getElementById('rowsReview');
-  const rows = allApps.filter(a => a.status === 'รอตรวจสอบ');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">ไม่มีคำขอค้างตรวจสอบ</td></tr>'; return; }
+  const rows = allApps.filter(a => a.status === 'รอตรวจสอบ' && a.applicant_type === currentApplicantType());
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">ไม่มีคำขอค้างตรวจสอบ</td></tr>'; updateBulkButtons(); return; }
   tbody.innerHTML = rows.map(a => {
     const d = JSON.parse(a.ref_data_json || '{}');
     return `
       <tr>
+        <td><input type="checkbox" class="review_cb" value="${a.application_id}" onchange="updateBulkButtons()"></td>
         <td>${a.member_photo_url ? `<img src="${toEmbeddableImageUrl(a.member_photo_url)}" style="width:32px; height:32px; object-fit:cover; border-radius:50%; border:1px solid var(--line)">` : '<span style="color:var(--muted); font-size:16px">👤</span>'}</td>
         <td>${a.application_id}</td>
-        <td>${typeLabel(a.applicant_type)}</td>
         <td>${d.round_label || '-'}</td>
         <td>${d.name || '-'}</td>
         <td>${fmtDate(a.submitted_at)}</td>
@@ -167,6 +213,8 @@ function renderReview() {
         </td>
       </tr>`;
   }).join('');
+  document.getElementById('selectAll').checked = false;
+  updateBulkButtons();
 }
 
 async function review(applicationId, decision) {
@@ -183,8 +231,34 @@ async function review(applicationId, decision) {
   }
 }
 
+async function bulkReview(decision) {
+  const ids = Array.from(document.querySelectorAll('.review_cb:checked')).map(cb => cb.value);
+  if (!ids.length) return;
+  let reason = '';
+  if (decision === 'reject') {
+    reason = (await showPrompt('ระบุเหตุผลที่ไม่อนุมัติ (ใช้ร่วมกันทั้ง ' + ids.length + ' รายการ):')) || '';
+    if (!reason) return;
+  } else {
+    if (!(await showConfirm('ยืนยันอนุมัติใบสมัครที่เลือกทั้งหมด ' + ids.length + ' รายการ?'))) return;
+  }
+  try {
+    const res = await apiCall('bulkReviewExamApplications', { application_ids: ids, decision, reason });
+    if (res.failCount > 0) {
+      const failed = res.results.filter(r => !r.ok).map(r => r.application_id + ': ' + r.error).join('\n');
+      showToast('สำเร็จ ' + res.successCount + ' รายการ, ไม่สำเร็จ ' + res.failCount + ' รายการ', 'info');
+      console.warn('Bulk review failures:\n' + failed);
+    } else {
+      showToast('ดำเนินการสำเร็จทั้งหมด ' + res.successCount + ' รายการ', 'success');
+    }
+    loadAll();
+  } catch (err) {
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
 function renderPay() {
   const tbody = document.getElementById('rowsPay');
+  if (currentTab !== 'เขียน') { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">สอบสัมภาษณ์ไม่มีค่าธรรมเนียม</td></tr>'; return; }
   const appIds = allApps.filter(a => a.applicant_type === 'สมัครสอบข้อเขียน').map(a => a.application_id);
   const rows = allPayments.filter(pm => pm.ref_type === 'application' && pm.status === 'รอตรวจสอบ' && appIds.indexOf(pm.ref_id) !== -1);
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีรายการรอตรวจสอบสลิป</td></tr>'; return; }
@@ -218,14 +292,13 @@ async function verifyPayment(paymentId, decision) {
 
 function renderResult() {
   const tbody = document.getElementById('rowsResult');
-  const rows = allApps.filter(a => a.status === 'รอผลสอบ');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีใบสมัครรอผลสอบ</td></tr>'; return; }
+  const rows = allApps.filter(a => a.status === 'รอผลสอบ' && a.applicant_type === currentApplicantType());
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state">ไม่มีใบสมัครรอผลสอบ</td></tr>'; return; }
   tbody.innerHTML = rows.map(a => {
     const d = JSON.parse(a.ref_data_json || '{}');
     return `
       <tr>
         <td>${a.application_id}</td>
-        <td>${typeLabel(a.applicant_type)}</td>
         <td>${d.round_label || '-'}</td>
         <td>${d.name || '-'}</td>
         <td>
