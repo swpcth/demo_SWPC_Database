@@ -95,8 +95,8 @@
     <div class="panel">
       <h2>รอผลสอบ — บันทึกผล</h2>
       <table>
-        <thead><tr><th>เลขที่คำขอ</th><th>รอบสอบ</th><th>ชื่อสมาชิก</th><th></th></tr></thead>
-        <tbody id="rowsResult"><tr><td colspan="4" class="empty-state">กำลังโหลด...</td></tr></tbody>
+        <thead><tr><th>เลขที่คำขอ</th><th>รหัสประจำตัวสอบ</th><th>รอบสอบ</th><th>ชื่อสมาชิก</th><th></th></tr></thead>
+        <tbody id="rowsResult"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
   </main>
@@ -140,10 +140,10 @@ function switchTab(type) {
 }
 
 const EXAM_HISTORY_LABELS_CLIENT = {
-  never: 'ยังไม่เคยสอบข้อเขียนมาก่อน',
   passed_subject1: 'เคยสอบผ่านวิชาหลักคิด ปรัชญา จริยธรรมทางสังคมสงเคราะห์แล้ว',
   passed_subject2: 'เคยสอบผ่านวิชาการปฏิบัติงานสังคมสงเคราะห์แล้ว',
-  failed_both: 'เคยสอบข้อเขียนแล้วแต่ยังไม่ผ่านทั้ง 2 วิชา'
+  failed_both: 'เคยสอบข้อเขียนแล้วแต่ยังไม่ผ่านทั้ง 2 วิชา',
+  never: 'ไม่เคยสมัครสอบข้อเขียนมาก่อน'
 };
 
 function viewDetail(applicationId) {
@@ -155,16 +155,26 @@ function viewDetail(applicationId) {
   if (a.applicant_type === 'สมัครสอบข้อเขียน') {
     docsHtml = `${docItem(docs, 'สำเนาบัตรประชาชน')}${docItem(docs, 'รูปถ่าย')}${docItem(docs, 'สำเนาวุฒิการศึกษา')}`;
   } else {
-    docsHtml = `${docItem(docs, d.essay_category || 'เอกสารแสดงทักษะและทัศนคติ')}${docItem(docs, 'หลักฐานสอบผ่านข้อเขียน/ผลการศึกษาต่อเนื่อง (CE)')}`;
+    const cat = d.essay_category || 'เอกสารแสดงทักษะและทัศนคติ';
+    docsHtml = `${docItem(docs, cat + ' (PDF)')}${docItem(docs, cat + ' (Word)')}${docItem(docs, 'หลักฐานสอบผ่านข้อเขียน/ผลการศึกษาต่อเนื่อง (CE)')}`;
   }
   document.getElementById('detailBody').innerHTML = `
     <h2>${typeLabel(a.applicant_type)} — ${a.application_id}</h2>
-    <p><span class="badge pending">${a.status}</span> • ค่าธรรมเนียม ${a.fee_amount} บาท</p>
+    <p><span class="badge pending">${a.status}</span> • ค่าธรรมเนียม ${a.fee_amount} บาท${d.candidate_no ? ' • <b>รหัสประจำตัวสอบ:</b> ' + d.candidate_no : ''}</p>
     <p><b>ชื่อผู้สมัคร:</b> ${d.name || '-'}</p>
+    <p><b>เลขที่สมาชิก:</b> ${a.member_no || '-'} • <b>วันที่ออกบัตร:</b> ${fmtDate(a.card_issued_at)} • <b>วันหมดอายุ:</b> ${fmtDate(a.membership_expire_date)}</p>
     <p><b>ตำแหน่ง:</b> ${d.position || '-'} • <b>หน่วยงาน:</b> ${d.agency || '-'} • <b>โทร:</b> ${d.phone || '-'}</p>
     <p><b>รอบสอบ:</b> ${d.round_label || '-'} • <b>รูปแบบ:</b> ${d.format || '-'}</p>
+    ${(() => {
+      const edu = a.member_education || d.education;
+      const w = a.member_work || {};
+      return '<p><b>สำเร็จการศึกษาจาก:</b> ' + (edu ? (edu.institute || '-') : '<span style="color:var(--warn)">ยังไม่มีข้อมูลในฐานข้อมูลสมาชิก</span>') +
+        (edu ? ' • <b>ปริญญาที่ได้รับ:</b> ' + (edu.degree || edu.level || '-') + ' • <b>ปีที่จบ พ.ศ.:</b> ' + (edu.year || '-') : '') + '</p>' +
+        '<p><b>สถานะการทำงาน:</b> ' + (w.work_status || '-') + ' • <b>ตำแหน่ง:</b> ' + (w.position || d.position || '-') +
+        ' • <b>หน่วยงาน:</b> ' + (w.agency || d.agency || '-') + (w.affiliation ? ' • <b>สังกัด:</b> ' + w.affiliation : '') + '</p>';
+    })()}
     ${d.subjects ? '<p><b>วิชาที่สมัครสอบ:</b> ' + d.subjects.join(', ') + '</p>' : ''}
-    ${d.exam_history ? '<p><b>ประวัติการสอบ:</b> ' + (EXAM_HISTORY_LABELS_CLIENT[d.exam_history] || d.exam_history) + '</p>' : ''}
+    ${d.exam_history ? '<p><b>ประวัติการสอบ:</b> ' + (EXAM_HISTORY_LABELS_CLIENT[d.exam_history] || d.exam_history) + (d.exam_history_date ? ' (เมื่อวันที่ ' + fmtDate(d.exam_history_date) + ')' : '') + '</p>' : ''}
     ${d.essay_category ? '<p><b>ประเภทเอกสาร:</b> ' + d.essay_category + '</p>' : ''}
     <h3>เอกสารประกอบ</h3>
     <div class="doc-grid">${docsHtml}</div>
@@ -293,12 +303,13 @@ async function verifyPayment(paymentId, decision) {
 function renderResult() {
   const tbody = document.getElementById('rowsResult');
   const rows = allApps.filter(a => a.status === 'รอผลสอบ' && a.applicant_type === currentApplicantType());
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state">ไม่มีใบสมัครรอผลสอบ</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีใบสมัครรอผลสอบ</td></tr>'; return; }
   tbody.innerHTML = rows.map(a => {
     const d = JSON.parse(a.ref_data_json || '{}');
     return `
       <tr>
         <td>${a.application_id}</td>
+        <td>${d.candidate_no || '-'}</td>
         <td>${d.round_label || '-'}</td>
         <td>${d.name || '-'}</td>
         <td>

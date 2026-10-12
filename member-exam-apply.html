@@ -50,6 +50,9 @@
         <div id="renewLinkBox" style="display:none; margin-bottom:10px">
           <a class="btn small" style="width:auto; display:inline-block" href="member-card.html">ไปต่ออายุสมาชิกภาพ</a>
         </div>
+        <div id="profileLinkBox" style="display:none; margin-bottom:10px">
+          <a class="btn small" style="width:auto; display:inline-block" href="member-dashboard.html">ไปบันทึกข้อมูลวุฒิการศึกษา</a>
+        </div>
 
         <div id="roundSelectBox">
           <label>เลือกรอบสอบที่เปิดรับสมัคร</label>
@@ -73,8 +76,14 @@
           <input type="text" id="f_phone" placeholder="08x-xxx-xxxx">
 
           <div id="writtenBox" style="display:none">
+            <div id="profileInfoBox" class="empty-state" style="background:var(--bg-soft,#f4f6f8); border-radius:8px; padding:10px 12px; margin:6px 0; font-size:13px"></div>
+
             <label style="margin-top:10px">ประวัติการสอบข้อเขียนที่ผ่านมา *</label>
             <div id="examHistoryRadios"></div>
+            <div id="examHistoryDateBox" style="display:none; margin-top:4px">
+              <label>วันที่สอบผ่าน *</label>
+              <input type="date" id="f_exam_history_date">
+            </div>
 
             <label style="margin-top:10px">วิชาที่ต้องการสมัครสอบ (เลือกได้มากกว่า 1 วิชา)</label>
             <div id="subjectCheckboxes"></div>
@@ -93,7 +102,9 @@
             <p style="color:var(--muted); font-size:13px; margin-top:10px">ไม่มีค่าธรรมเนียมสมัครสอบสัมภาษณ์</p>
             <label>เลือกประเภทเอกสารแสดงทักษะและทัศนคติทางสังคมสงเคราะห์ (เลือกอย่างใดอย่างหนึ่ง)</label>
             <select id="f_essay_category"></select>
-            <div class="doc-row"><label id="doc_essay_label">ไฟล์เอกสารตามประเภทที่เลือก *</label><input type="file" id="doc_essay" accept=".pdf,.doc,.docx"></div>
+            <p style="color:var(--muted); font-size:12px; margin:4px 0">ต้องแนบทั้งไฟล์ PDF และไฟล์ Word โดยตั้งชื่อไฟล์เป็นชื่อ-นามสกุลของท่านเอง (ไม่ต้องใส่คำนำหน้า)</p>
+            <div class="doc-row"><label id="doc_essay_pdf_label">ไฟล์ PDF ตามประเภทที่เลือก *</label><input type="file" id="doc_essay_pdf" accept=".pdf"></div>
+            <div class="doc-row"><label id="doc_essay_word_label">ไฟล์ Word ตามประเภทที่เลือก *</label><input type="file" id="doc_essay_word" accept=".doc,.docx"></div>
             <div class="doc-row"><label>หลักฐานสอบผ่านข้อเขียน 2 วิชา หรือหลักฐานผ่านเกณฑ์ CE *</label><input type="file" id="doc_exam_proof" accept=".pdf,.jpg,.jpeg,.png"></div>
           </div>
 
@@ -135,17 +146,37 @@ function switchTab(type) {
   loadRounds();
 }
 
-function renderExamHistoryRadios(selected) {
+function renderExamHistoryRadios(selected, selectedDate) {
   const opts = (eligibilityInfo && eligibilityInfo.examHistoryOptions) || {};
+  const dateRequired = (eligibilityInfo && eligibilityInfo.examHistoryDateRequired) || [];
   document.getElementById('examHistoryRadios').innerHTML = Object.keys(opts).map(key =>
     `<label style="display:flex; align-items:center; gap:6px; width:auto; margin-bottom:4px">
-      <input type="radio" name="exam_history" value="${key}" ${selected === key ? 'checked' : ''}> ${opts[key]}
+      <input type="radio" name="exam_history" value="${key}" onchange="onExamHistoryChange()" ${selected === key ? 'checked' : ''}> ${opts[key]}
     </label>`).join('');
+  document.getElementById('f_exam_history_date').value = selectedDate || '';
+  onExamHistoryChange();
+}
+
+function onExamHistoryChange() {
+  const checked = document.querySelector('input[name="exam_history"]:checked');
+  const dateRequired = (eligibilityInfo && eligibilityInfo.examHistoryDateRequired) || [];
+  document.getElementById('examHistoryDateBox').style.display = (checked && dateRequired.indexOf(checked.value) !== -1) ? 'block' : 'none';
+}
+
+function renderProfileInfo() {
+  const box = document.getElementById('profileInfoBox');
+  if (!eligibilityInfo || !eligibilityInfo.education) { box.innerHTML = ''; return; }
+  const edu = eligibilityInfo.education;
+  const m = eligibilityInfo.member || {};
+  const eduLine = 'สำเร็จการศึกษาจาก: ' + (edu.institute || '-') + ' • วุฒิ/ปริญญาที่ได้รับ: ' + (edu.degree || edu.level || '-') + ' • ปีที่จบ พ.ศ. ' + (edu.year || '-');
+  const workLine = 'สถานะการทำงาน: ' + (m.work_status || '-') + (m.position ? ' • ตำแหน่ง ' + m.position : '') + (m.agency ? ' • หน่วยงาน ' + m.agency : '');
+  box.innerHTML = '<b>ข้อมูลจากฐานข้อมูลสมาชิก (แก้ไขได้ที่หน้า "ข้อมูลของฉัน")</b><br>' + eduLine + '<br>' + workLine;
 }
 
 async function loadRounds(preselectRoundId) {
   document.getElementById('applyError').style.display = 'none';
   document.getElementById('renewLinkBox').style.display = 'none';
+  document.getElementById('profileLinkBox').style.display = 'none';
   document.getElementById('formBox').style.display = 'none';
   try {
     openRounds = await apiCall('listExamRounds', { exam_type: currentTab, openOnly: true });
@@ -180,11 +211,13 @@ async function onRoundChange() {
       document.getElementById('applyError').textContent = eligibilityInfo.reason;
       document.getElementById('applyError').style.display = 'block';
       document.getElementById('renewLinkBox').style.display = eligibilityInfo.needsRenewal ? 'block' : 'none';
+      document.getElementById('profileLinkBox').style.display = eligibilityInfo.needsProfile ? 'block' : 'none';
       document.getElementById('formBox').style.display = 'none';
       return;
     }
     document.getElementById('applyError').style.display = 'none';
     document.getElementById('renewLinkBox').style.display = 'none';
+    document.getElementById('profileLinkBox').style.display = 'none';
     document.getElementById('formBox').style.display = 'block';
 
     const d = editingApp ? JSON.parse(editingApp.ref_data_json || '{}') : {};
@@ -201,17 +234,21 @@ async function onRoundChange() {
           <input type="checkbox" class="subject_cb" value="${s}" onchange="updateFeePreview()" ${selectedSubjects.indexOf(s) !== -1 ? 'checked' : ''}> ${s} (${eligibilityInfo.examSubjectFee} บาท)
         </label>`).join('');
       document.getElementById('doc_degree_row').style.display = eligibilityInfo.degreeWaived ? 'none' : 'flex';
-      renderExamHistoryRadios(editingApp ? d.exam_history : null);
+      renderProfileInfo();
+      renderExamHistoryRadios(editingApp ? d.exam_history : null, editingApp ? d.exam_history_date : null);
       document.getElementById('f_consent').checked = !!(editingApp && d.consent_no_refund);
       updateFeePreview();
     } else {
       const cats = eligibilityInfo.essayCategories || [];
       document.getElementById('f_essay_category').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
       if (editingApp && d.essay_category) document.getElementById('f_essay_category').value = d.essay_category;
-      document.getElementById('doc_essay_label').textContent = 'ไฟล์เอกสาร: ' + (document.getElementById('f_essay_category').value || cats[0] || '') + ' *';
-      document.getElementById('f_essay_category').onchange = function () {
-        document.getElementById('doc_essay_label').textContent = 'ไฟล์เอกสาร: ' + this.value + ' *';
+      const updateEssayLabels = function () {
+        const cat = document.getElementById('f_essay_category').value || cats[0] || '';
+        document.getElementById('doc_essay_pdf_label').textContent = 'ไฟล์ PDF: ' + cat + ' *';
+        document.getElementById('doc_essay_word_label').textContent = 'ไฟล์ Word: ' + cat + ' *';
       };
+      updateEssayLabels();
+      document.getElementById('f_essay_category').onchange = updateEssayLabels;
     }
   } catch (err) {
     document.getElementById('applyError').textContent = 'ตรวจสอบสิทธิ์ไม่สำเร็จ: ' + err.message;
@@ -278,6 +315,9 @@ async function submitExam() {
       if (!subjects.length) throw new Error('กรุณาเลือกวิชาที่ต้องการสมัครสอบอย่างน้อย 1 วิชา');
       const examHistoryEl = document.querySelector('input[name="exam_history"]:checked');
       if (!examHistoryEl) throw new Error('กรุณาเลือกประวัติการสอบข้อเขียนที่ผ่านมา');
+      const dateRequired = (eligibilityInfo.examHistoryDateRequired || []).indexOf(examHistoryEl.value) !== -1;
+      const examHistoryDate = document.getElementById('f_exam_history_date').value;
+      if (dateRequired && !examHistoryDate) throw new Error('กรุณาระบุวันที่สอบผ่านวิชาดังกล่าว');
       if (!document.getElementById('f_consent').checked) throw new Error('กรุณายอมรับเงื่อนไขการสมัครสอบก่อนยื่นใบสมัคร');
 
       const dId = await keepOrUpload(document.getElementById('doc_id'), 'สำเนาบัตรประชาชน');
@@ -291,13 +331,15 @@ async function submitExam() {
       }
       payload.subjects = subjects;
       payload.exam_history = examHistoryEl.value;
+      payload.exam_history_date = dateRequired ? examHistoryDate : '';
       payload.consent_no_refund = true;
     } else {
       const essayCategory = document.getElementById('f_essay_category').value;
-      const dEssay = await keepOrUpload(document.getElementById('doc_essay'), essayCategory);
+      const dEssayPdf = await keepOrUpload(document.getElementById('doc_essay_pdf'), essayCategory + ' (PDF)');
+      const dEssayWord = await keepOrUpload(document.getElementById('doc_essay_word'), essayCategory + ' (Word)');
       const dProof = await keepOrUpload(document.getElementById('doc_exam_proof'), 'หลักฐานสอบผ่านข้อเขียน/ผลการศึกษาต่อเนื่อง (CE)');
-      if (!dEssay || !dProof) throw new Error('กรุณาแนบเอกสารแสดงทักษะและทัศนคติ และหลักฐานสอบผ่านข้อเขียน/CE ให้ครบ');
-      documents.push(dEssay, dProof);
+      if (!dEssayPdf || !dEssayWord || !dProof) throw new Error('กรุณาแนบเอกสารแสดงทักษะและทัศนคติทั้งไฟล์ PDF และ Word และหลักฐานสอบผ่านข้อเขียน/CE ให้ครบ');
+      documents.push(dEssayPdf, dEssayWord, dProof);
       payload.essay_category = essayCategory;
     }
     payload.documents = documents;
@@ -384,7 +426,7 @@ function renderMyApps() {
       <div class="app-status-card">
         <div>
           <b>${kind}</b> — รอบ ${d.round_label || '-'} • ยื่นเมื่อ ${fmtDate(a.submitted_at)}<br>
-          <span style="color:var(--muted); font-size:13px">เลขที่คำขอ ${a.application_id} • ค่าธรรมเนียม ${a.fee_amount} บาท</span>
+          <span style="color:var(--muted); font-size:13px">เลขที่คำขอ ${a.application_id} • ค่าธรรมเนียม ${a.fee_amount} บาท${d.candidate_no ? ' • รหัสประจำตัวสอบ: ' + d.candidate_no : ''}</span>
         </div>
         <span class="badge ${statusBadgeClass(a.status)}">${a.status}</span>
         ${a.status === 'รอตรวจสอบ' ? `<div style="margin-top:6px"><button class="btn small secondary" onclick="startEdit('${a.application_id}')">แก้ไขใบสมัคร</button></div>` : ''}
