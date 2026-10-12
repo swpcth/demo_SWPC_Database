@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>จัดการรอบสอบ — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+
+      <div class="nav-group-label">สมาชิก</div>
+      <div class="nav-group">
+        <a href="admin-members.html">ข้อมูลสมาชิก</a>
+        <a href="admin-name-change.html">คำขอเปลี่ยนชื่อ-นามสกุล</a>
+        <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+        <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      </div>
+
+      <div class="nav-group-label">ใบอนุญาต</div>
+      <div class="nav-group">
+        <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+        <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+        <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
+      </div>
+
+      <div class="nav-group-label">สอบ</div>
+      <div class="nav-group">
+        <a href="admin-exam-rounds.html" class="active">จัดการรอบสอบ</a>
+        <a href="admin-exam-applications.html">คำขอสมัครสอบ</a>
+      </div>
+
+      <div class="nav-group-label">การเงิน</div>
+      <div class="nav-group">
+        <a href="admin-payments.html">การชำระเงิน</a>
+        <a href="admin-refunds.html">คืนเงิน</a>
+        <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
+      </div>
+
+      <div class="nav-group-label">สวัสดิการและรายงาน</div>
+      <div class="nav-group">
+        <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+        <a href="admin-reports.html">รายงาน</a>
+      </div>
+
+      <div class="nav-group-label">ระบบ</div>
+      <div class="nav-group">
+        <a href="admin-users.html">ผู้ใช้งานระบบ</a>
+        <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
+        <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
+        <a href="admin-notifications.html">ประวัติการแจ้งเตือน</a>
+      </div>
+<a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>จัดการรอบสอบ</h1></header>
+
+    <div class="panel">
+      <p style="color:var(--muted); font-size:13px">เปิด/ปิดรอบสอบข้อเขียนและสอบสัมภาษณ์ — แต่ละปีเปิดได้มากกว่า 1 รอบ สมาชิกจะเห็นเฉพาะรอบที่สถานะ "เปิดรับสมัคร" และยังไม่เลยวันปิดรับสมัคร</p>
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px">
+        <div class="card-tabs" style="margin:0">
+          <button class="tab-chip active" id="tab_เขียน" onclick="switchTab('เขียน')">สอบข้อเขียน</button>
+          <button class="tab-chip" id="tab_สัมภาษณ์" onclick="switchTab('สัมภาษณ์')">สอบสัมภาษณ์</button>
+        </div>
+        <button class="btn small" style="width:auto; margin-left:auto" onclick="openCreateForm()">+ เปิดรอบสอบใหม่</button>
+      </div>
+      <table>
+        <thead><tr><th>รอบ</th><th>วันเปิดรับ</th><th>วันปิดรับ</th><th>วันสอบ</th><th>รูปแบบ</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="7" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div id="formOverlay" class="overlay" style="display:none" onclick="if(event.target===this) closeForm()">
+  <div class="overlay-card">
+    <button class="overlay-close" onclick="closeForm()">✕</button>
+    <h2 id="formTitle">เปิดรอบสอบใหม่</h2>
+    <input type="hidden" id="f_round_id">
+    <label>ประเภทการสอบ</label>
+    <select id="f_exam_type">
+      <option value="เขียน">สอบข้อเขียน</option>
+      <option value="สัมภาษณ์">สอบสัมภาษณ์</option>
+    </select>
+    <label>ชื่อ/เลขที่รอบสอบ (เช่น 2/2569)</label>
+    <input type="text" id="f_round_label" placeholder="2/2569">
+    <label>วันเปิดรับสมัคร</label>
+    <input type="date" id="f_open_date">
+    <label>วันปิดรับสมัคร *</label>
+    <input type="date" id="f_close_date">
+    <label>วันสอบ</label>
+    <input type="date" id="f_exam_date">
+    <label>รูปแบบที่เปิดให้เลือก</label>
+    <div style="display:flex; gap:16px; margin:4px 0 10px">
+      <label style="display:flex; align-items:center; gap:6px; width:auto"><input type="checkbox" id="f_fmt_online" style="width:auto" checked> Online (Zoom)</label>
+      <label style="display:flex; align-items:center; gap:6px; width:auto"><input type="checkbox" id="f_fmt_onsite" style="width:auto" checked> Onsite</label>
+    </div>
+    <label>สถานที่สอบ Onsite (ถ้ามี)</label>
+    <input type="text" id="f_location_note" placeholder="เช่น มหาวิทยาลัยธรรมศาสตร์ ศูนย์รังสิต">
+    <label>หมายเหตุ</label>
+    <input type="text" id="f_note">
+    <label>สถานะรอบสอบ</label>
+    <select id="f_status">
+      <option value="เปิดรับสมัคร">เปิดรับสมัคร</option>
+      <option value="ปิดรับสมัคร">ปิดรับสมัคร</option>
+      <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+    </select>
+    <button class="btn" style="width:auto; margin-top:12px" onclick="saveRound()">บันทึก</button>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+let allRounds = [];
+let currentTab = 'เขียน';
+
+function switchTab(type) {
+  currentTab = type;
+  document.getElementById('tab_เขียน').classList.toggle('active', type === 'เขียน');
+  document.getElementById('tab_สัมภาษณ์').classList.toggle('active', type === 'สัมภาษณ์');
+  renderRows();
+}
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+
+function statusBadgeClass(status) {
+  if (status === 'เปิดรับสมัคร') return 'ok';
+  if (status === 'เสร็จสิ้น') return 'pending';
+  return 'warn';
+}
+
+function renderRows() {
+  const tbody = document.getElementById('rows');
+  const rows = allRounds.filter(r => r.exam_type === currentTab);
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ยังไม่มีรอบสอบประเภทนี้</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    let fmts = [];
+    try { fmts = JSON.parse(r.format_options_json || '[]'); } catch (e) {}
+    return `
+      <tr>
+        <td><b>${r.round_label}</b></td>
+        <td>${fmtDate(r.open_date)}</td>
+        <td>${fmtDate(r.close_date)}</td>
+        <td>${fmtDate(r.exam_date)}</td>
+        <td>${fmts.join(' / ') || '-'}</td>
+        <td><span class="badge ${statusBadgeClass(r.status)}">${r.status}</span></td>
+        <td><button class="btn small secondary" onclick="openEditForm('${r.round_id}')">แก้ไข</button></td>
+      </tr>`;
+  }).join('');
+}
+
+function openCreateForm() {
+  document.getElementById('formTitle').textContent = 'เปิดรอบสอบใหม่';
+  document.getElementById('f_round_id').value = '';
+  document.getElementById('f_exam_type').value = currentTab;
+  document.getElementById('f_round_label').value = '';
+  document.getElementById('f_open_date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('f_close_date').value = '';
+  document.getElementById('f_exam_date').value = '';
+  document.getElementById('f_fmt_online').checked = true;
+  document.getElementById('f_fmt_onsite').checked = true;
+  document.getElementById('f_location_note').value = '';
+  document.getElementById('f_note').value = '';
+  document.getElementById('f_status').value = 'เปิดรับสมัคร';
+  document.getElementById('formOverlay').style.display = 'flex';
+}
+
+function openEditForm(roundId) {
+  const r = allRounds.find(x => x.round_id === roundId);
+  if (!r) return;
+  let fmts = [];
+  try { fmts = JSON.parse(r.format_options_json || '[]'); } catch (e) {}
+  document.getElementById('formTitle').textContent = 'แก้ไขรอบสอบ ' + r.round_label;
+  document.getElementById('f_round_id').value = r.round_id;
+  document.getElementById('f_exam_type').value = r.exam_type;
+  document.getElementById('f_round_label').value = r.round_label;
+  document.getElementById('f_open_date').value = (r.open_date || '').slice(0, 10);
+  document.getElementById('f_close_date').value = (r.close_date || '').slice(0, 10);
+  document.getElementById('f_exam_date').value = (r.exam_date || '').slice(0, 10);
+  document.getElementById('f_fmt_online').checked = fmts.indexOf('online') !== -1;
+  document.getElementById('f_fmt_onsite').checked = fmts.indexOf('onsite') !== -1;
+  document.getElementById('f_location_note').value = r.location_note || '';
+  document.getElementById('f_note').value = r.note || '';
+  document.getElementById('f_status').value = r.status;
+  document.getElementById('formOverlay').style.display = 'flex';
+}
+
+function closeForm() { document.getElementById('formOverlay').style.display = 'none'; }
+
+async function saveRound() {
+  const roundId = document.getElementById('f_round_id').value;
+  const format_options = [];
+  if (document.getElementById('f_fmt_online').checked) format_options.push('online');
+  if (document.getElementById('f_fmt_onsite').checked) format_options.push('onsite');
+  const payload = {
+    exam_type: document.getElementById('f_exam_type').value,
+    round_label: document.getElementById('f_round_label').value.trim(),
+    open_date: document.getElementById('f_open_date').value,
+    close_date: document.getElementById('f_close_date').value,
+    exam_date: document.getElementById('f_exam_date').value,
+    format_options, location_note: document.getElementById('f_location_note').value.trim(),
+    note: document.getElementById('f_note').value.trim(), status: document.getElementById('f_status').value
+  };
+  try {
+    if (roundId) {
+      await apiCall('updateExamRound', Object.assign({ round_id: roundId }, payload));
+    } else {
+      await apiCall('createExamRound', payload);
+    }
+    showToast('บันทึกรอบสอบสำเร็จ', 'success');
+    closeForm();
+    loadAll();
+  } catch (err) {
+    showToast('บันทึกไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function loadAll() {
+  try {
+    allRounds = await apiCall('listExamRounds');
+    renderRows();
+  } catch (err) {
+    document.getElementById('rows').innerHTML = `<tr><td colspan="7" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+loadAll();
+</script>
+</body>
+</html>

@@ -86,6 +86,7 @@ async function applyMemberNavVisibility() {
   const navTypeChange = document.getElementById('navTypeChange');
   const navLicense = document.getElementById('navLicense');
   const navCard = document.getElementById('navCard');
+  const navExamApply = document.getElementById('navExamApply');
   try {
     const profile = await apiCall('getMyProfile');
     if (navApply) navApply.style.display = 'none';
@@ -95,12 +96,15 @@ async function applyMemberNavVisibility() {
       // สมาชิกวิสามัญไม่มีใบอนุญาต/บัตรสมาชิกแบบบุคคล — ใช้ใบรับรององค์กรแทน (member-certificate.html)
       if (navLicense) navLicense.style.display = 'none';
       if (navCard) navCard.style.display = 'none';
+      // การสมัครสอบข้อเขียน/สัมภาษณ์มีไว้สำหรับสมาชิกสามัญ/สมทบ (บุคคล) เท่านั้น ไม่ใช่สมาชิกวิสามัญ (องค์กร)
+      if (navExamApply) navExamApply.style.display = 'none';
     }
     return profile;
   } catch (err) {
     if (navTypeChange) navTypeChange.style.display = 'none';
     if (navLicense) navLicense.style.display = 'none';
     if (navCard) navCard.style.display = 'none';
+    if (navExamApply) navExamApply.style.display = 'none';
     return null;
   }
 }
@@ -420,7 +424,7 @@ function createSignaturePad(canvasId) {
 // ---------- ตรวจสอบว่า Deploy เวอร์ชันล่าสุดของ backend แล้วหรือยัง ----------
 // ต้องตรงกับ BACKEND_VERSION ใน Code.gs — อัปเดตทุกครั้งที่ส่งมอบไฟล์ Code.gs ชุดใหม่
 // ป้องกันปัญหา "อัปโหลดไฟล์เว็บแล้วแต่ลืม Deploy Apps Script ใหม่" ซึ่งทำให้ฟีเจอร์ใหม่ไม่ทำงานโดยไม่รู้ตัว
-const EXPECTED_BACKEND_VERSION = '2026-09-25-renewal-tracking';
+const EXPECTED_BACKEND_VERSION = '2026-10-10-exam-application-system';
 
 async function checkBackendVersionAndWarn() {
   try {

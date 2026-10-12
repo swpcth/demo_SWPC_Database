@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สมัครสอบข้อเขียน/สัมภาษณ์</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
+    <nav>
+      <a href="member-dashboard.html">ข้อมูลของฉัน</a>
+      <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
+      <a href="member-name-change.html" id="navNameChange">ขอเปลี่ยนชื่อ-นามสกุล</a>
+      <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
+      <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
+      <a href="member-exam-apply.html" id="navExamApply" class="active">สมัครสอบข้อเขียน/สัมภาษณ์</a>
+      <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
+      <a href="member-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>สมัครสอบข้อเขียน/สัมภาษณ์</h1></header>
+
+    <div id="blockedPanel" class="panel" style="display:none">
+      <p class="empty-state" id="blockedText"></p>
+    </div>
+
+    <div id="mainSection" style="display:none">
+      <div class="panel">
+        <div class="card-tabs">
+          <button class="tab-chip active" id="tab_เขียน" onclick="switchTab('เขียน')">สมัครสอบข้อเขียน</button>
+          <button class="tab-chip" id="tab_สัมภาษณ์" onclick="switchTab('สัมภาษณ์')">สมัครสอบสัมภาษณ์</button>
+        </div>
+
+        <div id="applyError" class="error-box"></div>
+
+        <div id="roundSelectBox">
+          <label>เลือกรอบสอบที่เปิดรับสมัคร</label>
+          <select id="round_select" onchange="onRoundChange()"></select>
+          <p id="noRoundMsg" class="empty-state" style="display:none">ขณะนี้ไม่มีรอบสอบที่เปิดรับสมัคร กรุณาติดตามประกาศจากสภาฯ</p>
+        </div>
+
+        <div id="formBox" style="display:none">
+          <label>รูปแบบการสอบ</label>
+          <select id="f_format">
+            <option value="online">Online (ผ่านโปรแกรม Zoom)</option>
+            <option value="onsite">Onsite (ตามสถานที่ที่สภาฯ ประกาศ)</option>
+          </select>
+
+          <div id="writtenBox" style="display:none">
+            <label style="margin-top:10px">วิชาที่ต้องการสมัครสอบ (เลือกได้มากกว่า 1 วิชา)</label>
+            <div id="subjectCheckboxes"></div>
+            <p id="feePreview" style="color:var(--muted); font-size:13px; margin-top:6px"></p>
+            <div class="doc-row"><label>สำเนาบัตรประชาชน *</label><input type="file" id="doc_id" accept=".pdf,.jpg,.jpeg,.png"></div>
+            <div class="doc-row"><label>รูปถ่าย *</label><input type="file" id="doc_photo" accept=".jpg,.jpeg,.png"></div>
+            <div class="doc-row" id="doc_degree_row"><label>สำเนาวุฒิการศึกษา *</label><input type="file" id="doc_degree" accept=".pdf,.jpg,.jpeg,.png"></div>
+          </div>
+
+          <div id="interviewBox" style="display:none">
+            <p style="color:var(--muted); font-size:13px; margin-top:10px">ไม่มีค่าธรรมเนียมสมัครสอบสัมภาษณ์</p>
+            <label>เลือกประเภทเอกสารแสดงทักษะและทัศนคติทางสังคมสงเคราะห์ (เลือกอย่างใดอย่างหนึ่ง)</label>
+            <select id="f_essay_category"></select>
+            <div class="doc-row"><label id="doc_essay_label">ไฟล์เอกสารตามประเภทที่เลือก *</label><input type="file" id="doc_essay" accept=".pdf,.doc,.docx"></div>
+            <div class="doc-row"><label>หลักฐานสอบผ่านข้อเขียน 2 วิชา หรือหลักฐานผ่านเกณฑ์ CE *</label><input type="file" id="doc_exam_proof" accept=".pdf,.jpg,.jpeg,.png"></div>
+          </div>
+
+          <button class="btn" style="width:auto; margin-top:12px" onclick="submitExam()">ยื่นใบสมัครสอบ</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>ติดตามใบสมัครสอบของฉัน</h2>
+        <div id="myApps"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(['member'], 'index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+const PAYMENT_CHANNELS_CLIENT = ['โอนเงินผ่านธนาคาร (ตรวจสอบสลิปด้วยมือ)', 'พร้อมเพย์ (QR PromptPay)', 'บัตรเครดิต/เดบิต', 'Mobile Banking', 'เคาน์เตอร์เซอร์วิส/Bill Payment'];
+
+let currentTab = 'เขียน';
+let openRounds = [];
+let eligibilityInfo = null;
+let myApps = [];
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+
+function switchTab(type) {
+  currentTab = type;
+  document.getElementById('tab_เขียน').classList.toggle('active', type === 'เขียน');
+  document.getElementById('tab_สัมภาษณ์').classList.toggle('active', type === 'สัมภาษณ์');
+  document.getElementById('writtenBox').style.display = (type === 'เขียน') ? 'block' : 'none';
+  document.getElementById('interviewBox').style.display = (type === 'สัมภาษณ์') ? 'block' : 'none';
+  loadRounds();
+}
+
+async function loadRounds() {
+  document.getElementById('applyError').style.display = 'none';
+  document.getElementById('formBox').style.display = 'none';
+  try {
+    openRounds = await apiCall('listExamRounds', { exam_type: currentTab, openOnly: true });
+    const sel = document.getElementById('round_select');
+    if (!openRounds.length) {
+      sel.innerHTML = '';
+      document.getElementById('noRoundMsg').style.display = 'block';
+      return;
+    }
+    document.getElementById('noRoundMsg').style.display = 'none';
+    sel.innerHTML = openRounds.map(r => `<option value="${r.round_id}">รอบ ${r.round_label} (ปิดรับสมัคร ${fmtDate(r.close_date)})</option>`).join('');
+    onRoundChange();
+  } catch (err) {
+    document.getElementById('applyError').textContent = 'โหลดรอบสอบไม่สำเร็จ: ' + err.message;
+    document.getElementById('applyError').style.display = 'block';
+  }
+}
+
+async function onRoundChange() {
+  const roundId = document.getElementById('round_select').value;
+  if (!roundId) return;
+  try {
+    eligibilityInfo = await apiCall('getExamApplicationEligibility', { exam_type: currentTab, round_id: roundId });
+    if (!eligibilityInfo.eligible) {
+      document.getElementById('applyError').textContent = eligibilityInfo.reason;
+      document.getElementById('applyError').style.display = 'block';
+      document.getElementById('formBox').style.display = 'none';
+      return;
+    }
+    document.getElementById('applyError').style.display = 'none';
+    document.getElementById('formBox').style.display = 'block';
+    if (currentTab === 'เขียน') {
+      const subjects = eligibilityInfo.examSubjects || [];
+      document.getElementById('subjectCheckboxes').innerHTML = subjects.map((s, i) =>
+        `<label style="display:flex; align-items:center; gap:6px; width:auto; margin-bottom:4px">
+          <input type="checkbox" class="subject_cb" value="${s}" onchange="updateFeePreview()" checked> ${s} (${eligibilityInfo.examSubjectFee} บาท)
+        </label>`).join('');
+      document.getElementById('doc_degree_row').style.display = eligibilityInfo.degreeWaived ? 'none' : 'flex';
+      updateFeePreview();
+    } else {
+      const cats = eligibilityInfo.essayCategories || [];
+      document.getElementById('f_essay_category').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+      document.getElementById('doc_essay_label').textContent = 'ไฟล์เอกสาร: ' + (cats[0] || '') + ' *';
+      document.getElementById('f_essay_category').onchange = function () {
+        document.getElementById('doc_essay_label').textContent = 'ไฟล์เอกสาร: ' + this.value + ' *';
+      };
+    }
+  } catch (err) {
+    document.getElementById('applyError').textContent = 'ตรวจสอบสิทธิ์ไม่สำเร็จ: ' + err.message;
+    document.getElementById('applyError').style.display = 'block';
+    document.getElementById('formBox').style.display = 'none';
+  }
+}
+
+function updateFeePreview() {
+  const checked = Array.from(document.querySelectorAll('.subject_cb:checked')).map(c => c.value);
+  const fee = checked.length * (eligibilityInfo ? eligibilityInfo.examSubjectFee : 0);
+  document.getElementById('feePreview').textContent = 'ค่าธรรมเนียมรวม: ' + fee.toLocaleString() + ' บาท (โอนเข้าบัญชี 021-0-15582-5 ธนาคารกรุงไทย ชื่อบัญชี "สภาวิชาชีพสังคมสงเคราะห์" หลังได้รับอนุมัติ)';
+}
+
+async function submitExam() {
+  const errBox = document.getElementById('applyError');
+  errBox.style.display = 'none';
+  const roundId = document.getElementById('round_select').value;
+  const format = document.getElementById('f_format').value;
+  try {
+    const documents = [];
+    const payload = { exam_type: currentTab, round_id: roundId, format };
+    if (currentTab === 'เขียน') {
+      const subjects = Array.from(document.querySelectorAll('.subject_cb:checked')).map(c => c.value);
+      if (!subjects.length) throw new Error('กรุณาเลือกวิชาที่ต้องการสมัครสอบอย่างน้อย 1 วิชา');
+      const fId = document.getElementById('doc_id').files[0];
+      const fPhoto = document.getElementById('doc_photo').files[0];
+      if (!fId || !fPhoto) throw new Error('กรุณาแนบสำเนาบัตรประชาชนและรูปถ่ายให้ครบ');
+      documents.push(await uploadDocument(fId, 'สำเนาบัตรประชาชน'));
+      documents.push(await uploadDocument(fPhoto, 'รูปถ่าย'));
+      if (!eligibilityInfo.degreeWaived) {
+        const fDegree = document.getElementById('doc_degree').files[0];
+        if (!fDegree) throw new Error('กรุณาแนบสำเนาวุฒิการศึกษา');
+        documents.push(await uploadDocument(fDegree, 'สำเนาวุฒิการศึกษา'));
+      }
+      payload.subjects = subjects;
+    } else {
+      const essayCategory = document.getElementById('f_essay_category').value;
+      const fEssay = document.getElementById('doc_essay').files[0];
+      const fProof = document.getElementById('doc_exam_proof').files[0];
+      if (!fEssay || !fProof) throw new Error('กรุณาแนบเอกสารแสดงทักษะและทัศนคติ และหลักฐานสอบผ่านข้อเขียน/CE ให้ครบ');
+      documents.push(await uploadDocument(fEssay, essayCategory));
+      documents.push(await uploadDocument(fProof, 'หลักฐานสอบผ่านข้อเขียน/ผลการศึกษาต่อเนื่อง (CE)'));
+      payload.essay_category = essayCategory;
+    }
+    payload.documents = documents;
+    const res = await apiCall('submitExamApplication', payload);
+    showToast('ยื่นใบสมัครสอบสำเร็จ เลขที่คำขอ ' + res.application_id, 'success');
+    loadAll();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.style.display = 'block';
+  }
+}
+
+function renderPaySlipForm(a) {
+  return `
+    <div class="pay-box">
+      <p>ค่าธรรมเนียม: <b>${a.fee_amount} บาท</b> — โอนเข้าบัญชี 021-0-15582-5 ธนาคารกรุงไทย ชื่อบัญชี "สภาวิชาชีพสังคมสงเคราะห์" หรือชำระผ่านช่องทางอื่นด้านล่าง แล้วแนบสลิป/หลักฐานการชำระเงิน</p>
+      <label>ช่องทางการชำระเงิน</label>
+      <select id="channel_${a.application_id}" onchange="onChannelChange('${a.application_id}', ${a.fee_amount})">
+        ${PAYMENT_CHANNELS_CLIENT.map(c => `<option value="${c}">${c}</option>`).join('')}
+      </select>
+      <div id="qrBox_${a.application_id}" style="display:none; text-align:center; margin:10px 0">
+        <div id="qr_${a.application_id}"></div>
+        <p style="color:var(--muted); font-size:12px">สแกนด้วยแอปธนาคารเพื่อชำระเงิน ${a.fee_amount} บาท แล้วแนบสลิปยืนยันด้านล่าง</p>
+      </div>
+      <input type="file" id="slip_${a.application_id}" accept=".pdf,.jpg,.jpeg,.png">
+      <button type="button" class="btn small" onclick="submitSlip('${a.application_id}')">แนบสลิป/หลักฐานการชำระเงิน</button>
+    </div>`;
+}
+
+async function onChannelChange(applicationId, amount) {
+  const channel = document.getElementById('channel_' + applicationId).value;
+  const qrBox = document.getElementById('qrBox_' + applicationId);
+  if (channel !== 'พร้อมเพย์ (QR PromptPay)') { qrBox.style.display = 'none'; return; }
+  try {
+    const cfg = await apiCall('getPromptPayConfig');
+    qrBox.style.display = 'block';
+    if (!cfg.promptPayId) {
+      document.getElementById('qr_' + applicationId).innerHTML = '<p style="color:var(--muted); font-size:13px">ยังไม่ได้ตั้งค่าเลขพร้อมเพย์ของสภาฯ ในระบบ กรุณาโอนเข้าบัญชีธนาคารแทน</p>';
+      return;
+    }
+    renderPromptPayQr('qr_' + applicationId, cfg.promptPayId, amount);
+  } catch (err) {
+    qrBox.style.display = 'block';
+    document.getElementById('qr_' + applicationId).innerHTML = '<p style="color:var(--warn); font-size:13px">สร้าง QR ไม่สำเร็จ: ' + err.message + '</p>';
+  }
+}
+
+async function submitSlip(applicationId) {
+  const input = document.getElementById('slip_' + applicationId);
+  if (!input.files[0]) { showToast('กรุณาเลือกไฟล์สลิปก่อน', 'info'); return; }
+  const channelSel = document.getElementById('channel_' + applicationId);
+  const channel = channelSel ? channelSel.value : 'โอนเงินผ่านธนาคาร (ตรวจสอบสลิปด้วยมือ)';
+  try {
+    const uploaded = await uploadDocument(input.files[0], 'สลิปการโอนเงิน');
+    await apiCall('submitPaymentSlip', { application_id: applicationId, slip_url: uploaded.url, method: 'โอนเงิน', channel });
+    showToast('แนบสลิปสำเร็จ กรุณารอเจ้าหน้าที่ตรวจสอบ', 'success');
+    loadAll();
+  } catch (err) {
+    showToast('แนบสลิปไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+function statusBadgeClass(status) {
+  if (status === 'สอบผ่าน') return 'ok';
+  if (status === 'ไม่อนุมัติ' || status === 'สอบไม่ผ่าน') return 'warn';
+  return 'pending';
+}
+
+function renderMyApps() {
+  const el = document.getElementById('myApps');
+  if (!myApps.length) {
+    el.innerHTML = '<p class="empty-state">ยังไม่เคยยื่นใบสมัครสอบ</p>';
+    return;
+  }
+  el.innerHTML = myApps.map(a => {
+    const d = JSON.parse(a.ref_data_json || '{}');
+    const kind = a.applicant_type === 'สมัครสอบข้อเขียน' ? 'สมัครสอบข้อเขียน' : 'สมัครสอบสัมภาษณ์';
+    let docs = [];
+    try { docs = JSON.parse(a.documents_json || '[]'); } catch (e) {}
+    return `
+      <div class="app-status-card">
+        <div>
+          <b>${kind}</b> — รอบ ${d.round_label || '-'} • ยื่นเมื่อ ${fmtDate(a.submitted_at)}<br>
+          <span style="color:var(--muted); font-size:13px">เลขที่คำขอ ${a.application_id} • ค่าธรรมเนียม ${a.fee_amount} บาท</span>
+        </div>
+        <span class="badge ${statusBadgeClass(a.status)}">${a.status}</span>
+        ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn); font-size:13px">เหตุผลที่ไม่อนุมัติ: ' + a.reject_reason + '</p>' : ''}
+        ${d.subject_results ? '<p style="font-size:13px">' + Object.keys(d.subject_results).map(k => k + ': ' + d.subject_results[k]).join(' • ') + '</p>' : ''}
+        ${docs.length ? `<div style="margin-top:8px">${docs.map(doc => `<div class="doc-item"><span>${doc.doc_type || doc.name}</span><a href="${doc.url}" target="_blank">ดูเอกสาร</a></div>`).join('')}</div>` : ''}
+        ${a.status === 'รอชำระเงิน' ? renderPaySlipForm(a) : ''}
+      </div>`;
+  }).join('');
+}
+
+async function loadAll() {
+  try {
+    myApps = await apiCall('myExamApplications');
+    renderMyApps();
+    await loadRounds();
+    document.getElementById('blockedPanel').style.display = 'none';
+    document.getElementById('mainSection').style.display = 'block';
+  } catch (err) {
+    document.getElementById('mainSection').style.display = 'none';
+    document.getElementById('blockedPanel').style.display = 'block';
+    document.getElementById('blockedText').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + err.message;
+  }
+}
+
+loadAll();
+applyMemberNavVisibility();
+</script>
+</body>
+</html>

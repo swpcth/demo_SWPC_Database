@@ -19,6 +19,7 @@
       <a href="member-name-change.html" id="navNameChange">ขอเปลี่ยนชื่อ-นามสกุล</a>
       <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
       <a href="member-license.html" id="navLicense" class="active">ใบอนุญาตของฉัน</a>
+      <a href="member-exam-apply.html" id="navExamApply">สมัครสอบข้อเขียน/สัมภาษณ์</a>
       <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
       <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
@@ -356,7 +357,11 @@ function renderRenewForm(eligibility) {
   const ceOptionLabel = isAfter ? 'ต่อหลังหมดอายุด้วยผลการศึกษาต่อเนื่อง (CE)' : 'ต่อก่อนหมดอายุด้วยผลการศึกษาต่อเนื่อง (CE)';
   currentExamSubjects = eligibility.examSubjects || ['วิชาที่ 1', 'วิชาที่ 2'];
   currentInterviewLabel = eligibility.interviewDocLabel || 'ผลการสอบสัมภาษณ์';
-  const examFeeTotal = (eligibility.examSubjectFee || 0) * currentExamSubjects.length;
+  const licenseRegFee = eligibility.licenseRegistrationFee || 0;
+  const examSubjectFee = eligibility.examSubjectFee || 0;
+  // ค่าธรรมเนียมที่ชำระตอนยื่นคำขอนี้ = ค่าขึ้นทะเบียนรับใบอนุญาตเท่านั้น (ถือเป็นการขึ้นทะเบียนใหม่ด้วยผลสอบ)
+  // ค่าสมัครสอบข้อเขียนแต่ละวิชาต้องชำระแยกต่างหากตอนสมัครสอบ ก่อนสอบผ่านแล้วค่อยมายื่นคำขอนี้ — ไม่รวมอยู่ในยอดนี้
+  const examFeeTotal = licenseRegFee;
 
   document.getElementById('renewForm').innerHTML = `
     <p>สถานะใบอนุญาต: ${isAfter ? '<span class="badge warn">หมดอายุแล้ว</span>' : '<span class="badge pending">เหลืออีก ' + eligibility.daysUntilExpire + ' วัน</span>'}</p>
@@ -365,7 +370,7 @@ function renderRenewForm(eligibility) {
     <label>เลือกวิธีต่ออายุ</label>
     <select id="renew_method" onchange="toggleRenewMethodUI()">
       ${ceQualified ? `<option value="${isAfter ? 'CE_after' : 'CE_before'}">${ceOptionLabel}</option>` : ''}
-      <option value="exam">ต่อด้วยผลสอบข้อเขียนใหม่ (รวม ${examFeeTotal.toLocaleString()} บาท)</option>
+      <option value="exam">ต่อด้วยผลสอบข้อเขียนใหม่ (ค่าขึ้นทะเบียน ${examFeeTotal.toLocaleString()} บาท ไม่รวมค่าสมัครสอบ)</option>
     </select>
     ${!ceQualified ? `<p style="color:var(--warn); font-size:12px">ผู้ที่จะกดต่ออายุด้วยผล CE ได้ ต้องผ่านเกณฑ์ CE ครบทั้ง 2 หมวดแล้วเท่านั้น (ดูคะแนนสะสมด้านบน) — บัญชีนี้ยังไม่ผ่านเกณฑ์ จึงเลือกได้เฉพาะวิธีสอบข้อเขียนใหม่</p>` : ''}
 
@@ -375,7 +380,7 @@ function renderRenewForm(eligibility) {
     </div>
 
     <div id="examDocsBox" style="display:none">
-      <p style="color:var(--muted); font-size:12px">ต้องแนบผลสอบข้อเขียนครบ 2 วิชา (วิชาละ ${(eligibility.examSubjectFee || 0).toLocaleString()} บาท) และผลสอบสัมภาษณ์</p>
+      <p style="color:var(--muted); font-size:12px">ต้องแนบผลสอบข้อเขียนครบ 2 วิชา และผลสอบสัมภาษณ์ (ต้องสอบผ่านก่อนจึงจะยื่นคำขอนี้ได้) — ค่าสมัครสอบข้อเขียนวิชาละ ${examSubjectFee.toLocaleString()} บาท ชำระแยกต่างหากตอนสมัครสอบ ไม่รวมอยู่ในยอดนี้ ส่วนค่าธรรมเนียมที่ต้องชำระตอนยื่นคำขอนี้คือค่าขึ้นทะเบียนรับใบอนุญาตใหม่ ${examFeeTotal.toLocaleString()} บาท</p>
       <div class="doc-row"><label>ผลสอบข้อเขียน ${currentExamSubjects[0]} *</label><input type="file" id="doc_subject1" accept=".pdf,.jpg,.jpeg,.png"></div>
       <div class="doc-row"><label>ผลสอบข้อเขียน ${currentExamSubjects[1]} *</label><input type="file" id="doc_subject2" accept=".pdf,.jpg,.jpeg,.png"></div>
       <div class="doc-row"><label>ผลสอบสัมภาษณ์ *</label><input type="file" id="doc_interview_exam" accept=".pdf,.jpg,.jpeg,.png"></div>

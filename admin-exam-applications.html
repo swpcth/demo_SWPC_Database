@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คำขอสมัครสอบ — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+
+      <div class="nav-group-label">สมาชิก</div>
+      <div class="nav-group">
+        <a href="admin-members.html">ข้อมูลสมาชิก</a>
+        <a href="admin-name-change.html">คำขอเปลี่ยนชื่อ-นามสกุล</a>
+        <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+        <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      </div>
+
+      <div class="nav-group-label">ใบอนุญาต</div>
+      <div class="nav-group">
+        <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+        <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+        <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
+      </div>
+
+      <div class="nav-group-label">สอบ</div>
+      <div class="nav-group">
+        <a href="admin-exam-rounds.html">จัดการรอบสอบ</a>
+        <a href="admin-exam-applications.html" class="active">คำขอสมัครสอบ</a>
+      </div>
+
+      <div class="nav-group-label">การเงิน</div>
+      <div class="nav-group">
+        <a href="admin-payments.html">การชำระเงิน</a>
+        <a href="admin-refunds.html">คืนเงิน</a>
+        <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
+      </div>
+
+      <div class="nav-group-label">สวัสดิการและรายงาน</div>
+      <div class="nav-group">
+        <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+        <a href="admin-reports.html">รายงาน</a>
+      </div>
+
+      <div class="nav-group-label">ระบบ</div>
+      <div class="nav-group">
+        <a href="admin-users.html">ผู้ใช้งานระบบ</a>
+        <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
+        <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
+        <a href="admin-notifications.html">ประวัติการแจ้งเตือน</a>
+      </div>
+<a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>คำขอสมัครสอบ</h1></header>
+
+    <div class="panel">
+      <h2>รอตรวจสอบเอกสาร</h2>
+      <table>
+        <thead><tr><th>รูป</th><th>เลขที่คำขอ</th><th>ประเภท</th><th>รอบสอบ</th><th>ชื่อสมาชิก</th><th>วันที่ยื่น</th><th>ค่าธรรมเนียม</th><th></th></tr></thead>
+        <tbody id="rowsReview"><tr><td colspan="8" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>ตรวจสอบการชำระเงิน (ค่าสมัครสอบข้อเขียน)</h2>
+      <table>
+        <thead><tr><th>เลขที่คำขอ</th><th>รอบสอบ</th><th>จำนวนเงิน</th><th>สลิป</th><th></th></tr></thead>
+        <tbody id="rowsPay"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>รอผลสอบ — บันทึกผล</h2>
+      <table>
+        <thead><tr><th>เลขที่คำขอ</th><th>ประเภท</th><th>รอบสอบ</th><th>ชื่อสมาชิก</th><th></th></tr></thead>
+        <tbody id="rowsResult"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div id="detailOverlay" class="overlay" style="display:none" onclick="if(event.target===this) closeDetail()">
+  <div class="overlay-card">
+    <button class="overlay-close" onclick="closeDetail()">✕</button>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+let allApps = [];
+let allPayments = [];
+
+function docItem(docs, docType) {
+  const found = docs.find(d => d.doc_type === docType);
+  if (found) return `<div class="doc-item"><span>${docType}</span><a href="${found.url}" target="_blank">ดูเอกสาร</a></div>`;
+  return `<div class="doc-item missing"><span>${docType}</span><span>ไม่มีเอกสาร</span></div>`;
+}
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+function typeLabel(t) { return t === 'สมัครสอบข้อเขียน' ? 'สอบข้อเขียน' : 'สอบสัมภาษณ์'; }
+
+function viewDetail(applicationId) {
+  const a = allApps.find(x => x.application_id === applicationId);
+  if (!a) return;
+  const d = JSON.parse(a.ref_data_json || '{}');
+  const docs = JSON.parse(a.documents_json || '[]');
+  let docsHtml = '';
+  if (a.applicant_type === 'สมัครสอบข้อเขียน') {
+    docsHtml = `${docItem(docs, 'สำเนาบัตรประชาชน')}${docItem(docs, 'รูปถ่าย')}${docItem(docs, 'สำเนาวุฒิการศึกษา')}`;
+  } else {
+    docsHtml = `${docItem(docs, d.essay_category || 'เอกสารแสดงทักษะและทัศนคติ')}${docItem(docs, 'หลักฐานสอบผ่านข้อเขียน/ผลการศึกษาต่อเนื่อง (CE)')}`;
+  }
+  document.getElementById('detailBody').innerHTML = `
+    <h2>${typeLabel(a.applicant_type)} — ${a.application_id}</h2>
+    <p><span class="badge pending">${a.status}</span> • ค่าธรรมเนียม ${a.fee_amount} บาท</p>
+    <p><b>ชื่อผู้สมัคร:</b> ${d.name || '-'}</p>
+    <p><b>รอบสอบ:</b> ${d.round_label || '-'} • <b>รูปแบบ:</b> ${d.format || '-'}</p>
+    ${d.subjects ? '<p><b>วิชาที่สมัครสอบ:</b> ' + d.subjects.join(', ') + '</p>' : ''}
+    ${d.essay_category ? '<p><b>ประเภทเอกสาร:</b> ' + d.essay_category + '</p>' : ''}
+    <h3>เอกสารประกอบ</h3>
+    <div class="doc-grid">${docsHtml}</div>
+    ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn)"><b>เหตุผลไม่อนุมัติ:</b> ' + a.reject_reason + '</p>' : ''}
+    ${a.status === 'รอตรวจสอบ' ? `
+      <div class="detail-actions">
+        <button class="btn" onclick="closeDetail(); review('${a.application_id}','approve')">อนุมัติ</button>
+        <button class="btn secondary" onclick="closeDetail(); review('${a.application_id}','reject')">ไม่อนุมัติ</button>
+      </div>` : ''}
+  `;
+  document.getElementById('detailOverlay').style.display = 'flex';
+}
+function closeDetail() { document.getElementById('detailOverlay').style.display = 'none'; }
+
+function renderReview() {
+  const tbody = document.getElementById('rowsReview');
+  const rows = allApps.filter(a => a.status === 'รอตรวจสอบ');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">ไม่มีคำขอค้างตรวจสอบ</td></tr>'; return; }
+  tbody.innerHTML = rows.map(a => {
+    const d = JSON.parse(a.ref_data_json || '{}');
+    return `
+      <tr>
+        <td>${a.member_photo_url ? `<img src="${toEmbeddableImageUrl(a.member_photo_url)}" style="width:32px; height:32px; object-fit:cover; border-radius:50%; border:1px solid var(--line)">` : '<span style="color:var(--muted); font-size:16px">👤</span>'}</td>
+        <td>${a.application_id}</td>
+        <td>${typeLabel(a.applicant_type)}</td>
+        <td>${d.round_label || '-'}</td>
+        <td>${d.name || '-'}</td>
+        <td>${fmtDate(a.submitted_at)}</td>
+        <td>${a.fee_amount} บาท</td>
+        <td>
+          <button class="btn small secondary" onclick="viewDetail('${a.application_id}')">ดูรายละเอียด</button>
+          <button class="btn small" onclick="review('${a.application_id}','approve')">อนุมัติ</button>
+          <button class="btn small secondary" onclick="review('${a.application_id}','reject')">ไม่อนุมัติ</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function review(applicationId, decision) {
+  let reason = '';
+  if (decision === 'reject') {
+    reason = (await showPrompt('ระบุเหตุผลที่ไม่อนุมัติ:')) || '';
+    if (!reason) return;
+  }
+  try {
+    await apiCall('reviewExamApplication', { application_id: applicationId, decision, reason });
+    loadAll();
+  } catch (err) {
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+function renderPay() {
+  const tbody = document.getElementById('rowsPay');
+  const appIds = allApps.filter(a => a.applicant_type === 'สมัครสอบข้อเขียน').map(a => a.application_id);
+  const rows = allPayments.filter(pm => pm.ref_type === 'application' && pm.status === 'รอตรวจสอบ' && appIds.indexOf(pm.ref_id) !== -1);
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีรายการรอตรวจสอบสลิป</td></tr>'; return; }
+  tbody.innerHTML = rows.map(pm => {
+    const app = allApps.find(a => a.application_id === pm.ref_id);
+    const d = app ? JSON.parse(app.ref_data_json || '{}') : {};
+    return `
+      <tr>
+        <td>${pm.ref_id}</td>
+        <td>${d.round_label || '-'}</td>
+        <td>${pm.amount} บาท</td>
+        <td>${pm.slip_url ? `<a href="${pm.slip_url}" target="_blank">ดูสลิป</a>` : '-'}</td>
+        <td>
+          <button class="btn small" onclick="verifyPayment('${pm.payment_id}','approve')">ยืนยันชำระเงิน</button>
+          <button class="btn small secondary" onclick="verifyPayment('${pm.payment_id}','reject')">ปฏิเสธ</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function verifyPayment(paymentId, decision) {
+  if (decision === 'approve' && !(await showConfirm('ยืนยันว่าตรวจสอบสลิปถูกต้อง?'))) return;
+  try {
+    await apiCall('verifyExamPayment', { payment_id: paymentId, decision });
+    showToast(decision === 'approve' ? 'ยืนยันการชำระเงินสำเร็จ' : 'ปฏิเสธรายการแล้ว', 'success');
+    loadAll();
+  } catch (err) {
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+function renderResult() {
+  const tbody = document.getElementById('rowsResult');
+  const rows = allApps.filter(a => a.status === 'รอผลสอบ');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีใบสมัครรอผลสอบ</td></tr>'; return; }
+  tbody.innerHTML = rows.map(a => {
+    const d = JSON.parse(a.ref_data_json || '{}');
+    return `
+      <tr>
+        <td>${a.application_id}</td>
+        <td>${typeLabel(a.applicant_type)}</td>
+        <td>${d.round_label || '-'}</td>
+        <td>${d.name || '-'}</td>
+        <td>
+          <button class="btn small" onclick="recordResult('${a.application_id}', '${a.applicant_type}')">บันทึกผลสอบ</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function recordResult(applicationId, applicantType) {
+  const app = allApps.find(a => a.application_id === applicationId);
+  const d = app ? JSON.parse(app.ref_data_json || '{}') : {};
+  let subject_results = null;
+  if (applicantType === 'สมัครสอบข้อเขียน' && d.subjects && d.subjects.length) {
+    subject_results = {};
+    for (const subj of d.subjects) {
+      const r = await showPrompt('ผลสอบวิชา "' + subj + '" — พิมพ์ "ผ่าน" หรือ "ไม่ผ่าน"');
+      if (!r) return;
+      subject_results[subj] = (r.trim() === 'ผ่าน') ? 'ผ่าน' : 'ไม่ผ่าน';
+    }
+  }
+  let result;
+  if (subject_results) {
+    result = Object.values(subject_results).every(v => v === 'ผ่าน') ? 'ผ่าน' : 'ไม่ผ่าน';
+    if (!(await showConfirm('สรุปผลรวม: ' + result + ' — ยืนยันบันทึกผลสอบ?'))) return;
+  } else {
+    const r = await showPrompt('ผลสอบสัมภาษณ์ — พิมพ์ "ผ่าน" หรือ "ไม่ผ่าน"');
+    if (!r) return;
+    result = (r.trim() === 'ผ่าน') ? 'ผ่าน' : 'ไม่ผ่าน';
+  }
+  try {
+    await apiCall('recordExamResult', { application_id: applicationId, result, subject_results });
+    showToast('บันทึกผลสอบสำเร็จ', 'success');
+    loadAll();
+  } catch (err) {
+    showToast('บันทึกผลสอบไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function loadAll() {
+  try {
+    allApps = await apiCall('listExamApplications');
+    allPayments = await apiCall('listPayments');
+    renderReview();
+    renderPay();
+    renderResult();
+  } catch (err) {
+    document.getElementById('rowsReview').innerHTML = `<tr><td colspan="8" class="empty-state">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+  }
+}
+loadAll();
+</script>
+</body>
+</html>
