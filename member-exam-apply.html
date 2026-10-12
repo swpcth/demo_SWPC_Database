@@ -68,12 +68,13 @@
             <option value="onsite">Onsite (ตามสถานที่ที่สภาฯ ประกาศ)</option>
           </select>
 
+          <p style="color:var(--muted); font-size:12px; margin:8px 0 2px">ข้อมูลต่อไปนี้ดึงจากฐานข้อมูลสมาชิก (แก้ไขได้ที่หน้า "ข้อมูลของฉัน") — แสดงเท่าที่มีในระบบ</p>
           <label>ตำแหน่งงาน</label>
-          <input type="text" id="f_position" placeholder="เช่น นักสังคมสงเคราะห์">
+          <input type="text" id="f_position" readonly placeholder="-">
           <label>หน่วยงาน</label>
-          <input type="text" id="f_agency" placeholder="ชื่อหน่วยงาน/องค์กรที่ปฏิบัติงาน">
-          <label>เบอร์โทรศัพท์มือถือ *</label>
-          <input type="text" id="f_phone" placeholder="08x-xxx-xxxx">
+          <input type="text" id="f_agency" readonly placeholder="-">
+          <label>เบอร์โทรศัพท์มือถือ</label>
+          <input type="text" id="f_phone" readonly placeholder="-">
 
           <div id="writtenBox" style="display:none">
             <div id="profileInfoBox" class="empty-state" style="background:var(--bg-soft,#f4f6f8); border-radius:8px; padding:10px 12px; margin:6px 0; font-size:13px"></div>
@@ -221,9 +222,9 @@ async function onRoundChange() {
     document.getElementById('formBox').style.display = 'block';
 
     const d = editingApp ? JSON.parse(editingApp.ref_data_json || '{}') : {};
-    document.getElementById('f_position').value = (editingApp ? d.position : eligibilityInfo.member.position) || '';
-    document.getElementById('f_agency').value = (editingApp ? d.agency : eligibilityInfo.member.agency) || '';
-    document.getElementById('f_phone').value = (editingApp ? d.phone : eligibilityInfo.member.phone) || '';
+    document.getElementById('f_position').value = eligibilityInfo.member.position || '';
+    document.getElementById('f_agency').value = eligibilityInfo.member.agency || '';
+    document.getElementById('f_phone').value = eligibilityInfo.member.phone || '';
     document.getElementById('f_format').value = (editingApp && d.format) || 'online';
 
     if (currentTab === 'เขียน') {
@@ -297,7 +298,6 @@ async function submitExam() {
   const agency = document.getElementById('f_agency').value.trim();
   const phone = document.getElementById('f_phone').value.trim();
   try {
-    if (!phone) throw new Error('กรุณากรอกเบอร์โทรศัพท์มือถือ');
     const documents = [];
     const payload = { exam_type: currentTab, round_id: roundId, format, position, agency, phone };
     if (editingApp) payload.application_id = editingApp.application_id;
