@@ -18,6 +18,7 @@
       <div class="nav-group-label">สมาชิก</div>
       <div class="nav-group">
         <a href="admin-members.html">ข้อมูลสมาชิก</a>
+        <a href="admin-honorary.html">สมาชิกกิตติมศักดิ์</a>
         <a href="admin-name-change.html">คำขอเปลี่ยนชื่อ-นามสกุล</a>
         <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
         <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
@@ -162,6 +163,7 @@ async function loadExecutive() {
     const e = await apiCall('getExecutiveDashboard');
     document.getElementById('execStats').innerHTML = `
       <div class="stat-card"><div class="num">${e.totalMembers}</div><div class="label">สมาชิกทั้งหมด</div></div>
+      <div class="stat-card"><div class="num">${e.honoraryCount || 0}</div><div class="label">สมาชิกกิตติมศักดิ์ (ดำรงสถานะ)</div></div>
       <div class="stat-card"><div class="num">${e.newMembersThisMonth}</div><div class="label">สมัครใหม่เดือนนี้</div></div>
       <div class="stat-card"><div class="num">${e.newMembersThisYear}</div><div class="label">สมัครใหม่ปีนี้</div></div>
       <div class="stat-card"><div class="num">${e.expiredMembers}</div><div class="label">สมาชิกหมดอายุ</div></div>
@@ -173,7 +175,8 @@ async function loadExecutive() {
       <div class="stat-card"><div class="num">฿${fmtMoney(e.revenueThisMonth)}</div><div class="label">รายรับเดือนนี้</div></div>
     `;
     const typeRows = Object.entries(e.byType).map(([k, v]) => `<tr><td>${k || '(ไม่ระบุ)'}</td><td>${v}</td></tr>`).join('');
-    document.querySelector('#tbl-type tbody').innerHTML = typeRows || '<tr><td class="empty-state">ยังไม่มีข้อมูล</td></tr>';
+    const typeRowsAll = typeRows + `<tr><td>กิตติมศักดิ์</td><td>${e.honoraryCount || 0}</td></tr>`;
+    document.querySelector('#tbl-type tbody').innerHTML = typeRowsAll;
 
     new Chart(document.getElementById('chartMonthly'), {
       type: 'bar',

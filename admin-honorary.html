@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สมาชิกกิตติมศักดิ์ — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+
+      <div class="nav-group-label">สมาชิก</div>
+      <div class="nav-group">
+        <a href="admin-members.html">ข้อมูลสมาชิก</a>
+        <a href="admin-honorary.html" class="active">สมาชิกกิตติมศักดิ์</a>
+        <a href="admin-name-change.html">คำขอเปลี่ยนชื่อ-นามสกุล</a>
+        <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+        <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      </div>
+
+      <div class="nav-group-label">ใบอนุญาต</div>
+      <div class="nav-group">
+        <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+        <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+        <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
+      </div>
+
+      <div class="nav-group-label">สอบ</div>
+      <div class="nav-group">
+        <a href="admin-exam-rounds.html">จัดการรอบสอบ</a>
+        <a href="admin-exam-applications.html">คำขอสมัครสอบ</a>
+      </div>
+
+      <div class="nav-group-label">การเงิน</div>
+      <div class="nav-group">
+        <a href="admin-payments.html">การชำระเงิน</a>
+        <a href="admin-refunds.html">คืนเงิน</a>
+        <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
+      </div>
+
+      <div class="nav-group-label">สวัสดิการและรายงาน</div>
+      <div class="nav-group">
+        <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+        <a href="admin-reports.html">รายงาน</a>
+      </div>
+
+      <div class="nav-group-label">ระบบ</div>
+      <div class="nav-group">
+        <a href="admin-users.html">ผู้ใช้งานระบบ</a>
+        <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
+        <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
+        <a href="admin-notifications.html">ประวัติการแจ้งเตือน</a>
+      </div>
+
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>สมาชิกกิตติมศักดิ์</h1></header>
+    <p style="color:var(--muted); font-size:13px">ฐานข้อมูลสมาชิกกิตติมศักดิ์ของสภาฯ (ผู้ทรงคุณวุฒิ / ผู้มีผลงานเชิงประจักษ์ด้านสังคมสงเคราะห์ศาสตร์) — ไม่เกี่ยวข้องกับใบอนุญาตและค่าบำรุง สมาชิกที่ "ดำรงสถานะ" จะถูกนับรวมในสถิติหน้าแรก · เพิ่ม/แก้ไขได้โดยผู้ดูแลระบบและเจ้าหน้าที่ทะเบียน · ลบได้เฉพาะผู้ดูแลระบบ</p>
+
+    <div class="panel">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+        <button class="btn small" onclick="showAddForm()">+ เพิ่มสมาชิกกิตติมศักดิ์</button>
+        <input type="text" id="searchBox" placeholder="ค้นหาชื่อ / เลขทะเบียน / หน่วยงาน" oninput="renderRows()" style="max-width:280px">
+        <select id="filterStatus" onchange="renderRows()" style="max-width:180px">
+          <option value="">ทุกสถานะ</option><option>ดำรงสถานะ</option><option>สิ้นสุดสถานะ</option>
+        </select>
+        <span id="countInfo" style="color:var(--muted); font-size:13px"></span>
+      </div>
+
+      <div id="hForm" class="panel" style="display:none; background:var(--paper); margin-top:12px">
+        <h2 id="hFormTitle">เพิ่มสมาชิกกิตติมศักดิ์</h2>
+        <div class="error-box" id="hFormError"></div>
+        <input type="hidden" id="h_id">
+        <div class="grid-2">
+          <div><label>คำนำหน้า</label><input type="text" id="h_prefix_th" placeholder="เช่น ศาสตราจารย์ ดร."></div>
+          <div></div>
+          <div><label>ชื่อ (ไทย) *</label><input type="text" id="h_first_name_th"></div>
+          <div><label>นามสกุล (ไทย) *</label><input type="text" id="h_last_name_th"></div>
+          <div><label>ชื่อ (อังกฤษ)</label><input type="text" id="h_first_name_en"></div>
+          <div><label>นามสกุล (อังกฤษ)</label><input type="text" id="h_last_name_en"></div>
+          <div style="grid-column:1/-1"><label>คุณสมบัติ *</label><select id="h_qualification_type"></select></div>
+          <div style="grid-column:1/-1"><label>ความเชี่ยวชาญ / ผลงานเด่น</label><input type="text" id="h_expertise"></div>
+          <div><label>ตำแหน่ง</label><input type="text" id="h_position"></div>
+          <div><label>หน่วยงาน / องค์กร</label><input type="text" id="h_organization"></div>
+          <div><label>เบอร์โทรศัพท์</label><input type="text" id="h_phone"></div>
+          <div><label>อีเมล</label><input type="email" id="h_email"></div>
+          <div><label>วันที่ได้รับการแต่งตั้ง/รับรอง</label><input type="date" id="h_appointed_date"></div>
+          <div><label>วันที่สิ้นสุดสถานะ (ถ้ามี)</label><input type="date" id="h_term_end"></div>
+          <div><label>สถานะ</label><select id="h_status"><option>ดำรงสถานะ</option><option>สิ้นสุดสถานะ</option></select></div>
+          <div><label>หมายเหตุ</label><input type="text" id="h_note"></div>
+        </div>
+        <label>รูปถ่าย (ไม่บังคับ)</label>
+        <div class="detail-photo" id="hPhotoPreview" style="border-radius:8px; width:100px; height:120px">👤</div>
+        <input type="file" id="h_photo" accept=".jpg,.jpeg,.png">
+        <button class="btn small" onclick="saveHonorary()">บันทึก</button>
+        <button class="btn small secondary" onclick="hideForm()">ยกเลิก</button>
+      </div>
+
+      <table>
+        <thead><tr><th>เลขทะเบียน</th><th>ชื่อ-นามสกุล</th><th>คุณสมบัติ</th><th>ตำแหน่ง / หน่วยงาน</th><th>แต่งตั้งเมื่อ</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody id="hRows"><tr><td colspan="7" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super", "admin_staff", "admin_welfare"], "admin-login.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+const isSuper = Auth.getRole() === 'admin_super';
+const canEdit = Auth.getRole() !== 'admin_welfare';
+if (!canEdit) document.querySelector('button[onclick="showAddForm()"]').style.display = 'none';
+
+let items = [], photoUrl = '';
+const FIELDS = ['prefix_th','first_name_th','last_name_th','first_name_en','last_name_en','qualification_type','expertise','position','organization','phone','email','appointed_date','term_end','status','note'];
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
+
+function setPhoto(url, blobUrl) {
+  const src = blobUrl || (url ? toEmbeddableImageUrl(url) : '');
+  document.getElementById('hPhotoPreview').innerHTML = src ? `<img src="${src}" style="max-width:100%; max-height:100%">` : '👤';
+}
+
+function showAddForm() {
+  document.getElementById('hFormTitle').textContent = 'เพิ่มสมาชิกกิตติมศักดิ์';
+  document.getElementById('h_id').value = '';
+  FIELDS.forEach(f => { document.getElementById('h_' + f).value = ''; });
+  document.getElementById('h_status').value = 'ดำรงสถานะ';
+  photoUrl = ''; setPhoto('');
+  document.getElementById('hFormError').style.display = 'none';
+  document.getElementById('hForm').style.display = 'block';
+}
+function hideForm() { document.getElementById('hForm').style.display = 'none'; }
+
+function editH(id) {
+  const h = items.find(x => x.honorary_id === id);
+  if (!h) return;
+  document.getElementById('hFormTitle').textContent = 'แก้ไข ' + h.honorary_no;
+  document.getElementById('h_id').value = h.honorary_id;
+  FIELDS.forEach(f => {
+    const v = h[f] || '';
+    document.getElementById('h_' + f).value = (f === 'appointed_date' || f === 'term_end') ? String(v).slice(0, 10) : v;
+  });
+  photoUrl = h.photo_url || ''; setPhoto(photoUrl);
+  document.getElementById('hFormError').style.display = 'none';
+  document.getElementById('hForm').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+document.getElementById('h_photo').addEventListener('change', async (ev) => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  setPhoto('', URL.createObjectURL(file));
+  try {
+    const up = await uploadDocument(file, 'รูปถ่ายสมาชิกกิตติมศักดิ์');
+    photoUrl = up.url;
+    showToast('อัปโหลดรูปสำเร็จ', 'success');
+  } catch (err) { showToast('อัปโหลดรูปไม่สำเร็จ: ' + err.message, 'error'); }
+});
+
+async function saveHonorary() {
+  const errBox = document.getElementById('hFormError');
+  errBox.style.display = 'none';
+  const id = document.getElementById('h_id').value;
+  const payload = { photo_url: photoUrl };
+  FIELDS.forEach(f => { payload[f] = document.getElementById('h_' + f).value.trim(); });
+  try {
+    if (id) await apiCall('updateHonoraryMember', Object.assign({ honorary_id: id }, payload));
+    else await apiCall('addHonoraryMember', payload);
+    showToast('บันทึกสำเร็จ', 'success');
+    hideForm();
+    loadHonorary();
+  } catch (err) { errBox.textContent = err.message; errBox.style.display = 'block'; }
+}
+
+async function removeH(id) {
+  const h = items.find(x => x.honorary_id === id);
+  if (!(await showConfirm('ยืนยันลบ "' + (h ? h.first_name_th + ' ' + h.last_name_th : '') + '" ออกจากฐานข้อมูลสมาชิกกิตติมศักดิ์? (หากเพียงสิ้นสุดสถานะ แนะนำให้แก้สถานะแทนการลบ)'))) return;
+  try { await apiCall('deleteHonoraryMember', { honorary_id: id }); showToast('ลบสำเร็จ', 'success'); loadHonorary(); }
+  catch (err) { showToast('ลบไม่สำเร็จ: ' + err.message, 'error'); }
+}
+
+function renderRows() {
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  const st = document.getElementById('filterStatus').value;
+  const rows = items.filter(h => (!st || h.status === st) &&
+    (!q || [h.honorary_no, h.prefix_th, h.first_name_th, h.last_name_th, h.organization, h.position, h.expertise].join(' ').toLowerCase().indexOf(q) !== -1));
+  document.getElementById('countInfo').textContent = 'แสดง ' + rows.length + ' จาก ' + items.length + ' รายการ · ดำรงสถานะ ' + items.filter(h => h.status === 'ดำรงสถานะ').length + ' คน';
+  const tbody = document.getElementById('hRows');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่พบข้อมูล</td></tr>'; return; }
+  tbody.innerHTML = rows.map(h => `
+    <tr>
+      <td>${escapeHtml(h.honorary_no)}</td>
+      <td>${escapeHtml((h.prefix_th || '') + h.first_name_th + ' ' + h.last_name_th)}${h.first_name_en ? `<br><span style="color:var(--muted); font-size:12px">${escapeHtml(h.first_name_en + ' ' + (h.last_name_en || ''))}</span>` : ''}</td>
+      <td style="font-size:13px">${escapeHtml(h.qualification_type)}${h.expertise ? `<br><span style="color:var(--muted); font-size:12px">${escapeHtml(h.expertise)}</span>` : ''}</td>
+      <td style="font-size:13px">${escapeHtml(h.position) || '-'}<br><span style="color:var(--muted); font-size:12px">${escapeHtml(h.organization) || ''}</span></td>
+      <td>${fmtDate(h.appointed_date)}</td>
+      <td>${h.status === 'ดำรงสถานะ' ? '<span class="badge ok">ดำรงสถานะ</span>' : '<span class="badge">สิ้นสุดสถานะ</span>'}</td>
+      <td>
+        ${canEdit ? `<button class="btn small secondary" onclick="editH('${h.honorary_id}')">แก้ไข</button>` : ''}
+        ${isSuper ? `<button class="btn small secondary" onclick="removeH('${h.honorary_id}')">ลบ</button>` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+async function loadHonorary() {
+  try {
+    const res = await apiCall('listHonoraryMembers');
+    items = res.items;
+    const sel = document.getElementById('h_qualification_type');
+    sel.innerHTML = '<option value="">— เลือกคุณสมบัติ —</option>' + res.qualification_types.map(t => `<option>${escapeHtml(t)}</option>`).join('');
+    renderRows();
+  } catch (err) {
+    document.getElementById('hRows').innerHTML = '<tr><td colspan="7" class="empty-state">โหลดไม่สำเร็จ: ' + escapeHtml(err.message) + '</td></tr>';
+  }
+}
+loadHonorary();
+</script>
+</body>
+</html>
