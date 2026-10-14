@@ -99,6 +99,19 @@
         <tbody id="rowsResult"><tr><td colspan="5" class="empty-state">กำลังโหลด...</td></tr></tbody>
       </table>
     </div>
+
+    <div class="panel" id="paidPanel">
+      <h2>จัดการผู้สมัครที่ชำระเงินแล้ว (สอบข้อเขียน)</h2>
+      <p style="color:var(--muted); font-size:13px">ขอคืนเงิน/เปลี่ยนรอบสอบ ใช้เฉพาะกรณีพิเศษที่สภาฯ กำหนดเท่านั้น — ต้องระบุเหตุผล/เลขที่หนังสืออนุมัติทุกครั้ง และบันทึกไว้ในประวัติการใช้งาน ทำรายการได้เฉพาะผู้ที่ยังไม่ประกาศผลสอบ (คำขอคืนเงินไปอนุมัติ/ยืนยันต่อที่หน้า "คืนเงิน")</p>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px">
+        <label style="width:auto; margin:0">กรองตามรอบสอบ</label>
+        <select id="paidRoundFilter" style="width:auto" onchange="renderPaid()"></select>
+      </div>
+      <table>
+        <thead><tr><th>รหัสประจำตัวสอบ</th><th>เลขที่คำขอ</th><th>รอบสอบ</th><th>ชื่อสมาชิก</th><th>ชำระแล้ว</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody id="rowsPaid"><tr><td colspan="7" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
   </main>
 </div>
 
@@ -106,6 +119,19 @@
   <div class="overlay-card">
     <button class="overlay-close" onclick="closeDetail()">✕</button>
     <div id="detailBody"></div>
+  </div>
+</div>
+
+<div id="roundOverlay" class="overlay" style="display:none" onclick="if(event.target===this) closeRoundOverlay()">
+  <div class="overlay-card">
+    <button class="overlay-close" onclick="closeRoundOverlay()">✕</button>
+    <h2>เปลี่ยนรอบสอบ (กรณีพิเศษ)</h2>
+    <p id="roundOverlayInfo" style="font-size:13px; color:var(--muted)"></p>
+    <label>ย้ายไปรอบสอบ *</label>
+    <select id="newRoundSelect"></select>
+    <label>เหตุผล/เลขที่หนังสืออนุมัติของสภาฯ *</label>
+    <input type="text" id="roundChangeReason">
+    <button class="btn" style="width:auto; margin-top:12px" onclick="submitRoundChange()">ยืนยันเปลี่ยนรอบ</button>
   </div>
 </div>
 
@@ -136,6 +162,7 @@ function switchTab(type) {
   renderReview();
   renderPay();
   renderResult();
+  renderPaid();
   updateBulkButtons();
 }
 
@@ -175,6 +202,7 @@ function viewDetail(applicationId) {
     })()}
     ${d.subjects ? '<p><b>วิชาที่สมัครสอบ:</b> ' + d.subjects.join(', ') + '</p>' : ''}
     ${d.exam_history ? '<p><b>ประวัติการสอบ:</b> ' + (EXAM_HISTORY_LABELS_CLIENT[d.exam_history] || d.exam_history) + (d.exam_history_date ? ' (เมื่อวันที่ ' + fmtDate(d.exam_history_date) + ')' : '') + '</p>' : ''}
+    ${(d.round_changes || []).length ? '<p><b>ประวัติการเปลี่ยนรอบ:</b><br>' + d.round_changes.map(c => 'รอบ ' + c.from_round_label + ' → ' + c.to_round_label + ' (' + fmtDate(c.changed_at) + ' — ' + c.reason + ')').join('<br>') + '</p>' : ''}
     ${d.essay_category ? '<p><b>ประเภทเอกสาร:</b> ' + d.essay_category + '</p>' : ''}
     <h3>เอกสารประกอบ</h3>
     <div class="doc-grid">${docsHtml}</div>
@@ -349,10 +377,99 @@ async function recordResult(applicationId, applicantType) {
   }
 }
 
+
+// ----- จัดการผู้สมัครที่ชำระเงินแล้ว: ขอคืนเงิน / เปลี่ยนรอบสอบ (กรณีพิเศษ) -----
+let allRefunds = [];
+let allWrittenRounds = [];
+let changingAppId = null;
+
+function renderPaid() {
+  const panel = document.getElementById('paidPanel');
+  panel.style.display = currentTab === 'เขียน' ? 'block' : 'none';
+  if (currentTab !== 'เขียน') return;
+  const sel = document.getElementById('paidRoundFilter');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">ทุกรอบ</option>' + allWrittenRounds.map(r => `<option value="${r.round_id}">รอบ ${r.round_label}</option>`).join('');
+  sel.value = prev;
+  const paidMap = {};
+  allPayments.filter(pm => pm.ref_type === 'application' && ['ชำระแล้ว', 'คืนเงินแล้ว'].indexOf(pm.status) !== -1).forEach(pm => { paidMap[pm.ref_id] = pm; });
+  const rows = allApps.filter(a => a.applicant_type === 'สมัครสอบข้อเขียน' && paidMap[a.application_id] &&
+    (!sel.value || (a.round && a.round.round_id === sel.value)));
+  const tbody = document.getElementById('rowsPaid');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่มีผู้สมัครที่ชำระเงินแล้ว</td></tr>'; return; }
+  tbody.innerHTML = rows.map(a => {
+    const d = JSON.parse(a.ref_data_json || '{}');
+    const pm = paidMap[a.application_id];
+    const refund = allRefunds.find(r => r.payment_id === pm.payment_id && ['รอตรวจสอบ', 'อนุมัติ'].indexOf(r.status) !== -1);
+    const changed = (d.round_changes || []).length ? ` <span style="color:var(--muted); font-size:12px">(เปลี่ยนรอบแล้ว ${(d.round_changes || []).length} ครั้ง)</span>` : '';
+    let actions = '';
+    if (a.status === 'รอผลสอบ' && !refund) {
+      actions = `<button class="btn small secondary" onclick="openRoundChange('${a.application_id}')">เปลี่ยนรอบ</button>
+                 <button class="btn small secondary" onclick="requestRefund('${a.application_id}', ${pm.amount})">ขอคืนเงิน</button>`;
+    } else if (refund) {
+      actions = `<span style="font-size:12px; color:var(--warn)">คำขอคืนเงิน: ${refund.status}</span>`;
+    }
+    return `
+      <tr>
+        <td>${d.candidate_no || '-'}</td>
+        <td>${a.application_id}</td>
+        <td>${d.round_label || '-'}${changed}</td>
+        <td>${d.name || '-'}</td>
+        <td>${pm.amount} บาท</td>
+        <td><span class="badge ${a.status === 'รอผลสอบ' ? 'pending' : 'warn'}">${a.status}</span></td>
+        <td>${actions}</td>
+      </tr>`;
+  }).join('');
+}
+
+async function requestRefund(applicationId, amount) {
+  const reason = ((await showPrompt('ขอคืนเงินค่าสมัครสอบ (เฉพาะกรณีพิเศษที่สภาฯ กำหนด)\nระบุเหตุผล/เลขที่หนังสืออนุมัติ:')) || '').trim();
+  if (!reason) return;
+  if (!(await showConfirm('ยืนยันส่งคำขอคืนเงิน ' + amount + ' บาท ของใบสมัคร ' + applicationId + '? (ต้องไปอนุมัติ/ยืนยันต่อที่หน้า "คืนเงิน" และเมื่อคืนเงินแล้วใบสมัครจะถูกยกเลิก)'))) return;
+  try {
+    const res = await apiCall('requestExamRefund', { application_id: applicationId, reason });
+    showToast('ส่งคำขอคืนเงินแล้ว เลขที่ ' + res.refund_id + ' — กรุณาไปอนุมัติที่หน้า "คืนเงิน"', 'success');
+    loadAll();
+  } catch (err) {
+    showToast('ดำเนินการไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+function openRoundChange(applicationId) {
+  const a = allApps.find(x => x.application_id === applicationId);
+  if (!a) return;
+  const d = JSON.parse(a.ref_data_json || '{}');
+  const options = allWrittenRounds.filter(r => r.round_id !== d.round_id && r.status !== 'เสร็จสิ้น');
+  if (!options.length) { showToast('ไม่มีรอบสอบข้อเขียนอื่นที่เปิดอยู่ให้ย้าย', 'info'); return; }
+  changingAppId = applicationId;
+  document.getElementById('roundOverlayInfo').textContent = (d.name || '') + ' — ใบสมัคร ' + applicationId + ' • รอบปัจจุบัน ' + (d.round_label || '-') + ' • รหัสประจำตัวสอบ ' + (d.candidate_no || '-') + ' (จะออกรหัสใหม่ตามรอบใหม่)';
+  document.getElementById('newRoundSelect').innerHTML = options.map(r => `<option value="${r.round_id}">รอบ ${r.round_label} (${r.status})</option>`).join('');
+  document.getElementById('roundChangeReason').value = '';
+  document.getElementById('roundOverlay').style.display = 'flex';
+}
+function closeRoundOverlay() { document.getElementById('roundOverlay').style.display = 'none'; changingAppId = null; }
+
+async function submitRoundChange() {
+  const reason = document.getElementById('roundChangeReason').value.trim();
+  const newRoundId = document.getElementById('newRoundSelect').value;
+  if (!reason) { showToast('กรุณาระบุเหตุผล/เลขที่หนังสืออนุมัติ', 'error'); return; }
+  try {
+    const res = await apiCall('changeExamRound', { application_id: changingAppId, new_round_id: newRoundId, reason });
+    showToast('เปลี่ยนเป็นรอบ ' + res.round_label + ' แล้ว รหัสประจำตัวสอบใหม่ ' + res.candidate_no, 'success');
+    closeRoundOverlay();
+    loadAll();
+  } catch (err) {
+    showToast('เปลี่ยนรอบไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
 async function loadAll() {
   try {
     allApps = await apiCall('listExamApplications');
     allPayments = await apiCall('listPayments');
+    allRefunds = await apiCall('listRefunds');
+    allWrittenRounds = await apiCall('listExamRounds', { exam_type: 'เขียน' });
+    renderPaid();
     renderReview();
     renderPay();
     renderResult();
