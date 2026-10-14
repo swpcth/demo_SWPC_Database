@@ -281,6 +281,15 @@ async function loadMemberStatusDashboard() {
       renderStatusBlock('สมาชิกสามัญ', 'คน', d.ordinary, 'ordinary') +
       renderStatusBlock('นักสังคมสงเคราะห์ที่รับอนุญาต', 'คน', d.licensed, 'licensed') +
       renderStatusBlock('สมาชิกสมทบ', 'คน', d.associate, 'associate') +
+      (d.honorary ? `
+      <div class="panel member-status-block">
+        <div class="member-status-title">🏅 สมาชิกกิตติมศักดิ์ ทั้งหมด <b>${d.honorary.total.toLocaleString()}</b> คน <a href="admin-honorary.html" style="font-size:13px; font-weight:400; margin-left:8px">จัดการ →</a></div>
+        <div class="member-status-chips" style="margin-top:8px">
+          <div class="status-chip ok"><div class="n">${d.honorary.active.toLocaleString()}</div><div class="l">ดำรงสถานะ</div></div>
+          <div class="status-chip neutral"><div class="n">${d.honorary.ended.toLocaleString()}</div><div class="l">สิ้นสุดสถานะ</div></div>
+          ${Object.entries(d.honorary.byType).map(([k, v]) => `<div class="status-chip neutral" style="flex:2"><div class="n">${v.toLocaleString()}</div><div class="l">${escapeHtml(k)}</div></div>`).join('')}
+        </div>
+      </div>` : '') +
       `<div class="stat-grid">
         <div class="stat-card"><div class="num">${d.typeChangeSuccessCount.toLocaleString()}</div><div class="label">เปลี่ยนสถานะสมทบไปสามัญ (สำเร็จแล้ว)</div></div>
       </div>`;
