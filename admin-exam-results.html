@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>นำเข้าผลสอบ — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+
+      <div class="nav-group-label">สมาชิก</div>
+      <div class="nav-group">
+        <a href="admin-members.html">ข้อมูลสมาชิก</a>
+        <a href="admin-honorary.html">สมาชิกกิตติมศักดิ์</a>
+        <a href="admin-name-change.html">คำขอเปลี่ยนชื่อ-นามสกุล</a>
+        <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+        <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      </div>
+
+      <div class="nav-group-label">ใบอนุญาต</div>
+      <div class="nav-group">
+        <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+        <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+        <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
+      </div>
+
+      <div class="nav-group-label">สอบ</div>
+      <div class="nav-group">
+        <a href="admin-exam-rounds.html">จัดการรอบสอบ</a>
+        <a href="admin-exam-applications.html">คำขอสมัครสอบ</a>
+        <a href="admin-exam-results.html" class="active">นำเข้า/ดูผลสอบ</a>
+      </div>
+
+      <div class="nav-group-label">การเงิน</div>
+      <div class="nav-group">
+        <a href="admin-payments.html">การชำระเงิน</a>
+        <a href="admin-refunds.html">คืนเงิน</a>
+        <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
+      </div>
+
+      <div class="nav-group-label">สวัสดิการและรายงาน</div>
+      <div class="nav-group">
+        <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+        <a href="admin-reports.html">รายงาน</a>
+      </div>
+
+      <div class="nav-group-label">ระบบ</div>
+      <div class="nav-group">
+        <a href="admin-users.html">ผู้ใช้งานระบบ</a>
+        <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
+        <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
+        <a href="admin-notifications.html">ประวัติการแจ้งเตือน</a>
+      </div>
+
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>นำเข้า / ดูผลสอบ</h1></header>
+    <p style="color:var(--muted); font-size:13px">นำเข้าคะแนนสอบข้อเขียน (ร้อยละ) และผลสอบสัมภาษณ์ทีละหลายคนจากไฟล์ CSV — ระบบคำนวณผลสอบข้อเขียนตามเกณฑ์ประกาศสภาฯ ให้อัตโนมัติ: <b>(1)</b> แต่ละวิชาไม่น้อยกว่าร้อยละ 60 หรือ <b>(2)</b> คะแนนเฉลี่ย 2 วิชาไม่น้อยกว่าร้อยละ 65 และแต่ละวิชาไม่น้อยกว่าร้อยละ 50 · ผู้สมัครจะได้อีเมลแจ้งผล และเห็นคะแนน/พิมพ์ใบรับรองได้ในพื้นที่สมาชิก · ผลสอบข้อเขียนค้นหาสาธารณะได้ที่ <a href="exam-result.html" target="_blank">exam-result.html</a> (เชื่อมกับเว็บไซต์หลักของสภาฯ ได้)</p>
+
+    <div class="panel">
+      <div class="card-tabs">
+        <button class="tab-chip active" id="tab_เขียน" onclick="switchTab('เขียน')">สอบข้อเขียน</button>
+        <button class="tab-chip" id="tab_สัมภาษณ์" onclick="switchTab('สัมภาษณ์')">สอบสัมภาษณ์</button>
+      </div>
+      <div class="grid-2" style="margin-top:12px">
+        <div><label>รอบสอบ *</label><select id="roundSel" onchange="onRoundChange()"></select></div>
+        <div><label>&nbsp;</label>
+          <button class="btn small secondary" onclick="downloadTemplate()">ดาวน์โหลดแม่แบบ CSV (พร้อมรายชื่อผู้รอผลสอบ)</button></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>1. เตรียมข้อมูล</h2>
+      <p style="color:var(--muted); font-size:13px" id="formatHint"></p>
+      <input type="file" id="csvFile" accept=".csv,text/csv">
+      <label style="margin-top:10px">หรือวางข้อมูลจาก Excel/CSV (แถวแรกเป็นหัวคอลัมน์)</label>
+      <textarea id="csvText" rows="6" style="width:100%; font-family:monospace; font-size:13px"></textarea>
+      <label style="display:flex; align-items:center; gap:8px; width:auto; margin-top:8px"><input type="checkbox" id="overwrite" style="width:auto"> ทับผลเดิม (กรณีแก้ไขผลที่บันทึกไปแล้ว)</label>
+      <button class="btn small" style="margin-top:8px" onclick="runImport(true)">ตรวจสอบข้อมูล</button>
+    </div>
+
+    <div class="panel" id="previewPanel" style="display:none">
+      <h2>2. ตรวจสอบก่อนบันทึก</h2>
+      <p id="previewSummary" style="font-size:14px"></p>
+      <table>
+        <thead><tr><th>แถว</th><th>รหัสสอบ</th><th>ชื่อ</th><th>คะแนน</th><th>ผล</th><th>หมายเหตุ</th></tr></thead>
+        <tbody id="previewRows"></tbody>
+      </table>
+      <button class="btn" style="width:auto; margin-top:12px" id="commitBtn" onclick="runImport(false)">ยืนยันบันทึกและส่งอีเมลแจ้งผล</button>
+    </div>
+
+    <div class="panel">
+      <h2>ผลสอบที่บันทึกแล้ว</h2>
+      <table>
+        <thead><tr><th>รหัสสอบ</th><th>ชื่อ</th><th>วันที่สอบ</th><th>คะแนน</th><th>ผลสอบ</th></tr></thead>
+        <tbody id="doneRows"><tr><td colspan="5" class="empty-state">เลือกรอบสอบเพื่อดูผล</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+const SUBJ = ['หลักคิด ทฤษฎีทางสังคมสงเคราะห์', 'การปฏิบัติงานสังคมสงเคราะห์'];
+let examType = 'เขียน', rounds = [], waiting = [];
+
+// หัวคอลัมน์ที่รับได้ (ไทย/อังกฤษ) → คีย์ภายใน
+const HEADER_MAP = {
+  'รหัสประจำตัวสอบ': 'candidate_no', 'เลขที่นั่งสอบ': 'candidate_no', 'candidate_no': 'candidate_no',
+  'เลขบัตรประชาชน': 'national_id', 'เลขบัตรประจำตัวประชาชน': 'national_id', 'national_id': 'national_id',
+  'เลขที่ใบสมัคร': 'application_id', 'application_id': 'application_id',
+  'คะแนนทฤษฎี': 'tp', 'คะแนนทฤษฎี(tp)': 'tp', 'tp': 'tp', 'คะแนนวิชาที่1': 'tp',
+  'คะแนนปฏิบัติ': 'pp', 'คะแนนปฏิบัติ(pp)': 'pp', 'pp': 'pp', 'คะแนนวิชาที่2': 'pp',
+  'ผลสอบ': 'result', 'ผล': 'result', 'result': 'result',
+  'วันที่สอบ': 'exam_date', 'exam_date': 'exam_date',
+  'คะแนนสัมภาษณ์': 'score', 'score': 'score',
+  'หมายเหตุ': 'note', 'note': 'note'
+};
+
+function parseCsv(text) {
+  text = text.replace(/^\uFEFF/, '');
+  const delim = (text.split('\n')[0].indexOf('\t') !== -1) ? '\t' : ',';
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === delim) { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cur); cur = ''; if (row.some(x => x.trim() !== '')) rows.push(row); row = []; }
+    else cur += c;
+  }
+  row.push(cur); if (row.some(x => x.trim() !== '')) rows.push(row);
+  return rows;
+}
+
+function normDate(v) {
+  v = String(v || '').trim(); if (!v) return '';
+  let m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) { let y = +m[1]; if (y > 2400) y -= 543; return y + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2); }
+  m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) { let y = +m[3]; if (y > 2400) y -= 543; return y + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2); }
+  return v;
+}
+
+function toRows(text) {
+  const grid = parseCsv(text);
+  if (grid.length < 2) throw new Error('ไม่พบข้อมูล (ต้องมีหัวคอลัมน์ 1 แถว และข้อมูลอย่างน้อย 1 แถว)');
+  const keys = grid[0].map(h => HEADER_MAP[h.replace(/\s+/g, '').toLowerCase()] || null);
+  if (!keys.some(k => k === 'candidate_no' || k === 'national_id' || k === 'application_id')) throw new Error('ไม่พบคอลัมน์ รหัสประจำตัวสอบ / เลขบัตรประชาชน');
+  return grid.slice(1).map(r => {
+    const o = {};
+    keys.forEach((k, i) => { if (k) o[k] = (r[i] || '').trim(); });
+    if (o.exam_date) o.exam_date = normDate(o.exam_date);
+    if (o.result) o.result = o.result.replace(/\s+/g, '');
+    return o;
+  });
+}
+
+function switchTab(t) {
+  examType = t;
+  document.getElementById('tab_เขียน').classList.toggle('active', t === 'เขียน');
+  document.getElementById('tab_สัมภาษณ์').classList.toggle('active', t === 'สัมภาษณ์');
+  document.getElementById('previewPanel').style.display = 'none';
+  document.getElementById('formatHint').innerHTML = t === 'เขียน'
+    ? 'คอลัมน์: <b>รหัสประจำตัวสอบ</b> (หรือ เลขบัตรประชาชน) · <b>คะแนนทฤษฎี</b> (วิชาที่ 1) · <b>คะแนนปฏิบัติ</b> (วิชาที่ 2) · ผลสอบ (ไม่ต้องกรอก ระบบคำนวณให้ — กรอก "ผ่าน"/"ไม่ผ่าน" เฉพาะกรณีสภาฯ กำหนดเอง) · วันที่สอบ (ไม่บังคับ ใช้วันที่ของรอบสอบ) — ผู้สมัครวิชาเดียวเว้นคะแนนอีกวิชาว่างได้'
+    : 'คอลัมน์: <b>รหัสประจำตัวสอบ</b> (หรือ เลขบัตรประชาชน) · <b>ผลสอบ</b> (ผ่าน/ไม่ผ่าน) · คะแนนสัมภาษณ์ (ไม่บังคับ) · หมายเหตุ (ไม่บังคับ) · วันที่สอบ (ไม่บังคับ)';
+  loadRounds();
+}
+
+async function loadRounds() {
+  try {
+    rounds = await apiCall('listExamRounds', { exam_type: examType });
+    const sel = document.getElementById('roundSel');
+    sel.innerHTML = rounds.map(r => `<option value="${r.round_id}">รอบ ${escapeHtml(r.round_label)} — สอบ ${r.exam_date ? new Date(r.exam_date).toLocaleDateString('th-TH') : '-'}</option>`).join('') || '<option value="">ไม่มีรอบสอบ</option>';
+    onRoundChange();
+  } catch (err) { showToast('โหลดรอบสอบไม่สำเร็จ: ' + err.message, 'error'); }
+}
+
+async function onRoundChange() {
+  document.getElementById('previewPanel').style.display = 'none';
+  const rid = document.getElementById('roundSel').value;
+  const tbody = document.getElementById('doneRows');
+  if (!rid) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">ไม่มีรอบสอบ</td></tr>'; return; }
+  try {
+    const [done, apps] = await Promise.all([
+      apiCall('listExamResults', { exam_type: examType, round_id: rid }),
+      apiCall('listExamApplications', { applicant_type: examType === 'เขียน' ? 'สมัครสอบข้อเขียน' : 'สมัครสอบสัมภาษณ์', status: 'รอผลสอบ' })
+    ]);
+    waiting = (apps || []).filter(a => a.status === 'รอผลสอบ').map(a => ({ a, d: JSON.parse(a.ref_data_json || '{}') })).filter(x => x.d.round_id === rid);
+    tbody.innerHTML = done.map(r => {
+      const er = r.exam_result || {};
+      const sc = er.scores ? Object.keys(er.scores).map(k => (k === SUBJ[0] ? 'ทฤษฎี ' : 'ปฏิบัติ ') + er.scores[k] + ' (' + (er.subject_results[k]) + ')').join(' · ') : (er.score !== undefined && er.score !== null && !isNaN(er.score) ? 'สัมภาษณ์ ' + er.score : '-');
+      return `<tr><td>${escapeHtml(r.candidate_no) || '-'}</td><td>${escapeHtml(r.name)}</td><td>${er.exam_date ? new Date(er.exam_date).toLocaleDateString('th-TH') : '-'}</td><td style="font-size:13px">${sc}</td><td><span class="badge ${r.status === 'สอบผ่าน' ? 'ok' : 'warn'}">${er.result || r.status}</span></td></tr>`;
+    }).join('') || '<tr><td colspan="5" class="empty-state">ยังไม่มีผลสอบที่บันทึกในรอบนี้</td></tr>';
+  } catch (err) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">โหลดไม่สำเร็จ: ' + escapeHtml(err.message) + '</td></tr>'; }
+}
+
+function downloadTemplate() {
+  const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+  let head, lines;
+  if (examType === 'เขียน') {
+    head = ['รหัสประจำตัวสอบ', 'ชื่อ (อ้างอิง ไม่ถูกนำเข้า)', 'คะแนนทฤษฎี', 'คะแนนปฏิบัติ', 'ผลสอบ', 'วันที่สอบ'];
+    lines = waiting.map(x => [x.d.candidate_no || '', x.d.name || '', '', '', '', '']);
+  } else {
+    head = ['รหัสประจำตัวสอบ', 'ชื่อ (อ้างอิง ไม่ถูกนำเข้า)', 'ผลสอบ', 'คะแนนสัมภาษณ์', 'หมายเหตุ', 'วันที่สอบ'];
+    lines = waiting.map(x => [x.d.candidate_no || '', x.d.name || '', '', '', '', '']);
+  }
+  if (!lines.length) lines = [examType === 'เขียน' ? ['0001', 'ตัวอย่าง', '72', '80', '', ''] : ['0001', 'ตัวอย่าง', 'ผ่าน', '', '', '']];
+  const csv = '\uFEFF' + [head].concat(lines).map(r => r.map(q).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'exam-results-template-' + (examType === 'เขียน' ? 'written' : 'interview') + '.csv';
+  a.click();
+}
+
+document.getElementById('csvFile').addEventListener('change', async ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  document.getElementById('csvText').value = await f.text();
+});
+
+async function runImport(dry) {
+  const rid = document.getElementById('roundSel').value;
+  if (!rid) { showToast('กรุณาเลือกรอบสอบ', 'error'); return; }
+  let rows;
+  try { rows = toRows(document.getElementById('csvText').value); } catch (err) { showToast(err.message, 'error'); return; }
+  if (!dry && !(await showConfirm('ยืนยันบันทึกผลสอบและส่งอีเมลแจ้งผลให้ผู้สมัครที่ผ่านการตรวจสอบ?'))) return;
+  try {
+    const res = await apiCall('importExamResults', { exam_type: examType, round_id: rid, rows, dry_run: dry, overwrite: document.getElementById('overwrite').checked });
+    document.getElementById('previewPanel').style.display = 'block';
+    document.getElementById('previewSummary').innerHTML = (dry ? 'ตรวจสอบแล้ว: ' : 'บันทึกแล้ว: ') + 'ทั้งหมด <b>' + res.total + '</b> แถว · ' + (dry ? 'พร้อมบันทึก' : 'สำเร็จ') + ' <b style="color:var(--ok)">' + res.ok_count + '</b> · มีปัญหา <b style="color:var(--warn)">' + res.error_count + '</b>' + (dry && res.error_count ? ' (แถวที่มีปัญหาจะถูกข้าม)' : '');
+    document.getElementById('previewRows').innerHTML = res.results.map(r => `
+      <tr style="${r.ok ? '' : 'background:#fbeee7'}">
+        <td>${r.row}</td><td>${escapeHtml(r.candidate_no) || '-'}</td><td>${escapeHtml(r.name) || '-'}</td>
+        <td style="font-size:13px">${r.scores ? Object.keys(r.scores).map(k => (k === SUBJ[0] ? 'ทฤษฎี ' : (k === SUBJ[1] ? 'ปฏิบัติ ' : '')) + r.scores[k]).join(' · ') : '-'}</td>
+        <td>${r.ok ? `<span class="badge ${r.result === 'ผ่าน' ? 'ok' : 'warn'}">${r.result}</span>` : '-'}</td>
+        <td style="font-size:12px; color:${r.ok ? 'var(--muted)' : 'var(--warn)'}">${escapeHtml(r.ok ? (r.basis || r.message) : r.message)}</td>
+      </tr>`).join('');
+    document.getElementById('commitBtn').style.display = dry && res.ok_count ? 'inline-block' : 'none';
+    if (!dry) { showToast('บันทึกผลสอบแล้ว ' + res.ok_count + ' รายการ', 'success'); onRoundChange(); }
+  } catch (err) { showToast((dry ? 'ตรวจสอบไม่สำเร็จ: ' : 'บันทึกไม่สำเร็จ: ') + err.message, 'error'); }
+}
+
+switchTab('เขียน');
+</script>
+</body>
+</html>

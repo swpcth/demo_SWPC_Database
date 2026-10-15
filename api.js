@@ -426,7 +426,7 @@ function createSignaturePad(canvasId) {
 // ---------- ตรวจสอบว่า Deploy เวอร์ชันล่าสุดของ backend แล้วหรือยัง ----------
 // ต้องตรงกับ BACKEND_VERSION ใน Code.gs — อัปเดตทุกครั้งที่ส่งมอบไฟล์ Code.gs ชุดใหม่
 // ป้องกันปัญหา "อัปโหลดไฟล์เว็บแล้วแต่ลืม Deploy Apps Script ใหม่" ซึ่งทำให้ฟีเจอร์ใหม่ไม่ทำงานโดยไม่รู้ตัว
-const EXPECTED_BACKEND_VERSION = '2026-10-14-member-license-ui-v12';
+const EXPECTED_BACKEND_VERSION = '2026-10-15-exam-results-v13';
 
 async function checkBackendVersionAndWarn() {
   try {
@@ -705,4 +705,67 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initMobileNav);
 } else {
   initMobileNav();
+}
+
+
+// ---------- ใบรับรองผลสอบ (พิมพ์) — ใช้ร่วมกันหน้าสมาชิก (member-exam-apply.html) และหน้าค้นหาสาธารณะ (exam-result.html) ----------
+/** c: { kind:'เขียน'|'สัมภาษณ์', name, national_id?, round_label, exam_result:{exam_date, seat_no, scores, subject_results, result, basis, score}, signatory?, subjects? } */
+function openExamCertificate(c) {
+  const er = c.exam_result || {};
+  const fmt = iso => iso ? new Date(iso).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
+  const isWritten = (c.kind || 'เขียน') === 'เขียน';
+  const subjLabel = { 0: 'ผลสอบทฤษฎี (หลักคิด ทฤษฎีทางสังคมสงเคราะห์)', 1: 'ผลสอบปฏิบัติ (การปฏิบัติงานสังคมสงเคราะห์)' };
+  const SUBJ = ['หลักคิด ทฤษฎีทางสังคมสงเคราะห์', 'การปฏิบัติงานสังคมสงเคราะห์'];
+  let rows = '';
+  if (isWritten && er.scores) {
+    Object.keys(er.scores).forEach(k => {
+      const i = SUBJ.indexOf(k);
+      rows += `<tr><td>${escapeHtml(subjLabel[i] || k)}</td><td class="n">${escapeHtml(String(er.scores[k]))}</td><td>${escapeHtml((er.subject_results || {})[k] || '')}</td></tr>`;
+    });
+  } else if (er.score !== undefined && er.score !== null && er.score !== '' && !isNaN(er.score)) {
+    rows += `<tr><td>คะแนนสัมภาษณ์</td><td class="n">${escapeHtml(String(er.score))}</td><td></td></tr>`;
+  }
+  const logo = new URL('logo.png', location.href).href;
+  const sig = c.signatory ? `
+    <div class="sig">
+      ${c.signatory.signature_url ? `<img src="${toEmbeddableImageUrl(c.signatory.signature_url)}" style="max-height:60px">` : '<div style="height:50px"></div>'}
+      <div>(${escapeHtml(c.signatory.name_th || '')})</div>
+      <div>${escapeHtml(c.signatory.position_label || '')}</div>
+    </div>` : '';
+  const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>ใบรับรองผลสอบ</title>
+  <style>
+    @page { size: A4; margin: 12mm }
+    body { margin:0; font-family:'Noto Sans Thai','TH Sarabun New',Tahoma,sans-serif; color:#1b2a2e }
+    .frame { border:3px double #b8860b; outline:1px solid #1d5589; outline-offset:-10px; padding:34px 44px; min-height:240mm; box-sizing:border-box; text-align:center; position:relative }
+    .frame:before, .frame:after { content:'❖'; position:absolute; color:#b8860b; font-size:26px }
+    .frame:before { top:8px; left:12px } .frame:after { top:8px; right:12px }
+    h1 { font-size:22px; margin:10px 0 2px; color:#122c4d } h2 { font-size:16px; margin:0 0 22px; font-weight:400; color:#555 }
+    .line { margin:10px 0; font-size:16px }
+    table { margin:18px auto; border-collapse:collapse; width:84% } td, th { border:1px solid #9aa7b5; padding:8px 12px; font-size:15px; text-align:left }
+    th { background:#e9f0f7 } td.n { text-align:center; width:90px }
+    .result { font-size:20px; font-weight:700; margin:16px 0; color:${er.result === 'ผ่าน' ? '#2f6b4f' : '#a83228'} }
+    .basis { font-size:13px; color:#555 }
+    .sig { margin:46px 0 0 auto; width:260px; font-size:14px; text-align:center }
+    .foot { position:absolute; bottom:18px; left:0; right:0; font-size:11px; color:#777 }
+    .btn { margin:14px; padding:8px 22px; font-size:15px } @media print { .noprint { display:none } }
+  </style></head><body>
+  <div class="noprint" style="text-align:center"><button class="btn" onclick="window.print()">พิมพ์ใบรับรอง</button></div>
+  <div class="frame">
+    <img src="${logo}" width="88" alt="">
+    <h1>สภาวิชาชีพสังคมสงเคราะห์</h1>
+    <h2>Social Work Professions Council</h2>
+    <h1 style="font-size:20px">ใบรับรองผลการสอบ${isWritten ? 'ข้อเขียน' : 'สัมภาษณ์'}</h1>
+    <div class="line">วันที่สอบ <b>${fmt(er.exam_date)}</b>${c.round_label ? ' · รอบสอบ ' + escapeHtml(c.round_label) : ''}</div>
+    <div class="line">ชื่อ-นามสกุล <b>${escapeHtml(c.name || '')}</b></div>
+    ${c.national_id ? `<div class="line">เลขที่บัตรประจำตัวประชาชน <b>${escapeHtml(c.national_id)}</b></div>` : ''}
+    <div class="line">${isWritten ? 'เลขที่นั่งสอบ / รหัสประจำตัวสอบ' : 'รหัสประจำตัวสอบ'} <b>${escapeHtml(er.seat_no || '-')}</b></div>
+    ${rows ? `<table><tr><th>รายการ</th><th style="text-align:center">คะแนน</th><th>ผล</th></tr>${rows}</table>` : ''}
+    <div class="result">ผลการสอบ: ${escapeHtml(er.result || '-')}</div>
+    ${er.basis ? `<div class="basis">${escapeHtml(er.basis)}</div>` : ''}
+    ${sig}
+    <div class="foot">ออกโดยระบบสมาชิกและใบอนุญาต สภาวิชาชีพสังคมสงเคราะห์ · พิมพ์เมื่อ ${fmt(new Date().toISOString())}</div>
+  </div></body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) { showToast('เบราว์เซอร์บล็อกหน้าต่างใหม่ กรุณาอนุญาต pop-up แล้วลองอีกครั้ง', 'error'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
 }

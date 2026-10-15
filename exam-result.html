@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ดูคะแนนการสอบข้อเขียน — สภาวิชาชีพสังคมสงเคราะห์</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="public-shell public-shell-wide">
+  <div class="verify-banner">
+    <img src="logo.png" alt="ตราสภาฯ" class="logo-mark">
+    <div>
+      <div class="verify-banner-title">ดูคะแนนการสอบข้อเขียน</div>
+      <div class="verify-banner-sub">สภาวิชาชีพสังคมสงเคราะห์</div>
+    </div>
+  </div>
+
+  <div class="public-card">
+    <label>กรุณาใส่ เลขที่บัตรประจำตัวประชาชน</label>
+    <div class="search-row">
+      <input type="text" id="nid" maxlength="13" inputmode="numeric" placeholder="เลข 13 หลัก" onkeydown="if(event.key==='Enter') doSearch()">
+      <button class="btn" style="width:auto" onclick="doSearch()">ค้นหาผลสอบ</button>
+    </div>
+    <div id="results" style="margin-top:18px"></div>
+    <p class="disclaimer">ระบบแสดงเฉพาะผลสอบที่สภาฯ ประกาศแล้ว และแสดงนามสกุลเพียงบางส่วนเพื่อคุ้มครองข้อมูลส่วนบุคคล — สมาชิกสามารถดูคะแนนและพิมพ์ใบรับรองผลสอบฉบับเต็มได้ในพื้นที่สมาชิกหลังเข้าสู่ระบบ</p>
+    <p class="back-link"><a href="index.html">← กลับหน้าหลัก</a></p>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+let lastResults = [];
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'; }
+
+async function doSearch() {
+  const nid = document.getElementById('nid').value.replace(/\D/g, '');
+  const box = document.getElementById('results');
+  if (nid.length !== 13) { box.innerHTML = '<div class="error-box" style="display:block">กรุณากรอกเลขบัตรประจำตัวประชาชน 13 หลัก</div>'; return; }
+  box.innerHTML = '<p class="empty-state">กำลังค้นหา...</p>';
+  try {
+    const res = await apiCall('publicExamResult', { national_id: nid });
+    lastResults = res.results || [];
+    if (!lastResults.length) { box.innerHTML = '<p class="empty-state">ไม่พบผลการสอบข้อเขียนของเลขบัตรประจำตัวประชาชนนี้</p>'; return; }
+    box.innerHTML = '<h3 style="text-align:center">ผลการค้นหา</h3>' + lastResults.map((r, i) => `
+      <div class="panel" style="margin-bottom:12px">
+        <div style="font-weight:700; margin-bottom:8px">การสอบข้อเขียน ${escapeHtml(r.name)}</div>
+        <table>
+          <thead><tr><th>วันที่สอบ</th><th>เลขที่นั่งสอบ</th><th>ผลสอบทฤษฎี (TP)</th><th>ผลสอบปฏิบัติ (PP)</th><th>สรุปผล</th><th></th></tr></thead>
+          <tbody><tr>
+            <td>${fmtDate(r.exam_date)}</td><td>${escapeHtml(r.seat_no || '-')}</td>
+            ${(res.subjects || []).map(s => r.scores && r.scores[s] !== undefined ? `<td>${escapeHtml(String(r.scores[s]))} ${escapeHtml(r.subject_results[s] || '')}</td>` : '<td>-</td>').join('')}
+            <td><span class="badge ${r.result === 'ผ่าน' ? 'ok' : 'warn'}">${escapeHtml(r.result)}</span></td>
+            <td><button class="btn small secondary" onclick="printOne(${i})">พิมพ์ผลสอบ</button></td>
+          </tr></tbody>
+        </table>
+      </div>`).join('');
+  } catch (err) { box.innerHTML = '<div class="error-box" style="display:block">' + escapeHtml(err.message) + '</div>'; }
+}
+
+function printOne(i) {
+  const r = lastResults[i];
+  openExamCertificate({ kind: 'เขียน', name: r.name, round_label: r.round_label,
+    exam_result: { exam_date: r.exam_date, seat_no: r.seat_no, scores: r.scores, subject_results: r.subject_results, result: r.result } });
+}
+</script>
+</body>
+</html>

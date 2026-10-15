@@ -80,7 +80,7 @@
       </form>
 
       <p class="portal-switch">เจ้าหน้าที่สภาวิชาชีพฯ? <a href="admin-login.html">เข้าสู่ระบบที่นี่</a></p>
-      <p class="portal-switch">ต้องการตรวจสอบสถานะสมาชิก/ใบอนุญาต? <a href="public-search.html">ค้นหาที่นี่</a> (ไม่ต้องเข้าสู่ระบบ)</p>
+      <p class="portal-switch">ต้องการตรวจสอบสถานะสมาชิก/ใบอนุญาต? <a href="public-search.html">ค้นหาที่นี่</a> · ดูคะแนนสอบข้อเขียน? <a href="exam-result.html">ค้นหาผลสอบ</a> (ไม่ต้องเข้าสู่ระบบ)</p>
     </div>
   </div>
 </div>
@@ -190,7 +190,7 @@ async function loadPublicStatsWidget() {
     document.getElementById('publicStatsWidget').innerHTML = `
       <div class="stats-widget-total">สมาชิกทั้งหมด <b>${s.totalMembers.toLocaleString()}</b></div>
       <div class="stats-widget-breakdown">${parts.join(' · ')}</div>
-      <div class="stats-widget-licensed">นักสังคมสงเคราะห์รับอนุญาต (สค.ร.) <b>${(s.licensedCount || 0).toLocaleString()}</b> คน</div>
+      <div class="stats-widget-licensed">นักสังคมสงเคราะห์รับอนุญาต (สค.ร. / LSW) <b>${(s.licensedCount || 0).toLocaleString()}</b> คน</div>
     `;
   } catch (err) { /* ไม่ต้องแสดง error ให้ผู้ใช้เห็น เป็นแค่ widget เสริม */ }
 }

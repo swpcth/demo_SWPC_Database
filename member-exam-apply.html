@@ -431,7 +431,7 @@ function renderMyApps() {
         <span class="badge ${statusBadgeClass(a.status)}">${a.status}</span>
         ${a.status === 'รอตรวจสอบ' ? `<div style="margin-top:6px"><button class="btn small secondary" onclick="startEdit('${a.application_id}')">แก้ไขใบสมัคร</button></div>` : ''}
         ${a.status === 'ไม่อนุมัติ' && a.reject_reason ? '<p style="color:var(--warn); font-size:13px">เหตุผลที่ไม่อนุมัติ: ' + a.reject_reason + '</p>' : ''}
-        ${d.subject_results ? '<p style="font-size:13px">' + Object.keys(d.subject_results).map(k => k + ': ' + d.subject_results[k]).join(' • ') + '</p>' : ''}
+        ${d.exam_result ? renderExamResultBlock(a, d) : (d.subject_results ? '<p style="font-size:13px">' + Object.keys(d.subject_results).map(k => k + ': ' + d.subject_results[k]).join(' • ') + '</p>' : '')}
         ${docs.length ? `<div style="margin-top:8px">${docs.map(doc => `<div class="doc-item"><span>${doc.doc_type || doc.name}</span><a href="${doc.url}" target="_blank">ดูเอกสาร</a></div>`).join('')}</div>` : ''}
         ${a.status === 'รอชำระเงิน' ? renderPaySlipForm(a) : ''}
       </div>`;
@@ -454,6 +454,30 @@ async function loadAll() {
 
 loadAll();
 applyMemberNavVisibility();
+
+function renderExamResultBlock(a, d) {
+  const er = d.exam_result;
+  const SUBJ0 = 'หลักคิด ทฤษฎีทางสังคมสงเคราะห์';
+  let scoreHtml = '';
+  if (er.scores) {
+    scoreHtml = Object.keys(er.scores).map(k => '<tr><td>' + (k === SUBJ0 ? 'ผลสอบทฤษฎี' : 'ผลสอบปฏิบัติ') + ' <span style="color:var(--muted); font-size:12px">(' + escapeHtml(k) + ')</span></td><td style="text-align:center"><b>' + escapeHtml(String(er.scores[k])) + '</b></td><td>' + escapeHtml((er.subject_results || {})[k] || '') + '</td></tr>').join('');
+  } else if (er.score !== undefined && er.score !== null && er.score !== '' && !isNaN(er.score)) {
+    scoreHtml = '<tr><td>คะแนนสัมภาษณ์</td><td style="text-align:center"><b>' + escapeHtml(String(er.score)) + '</b></td><td></td></tr>';
+  }
+  return `<div style="margin-top:10px; padding:12px; background:${er.result === 'ผ่าน' ? '#e5efe8' : '#fbeee7'}; border-radius:6px">
+    <div style="font-weight:700">ผลการสอบ: ${escapeHtml(er.result)}${er.exam_date ? ' <span style="font-weight:400; font-size:13px">• วันที่สอบ ' + fmtDate(er.exam_date) + '</span>' : ''}</div>
+    ${scoreHtml ? '<table style="margin-top:8px; font-size:13px"><thead><tr><th>รายการ</th><th style="text-align:center; width:80px">คะแนน</th><th style="width:90px">ผล</th></tr></thead><tbody>' + scoreHtml + '</tbody></table>' : ''}
+    ${er.basis ? '<div style="font-size:12px; color:var(--muted); margin-top:6px">' + escapeHtml(er.basis) + '</div>' : ''}
+    <button class="btn small" style="margin-top:8px" onclick="printCertificate('${a.application_id}')">พิมพ์ใบรับรองผลสอบ</button>
+  </div>`;
+}
+
+async function printCertificate(applicationId) {
+  try {
+    const c = await apiCall('getExamCertificate', { application_id: applicationId });
+    openExamCertificate(c);
+  } catch (err) { showToast('เปิดใบรับรองไม่สำเร็จ: ' + err.message, 'error'); }
+}
 </script>
 </body>
 </html>
