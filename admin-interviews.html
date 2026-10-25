@@ -233,7 +233,7 @@ function curRound() { return data && data.round; }
 
 async function loadRounds() {
   try {
-    rounds = await apiCall('listExamRounds', { exam_type: 'สัมภาษณ์' });
+    rounds = (await apiCall('listExamRounds', { exam_type: 'สัมภาษณ์' })).filter(r => r.status !== 'เสร็จสิ้น'); // ซ่อนรอบที่เสร็จสิ้นแล้ว
     const sel = document.getElementById('roundSel');
     sel.innerHTML = rounds.map(r => `<option value="${esc(r.round_id)}">รอบ ${esc(r.round_label)} — สอบ ${r.exam_date ? fmtD(r.exam_date) : 'ยังไม่กำหนด'} (${esc(r.status)})</option>`).join('') || '<option value="">ไม่มีรอบสอบสัมภาษณ์</option>';
     try { const saved = sessionStorage.getItem('ivRound'); if (saved && rounds.some(r => r.round_id === saved)) sel.value = saved; } catch (e) {}
