@@ -115,6 +115,19 @@
       <div class="stat-grid" id="opStats"></div>
 
       <div class="panel">
+        <h2>การสอบข้อเขียนและสอบสัมภาษณ์</h2>
+        <div class="scroll-x"><table id="tbl-exam">
+          <thead><tr><th>ประเภทสอบ</th><th>ผู้สมัครทั้งหมด</th><th>รอตรวจสอบ/ชำระเงิน</th><th>รอผลสอบ</th><th>สอบผ่าน</th><th>สอบไม่ผ่าน</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <p style="font-size:13px; color:var(--muted); margin:10px 0 4px"><b>รอบสอบที่ยังไม่เสร็จสิ้น</b> · ดูรายละเอียดเพิ่มที่ <a href="admin-reports.html">รายงาน หมวด "อื่นๆ"</a></p>
+        <div class="scroll-x"><table id="tbl-exam-rounds">
+          <thead><tr><th>ประเภท</th><th>รอบ</th><th>วันสอบ</th><th>สถานะรอบ</th><th>ผู้สมัคร</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+
+      <div class="panel">
         <h2>คำขอรับสวัสดิการที่รอดำเนินการ แยกตามประเภท</h2>
         <table id="tbl-welfare-pending"><tbody></tbody></table>
       </div>
@@ -210,6 +223,13 @@ async function loadOperational() {
       <div class="stat-card"><div class="num">${o.licenseExpiring180}</div><div class="label">ใบอนุญาตจะหมดอายุใน 180 วัน</div></div>
       <div class="stat-card" style="cursor:pointer" onclick="location.href='admin-name-change.html'"><div class="num">${o.nameChangePending}</div><div class="label">คำขอเปลี่ยนชื่อ-นามสกุลรออนุมัติ</div></div>
     `;
+
+    const exs = o.examSummary || {};
+    document.querySelector('#tbl-exam tbody').innerHTML = Object.keys(exs).map(t => { const v = exs[t];
+      return `<tr><td>${t}</td><td>${v.total}</td><td>${v.pendingReview}</td><td>${v.awaitingResult}</td><td>${v.passed}</td><td>${v.failed}</td></tr>`; }).join('') || '<tr><td colspan="6" class="empty-state">ไม่มีข้อมูล</td></tr>';
+    const fd = d => d ? new Date(d).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+    document.querySelector('#tbl-exam-rounds tbody').innerHTML = (o.examOpenRounds || []).map(r =>
+      `<tr><td>${r.exam_type}</td><td>${r.round_label}</td><td>${fd(r.exam_date)}</td><td>${r.status}</td><td>${r.applicants}</td></tr>`).join('') || '<tr><td colspan="5" class="empty-state">ไม่มีรอบสอบที่เปิดอยู่</td></tr>';
 
     const welfareRows = Object.entries(o.welfarePendingByType).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
     document.querySelector('#tbl-welfare-pending tbody').innerHTML = welfareRows || '<tr><td class="empty-state">ไม่มีคำขอรอดำเนินการ</td></tr>';
