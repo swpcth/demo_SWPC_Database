@@ -136,12 +136,14 @@
             <div><label>ชื่อกรรมการท่านที่ 2</label><input type="text" id="gf_inv2"></div>
           </div>
           <div style="margin-top:8px"><label>ช่วงเวลาของกลุ่ม (ไม่บังคับ)</label><input type="text" id="gf_time" placeholder="เช่น 09.30 - 11.00 น."></div>
-          <p style="font-size:12px; color:var(--muted); margin:8px 0">เมื่อสร้างกลุ่ม ระบบจะสุ่ม "รหัสเข้าใช้" ให้กรรมการแต่ละท่านโดยอัตโนมัติ (สุ่มใหม่ได้ภายหลัง — รหัสเดิมจะใช้ไม่ได้ทันที)</p>
+          <div style="margin-top:8px"><label>รหัสผ่านของกลุ่ม (กรรมการ 2 ท่านใช้ร่วมกัน)</label><input type="text" id="gf_pw" autocomplete="off" placeholder="อย่างน้อย 4 ตัวอักษร"></div>
+          <label style="display:flex; align-items:center; gap:6px; width:auto; margin:6px 0 0" id="gf_clear_wrap"><input type="checkbox" id="gf_clear" style="width:auto"> ล้างรหัสผ่าน (กรรมการเข้าได้โดยไม่ต้องใส่รหัส)</label>
+          <p style="font-size:12px; color:var(--muted); margin:8px 0" id="gf_pw_hint">กรรมการเข้าระบบโดย เลือกรอบ → เลือกกลุ่ม → เลือกกรรมการ 1 หรือ 2 แล้วใส่รหัสผ่านกลุ่ม · เว้นว่างไว้เพื่อคงรหัสเดิม (รหัสถูกเก็บแบบเข้ารหัส แอดมินดูย้อนหลังไม่ได้ — ตั้งใหม่ได้ และเซสชันเดิมของกรรมการจะหมดอายุทันที)</p>
           <button class="btn small" style="width:auto" onclick="saveGroup()">บันทึกกลุ่ม</button>
           <button class="btn small secondary" style="width:auto" onclick="document.getElementById('groupForm').style.display='none'">ยกเลิก</button>
         </div>
         <div class="scroll-x"><table>
-          <thead><tr><th>กลุ่ม</th><th>เวลา</th><th>กรรมการท่านที่ 1</th><th>กรรมการท่านที่ 2</th><th>ผู้เข้าสอบ</th><th></th></tr></thead>
+          <thead><tr><th>กลุ่ม</th><th>เวลา</th><th>กรรมการท่านที่ 1</th><th>กรรมการท่านที่ 2</th><th>รหัสผ่าน</th><th>ผู้เข้าสอบ</th><th></th></tr></thead>
           <tbody id="groupRows"></tbody>
         </table></div>
       </div>
@@ -186,17 +188,27 @@
       <!-- 4. พิมพ์ -->
       <div id="pane_print" style="display:none; margin-top:14px">
         <h2 style="margin-top:0">พิมพ์/ส่งออก</h2>
-        <div style="display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
-          <div class="stat-card"><b>ใบแจ้งรหัสเข้าใช้ของกรรมการ</b><div class="label">กระดาษแผ่นเล็กต่อกรรมการ 1 ท่าน — ชื่อ กลุ่ม ลิงก์ และรหัสเข้าใช้ (ส่งให้กรรมการก่อนวันสอบ)</div><button class="btn small" style="width:auto; margin-top:10px" onclick="printCodes()">พิมพ์ใบแจ้งรหัส</button></div>
-          <div class="stat-card"><b>ตารางให้คะแนนกรรมการ (กระดาษ)</b><div class="label">ตารางเปล่าต่อกรรมการ 1 ท่าน กรรมการจดคะแนนลงกระดาษ แล้วกรอกเข้าระบบทีหลังได้</div><button class="btn small" style="width:auto; margin-top:10px" onclick="printScoreSheets()">พิมพ์ตารางให้คะแนน</button></div>
-          <div class="stat-card"><b>สรุปผลการประเมินภาพรวม</b><div class="label">คะแนนกรรมการ 2 ท่าน คะแนนเฉลี่ย และผลการประเมิน ทั้งรอบ</div><button class="btn small" style="width:auto; margin-top:10px" onclick="printSummary()">พิมพ์สรุปผล</button> <button class="btn small secondary" style="width:auto; margin-top:10px" onclick="exportCsv()">ส่งออก CSV</button></div>
+        <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; background:#f7f5ec; border:1px solid var(--line); border-radius:4px; padding:12px 14px; margin-bottom:14px">
+          <div><label>เลือกกลุ่ม</label><select id="prGroup" onchange="renderPrint()"></select></div>
+          <div style="flex:1; min-width:180px"><label>ค้นหาชื่อ</label><input type="text" id="prSearch" oninput="renderPrint()" placeholder="ค้นหาชื่อ-สกุล"></div>
+          <button class="btn small" style="width:auto" id="prBtn1" onclick="printSheet('inv1')">พิมพ์ ก.1</button>
+          <button class="btn small" style="width:auto" id="prBtn2" onclick="printSheet('inv2')">พิมพ์ ก.2</button>
+          <button class="btn small secondary" style="width:auto" id="prBtnSum" onclick="printSummary()">พิมพ์สรุปกลุ่ม</button>
+          <button class="btn small secondary" style="width:auto" onclick="printSummary(true)">พิมพ์สรุปผลภาพรวม</button>
+          <button class="btn small secondary" style="width:auto" onclick="exportCsv()">ส่งออก CSV</button>
         </div>
+        <p style="font-size:12px; color:var(--muted)">ตารางให้คะแนน (ก.1/ก.2) พิมพ์ได้ทั้งแบบเปล่าและแบบมีคะแนน ส่งออกเป็น Word ได้ · สรุปผลส่งออกเป็น Excel ได้ (ปุ่มอยู่ในหน้าตัวอย่างพิมพ์)</p>
+        <div class="scroll-x"><table>
+          <thead><tr><th>กลุ่ม</th><th>เวลา</th><th class="l">ชื่อ-สกุล</th><th>ก.1</th><th>ก.2</th><th>เฉลี่ย</th><th>ผล</th></tr></thead>
+          <tbody id="prRows"></tbody>
+        </table></div>
       </div>
     </div>
   </main>
 </div>
 
 <script src="api.js"></script>
+<script src="interview-print.js"></script>
 <script>
 Auth.requireRole(["admin_super", "admin_staff"], "admin-login.html");
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
@@ -240,7 +252,7 @@ async function loadSession() {
   } catch (err) { showToast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'error'); }
 }
 
-function renderAll() { renderSession(); renderStats(); renderGroups(); renderCands(); renderScores(); }
+function renderAll() { renderSession(); renderStats(); renderGroups(); renderCands(); renderScores(); renderPrint(); }
 
 function renderSession() {
   const badge = document.getElementById('closedBadge'), btn = document.getElementById('toggleCloseBtn');
@@ -285,21 +297,17 @@ function switchTab(t) {
 }
 
 // ---------- 1. กลุ่ม ----------
-function codePill(g, slot) {
-  const code = g[slot + '_code'];
-  return `<span class="code-pill">${esc(code)}<button title="คัดลอกรหัส" onclick="copyText('${esc(code)}','คัดลอกรหัสแล้ว')">⧉</button><button title="สุ่มรหัสใหม่" onclick="regenCode('${esc(g.group_id)}','${slot}')">↻</button></span>`;
-}
-
 function renderGroups() {
   const tb = document.getElementById('groupRows');
-  if (!data) { tb.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่มีรอบสอบสัมภาษณ์</td></tr>'; return; }
+  if (!data) { tb.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่มีรอบสอบสัมภาษณ์</td></tr>'; return; }
   tb.innerHTML = data.groups.map(g => `<tr>
     <td><b>กลุ่ม ${g.group_no}</b></td><td>${esc(g.time_range) || '-'}</td>
-    <td>${g.inv1_name ? esc(g.inv1_name) : '<i style="color:var(--muted)">ยังไม่ระบุชื่อ</i>'}<br>${codePill(g, 'inv1')}</td>
-    <td>${g.inv2_name ? esc(g.inv2_name) : '<i style="color:var(--muted)">ยังไม่ระบุชื่อ</i>'}<br>${codePill(g, 'inv2')}</td>
+    <td>${g.inv1_name ? esc(g.inv1_name) : '<i style="color:var(--muted)">ยังไม่ระบุชื่อ</i>'}</td>
+    <td>${g.inv2_name ? esc(g.inv2_name) : '<i style="color:var(--muted)">ยังไม่ระบุชื่อ</i>'}</td>
+    <td>${g.has_password ? '<span class="badge ok">ตั้งรหัสผ่านแล้ว</span>' : '<span class="badge pending">ไม่มีรหัสผ่าน</span>'}</td>
     <td>${g.candidates.length} คน</td>
     <td style="white-space:nowrap"><button class="btn small secondary" onclick="openGroupForm('${esc(g.group_id)}')">แก้ไข</button> <button class="btn small secondary" onclick="deleteGroup('${esc(g.group_id)}')">ลบ</button></td>
-  </tr>`).join('') || '<tr><td colspan="6" class="empty-state">ยังไม่มีกลุ่มสอบ — กด "+ เพิ่มกลุ่มสอบ"</td></tr>';
+  </tr>`).join('') || '<tr><td colspan="7" class="empty-state">ยังไม่มีกลุ่มสอบ — กด "+ เพิ่มกลุ่มสอบ"</td></tr>';
 }
 
 function openGroupForm(gid) {
@@ -308,6 +316,8 @@ function openGroupForm(gid) {
   document.getElementById('gf_inv1').value = g ? g.inv1_name : '';
   document.getElementById('gf_inv2').value = g ? g.inv2_name : '';
   document.getElementById('gf_time').value = g ? g.time_range : '';
+  document.getElementById('gf_pw').value = ''; document.getElementById('gf_clear').checked = false;
+  document.getElementById('gf_clear_wrap').style.display = g && g.has_password ? 'flex' : 'none';
   document.getElementById('groupForm').style.display = 'block';
   document.getElementById('gf_inv1').focus();
 }
@@ -316,16 +326,12 @@ async function saveGroup() {
   try {
     await apiCall('saveInterviewGroup', {
       round_id: roundId(), group_id: document.getElementById('gf_id').value || undefined,
-      inv1_name: document.getElementById('gf_inv1').value, inv2_name: document.getElementById('gf_inv2').value, time_range: document.getElementById('gf_time').value
+      inv1_name: document.getElementById('gf_inv1').value, inv2_name: document.getElementById('gf_inv2').value, time_range: document.getElementById('gf_time').value,
+      password: document.getElementById('gf_pw').value || undefined, clear_password: document.getElementById('gf_clear').checked || undefined
     });
     document.getElementById('groupForm').style.display = 'none';
     showToast('บันทึกกลุ่มสอบแล้ว', 'success'); loadSession();
   } catch (err) { showToast(err.message, 'error'); }
-}
-
-async function regenCode(gid, slot) {
-  if (!(await showConfirm('สุ่มรหัสเข้าใช้ใหม่? รหัสเดิมและเซสชันที่กรรมการเข้าอยู่จะใช้ไม่ได้ทันที — ต้องแจ้งรหัสใหม่ให้กรรมการ'))) return;
-  try { const r = await apiCall('regenerateInterviewCode', { group_id: gid, slot: slot }); showToast('รหัสใหม่: ' + r.code, 'success'); loadSession(); } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function deleteGroup(gid) {
@@ -490,69 +496,48 @@ async function runApply(dry) {
 }
 
 // ---------- 4. พิมพ์/ส่งออก ----------
-function openPrint(title, body, landscape) {
-  const w = window.open('', '_blank');
-  if (!w) { showToast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ กรุณาอนุญาตป๊อปอัปของเว็บนี้แล้วลองใหม่', 'error'); return; }
-  w.document.write(`<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${esc(title)}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-      @page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 14mm; }
-      body { font-family: 'Sarabun','TH Sarabun New',sans-serif; font-size: 14px; color: #000; }
-      h1 { font-size: 16px; text-align: center; margin: 0 0 4px; } .sub { text-align: center; margin-bottom: 12px; line-height: 1.6; }
-      table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #000; padding: 7px 5px; text-align: center; vertical-align: middle; }
-      td.l, th.l { text-align: left; } .pb { page-break-after: always; } .pb:last-child { page-break-after: auto; }
-      .slip { border: 1.5px dashed #444; padding: 14px 18px; margin: 0 0 14px; page-break-inside: avoid; } .slip .code { font-family: monospace; font-size: 30px; letter-spacing: .25em; font-weight: 700; margin: 6px 0; }
-    </style></head><body>${body}</body></html>`);
-  w.document.close();
-  setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 800);
-}
-
-function headLines(g) {
-  const r = data.round;
-  return `<h1>ตารางให้คะแนนของกรรมการ การสอบสัมภาษณ์เพื่อประเมินทักษะและทัศนคติทางสังคมสงเคราะห์ รอบที่ ${esc(r.round_label)}</h1>
-    <div class="sub">${g ? 'กลุ่มที่ ' + g.group_no + ' · ' : ''}วันสอบ ${esc(fmtD(r.exam_date))} ${data.session.time_text ? 'เวลาสอบ ' + esc(data.session.time_text) : ''}</div>`;
-}
-
-function printScoreSheets() {
-  if (!data || !data.groups.length) { showToast('ยังไม่มีกลุ่มสอบ', 'error'); return; }
-  let html = '';
-  data.groups.forEach(g => ['inv1', 'inv2'].forEach(slot => {
-    const name = slot === 'inv1' ? g.inv1_name : g.inv2_name;
-    const blank = Array(3).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('');
-    html += `<div class="pb">${headLines(g)}<div class="sub" style="margin-top:-8px"><b>กรรมการท่านที่ ${slot === 'inv1' ? 1 : 2}:</b> ${esc(name) || '................................................'}</div>
-      <table><thead><tr><th rowspan="2" style="width:4%">ที่</th><th rowspan="2" style="width:7%">รหัสสอบ</th><th rowspan="2" class="l" style="width:20%">รายชื่อผู้สอบ</th><th rowspan="2" style="width:7%">เวลา</th><th colspan="4">เกณฑ์การพิจารณาให้คะแนน</th><th rowspan="2" style="width:8%">รวม (100)</th><th rowspan="2" style="width:16%">ข้อสังเกตจากกรรมการ</th></tr>
-      <tr>${data.criteria.map((c, i) => `<th style="font-weight:400; font-size:12px">${i + 1}. ${esc(c.label)}<br>(${c.max} คะแนน)</th>`).join('')}</tr></thead>
-      <tbody>${g.candidates.map((c, i) => `<tr><td>${i + 1}</td><td>${esc(c.candidate_no)}</td><td class="l">${esc(c.name)}</td><td>${esc(c.time_slot)}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')}${blank}</tbody></table></div>`;
-  }));
-  openPrint('ตารางให้คะแนนกรรมการ', html, true);
-}
-
-function printSummary() {
-  if (!data) return;
-  let n = 0;
+function renderPrint() {
+  const sel = document.getElementById('prGroup');
+  if (!data) { document.getElementById('prRows').innerHTML = '<tr><td colspan="7" class="empty-state">ไม่มีข้อมูล</td></tr>'; return; }
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">ทุกกลุ่ม</option>' + data.groups.map(g => `<option value="${esc(g.group_id)}">กลุ่มที่ ${g.group_no}</option>`).join('');
+  if (data.groups.find(g => g.group_id === cur)) sel.value = cur;
+  const q = document.getElementById('prSearch').value.trim().toLowerCase();
   const rows = [];
-  data.groups.forEach(g => g.candidates.forEach(c => rows.push(`<tr><td>${++n}</td><td>${g.group_no}</td><td>${esc(c.candidate_no)}</td><td class="l">${esc(c.name)}</td>
-    <td>${c.absent ? '-' : (c.s1 !== null ? c.s1 : '-')}</td><td>${c.absent ? '-' : (c.s2 !== null ? c.s2 : '-')}</td><td><b>${c.average !== null ? c.average.toFixed(2) : '-'}</b></td><td><b>${c.absent ? 'ไม่เข้าสอบ' : esc(c.status)}</b></td></tr>`)));
-  const r = data.round;
-  openPrint('สรุปผลการประเมิน', `<h1>ตารางสรุปผลการประเมินภาพรวม การสอบสัมภาษณ์เพื่อประเมินทักษะและทัศนคติทางสังคมสงเคราะห์</h1>
-    <div class="sub">รอบที่ ${esc(r.round_label)} · วันสอบ ${esc(fmtD(r.exam_date))} · เกณฑ์ผ่าน: คะแนนเฉลี่ยไม่น้อยกว่า ${data.session.pass_score} จาก 100</div>
-    <table><thead><tr><th style="width:5%">ที่</th><th style="width:7%">กลุ่ม</th><th style="width:9%">รหัสสอบ</th><th class="l">รายชื่อผู้สอบ</th><th style="width:10%">คะแนน ก.1</th><th style="width:10%">คะแนน ก.2</th><th style="width:11%">คะแนนเฉลี่ย</th><th style="width:15%">ผลการประเมิน</th></tr></thead>
-    <tbody>${rows.join('') || '<tr><td colspan="8">ไม่มีข้อมูล</td></tr>'}</tbody></table>`, false);
+  data.groups.filter(g => !sel.value || g.group_id === sel.value).forEach(g => g.candidates.forEach(c => {
+    if (q && String(c.name).toLowerCase().indexOf(q) < 0) return;
+    rows.push(`<tr><td>กลุ่ม ${g.group_no}</td><td>${esc(c.time_slot)}</td><td class="l">${esc(c.name)}</td><td>${c.absent ? '-' : (c.s1 !== null ? c.s1 : '-')}</td><td>${c.absent ? '-' : (c.s2 !== null ? c.s2 : '-')}</td><td>${c.average !== null ? c.average.toFixed(2) : '-'}</td><td>${c.absent ? 'ไม่เข้าสอบ' : esc(c.status)}</td></tr>`);
+  }));
+  document.getElementById('prRows').innerHTML = rows.join('') || '<tr><td colspan="7" class="empty-state">ไม่มีรายชื่อ</td></tr>';
+  const one = !!sel.value;
+  document.getElementById('prBtn1').disabled = !one; document.getElementById('prBtn2').disabled = !one; document.getElementById('prBtnSum').disabled = !one;
 }
 
-function printCodes() {
-  if (!data || !data.groups.length) { showToast('ยังไม่มีกลุ่มสอบ', 'error'); return; }
+function selectedGroup() {
+  const id = document.getElementById('prGroup').value;
+  return data && data.groups.find(g => g.group_id === id);
+}
+
+function printSheet(slot) {
+  const g = selectedGroup();
+  if (!g) { showToast('กรุณาเลือกกลุ่มก่อน', 'error'); return; }
   const r = data.round;
-  let html = '';
-  data.groups.forEach(g => ['inv1', 'inv2'].forEach(slot => {
-    const name = slot === 'inv1' ? g.inv1_name : g.inv2_name;
-    html += `<div class="slip"><b>สภาวิชาชีพสังคมสงเคราะห์ — ระบบให้คะแนนสอบสัมภาษณ์ (สำหรับกรรมการ)</b><br>
-      รอบสอบสัมภาษณ์ ${esc(r.round_label)} · วันสอบ ${esc(fmtD(r.exam_date))}<br>
-      กลุ่มที่ ${g.group_no} · กรรมการท่านที่ ${slot === 'inv1' ? 1 : 2}: <b>${esc(name) || '(ยังไม่ระบุชื่อ)'}</b>
-      <div class="code">${esc(g[slot + '_code'])}</div>
-      เข้าใช้งานที่: ${esc(IV_URL)}<br><span style="font-size:12px">กรอก "รหัสเข้าใช้" ด้านบนเพื่อเข้าสู่ระบบ (ไม่ต้องมีบัญชี) — รหัสนี้เป็นของท่านเท่านั้น โปรดอย่าเปิดเผยให้ผู้อื่น</span></div>`;
-  }));
-  openPrint('ใบแจ้งรหัสเข้าใช้กรรมการ', html, false);
+  ivPrint.scoreSheet({
+    round_label: r.round_label, exam_date: r.exam_date, time_text: data.session.time_text, group_no: g.group_no,
+    interviewerName: slot === 'inv1' ? g.inv1_name : g.inv2_name, slot: slot,
+    candidates: g.candidates.map(c => ({ name: c.name, absent: c.absent, score: c[slot] || null, remark: (c.remarks || {})[slot] || '' }))
+  });
+}
+
+function printSummary(all) {
+  if (!data) return;
+  const g = all ? null : selectedGroup();
+  if (!all && !g) { showToast('กรุณาเลือกกลุ่มก่อน', 'error'); return; }
+  const rows = [];
+  data.groups.filter(x => !g || x.group_id === g.group_id).forEach(x => x.candidates.forEach(c => rows.push({
+    group_no: x.group_no, name: c.name, s1: c.absent ? null : c.s1, s2: c.absent ? null : c.s2, average: c.absent ? null : c.average, status: c.absent ? 'ไม่เข้าสอบ' : c.status
+  })));
+  ivPrint.summary({ round_label: data.round.round_label, exam_date: data.round.exam_date, group: g ? g.group_no : 'ทั้งหมด', pass_score: data.session.pass_score, rows: rows });
 }
 
 function exportCsv() {

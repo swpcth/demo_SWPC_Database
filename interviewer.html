@@ -1,335 +1,408 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex,nofollow">
-<title>ระบบให้คะแนนสอบสัมภาษณ์ — สำหรับกรรมการ</title>
-<link rel="icon" href="logo.png" type="image/png">
-<link rel="stylesheet" href="style.css">
-<style>
-  body { background: var(--paper); }
-  .iv-wrap { max-width: 880px; margin: 0 auto; padding: 16px 16px 60px; }
-  .iv-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--navy-deep); }
-  .iv-login-card { background: #fff; border-radius: 8px; padding: 32px 28px; width: 100%; max-width: 420px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
-  .iv-login-card img { width: 84px; height: auto; margin-bottom: 12px; }
-  .iv-login-card h1 { font-family: var(--font-display); font-size: 21px; margin: 0 0 4px; color: var(--navy-deep); }
-  .iv-login-card p { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
-  .iv-code-input { width: 100%; text-align: center; font-size: 26px; letter-spacing: .3em; text-transform: uppercase; padding: 12px; border: 2px solid var(--line); border-radius: 6px; font-family: monospace; margin-bottom: 14px; }
-  .iv-code-input:focus { outline: none; border-color: var(--navy); }
-  .iv-note { font-size: 12px; color: var(--muted); margin-top: 14px; }
-  .iv-top { background: var(--navy-deep); color: #fff; padding: 12px 16px; position: sticky; top: 0; z-index: 20; }
-  .iv-top-inner { max-width: 880px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
-  .iv-top img { height: 36px; width: auto; background: #fff; border-radius: 4px; padding: 2px; }
-  .iv-top .who { flex: 1; min-width: 0; line-height: 1.35; }
-  .iv-top .who b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .iv-top .who span { font-size: 12px; opacity: .8; }
-  .iv-top button { background: rgba(255,255,255,.14); color: #fff; border: 0; border-radius: 4px; padding: 7px 11px; font-size: 13px; cursor: pointer; font-family: inherit; }
-  .iv-top button:hover { background: rgba(255,255,255,.26); }
-  .iv-info { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
-  .iv-chip { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 3px 12px; font-size: 13px; color: var(--ink); }
-  .iv-chip.dark { background: var(--navy-deep); color: #fff; border-color: var(--navy-deep); }
-  .iv-banner { background: #fbeee7; border: 1px solid #e8c3b4; color: var(--warn); border-radius: 6px; padding: 10px 14px; font-size: 14px; margin-bottom: 14px; }
-  .iv-progress { height: 8px; background: #e7e3d6; border-radius: 4px; overflow: hidden; margin: 6px 0 4px; }
-  .iv-progress > div { height: 100%; background: var(--ok); transition: width .3s; }
-  .iv-cand { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
-  .iv-cand.absent { background: #fbf3ef; }
-  .iv-cand .time { font-family: monospace; font-size: 15px; color: var(--navy); min-width: 56px; }
-  .iv-cand .info { flex: 1; min-width: 160px; }
-  .iv-cand .info .no { font-size: 12px; color: var(--muted); }
-  .iv-cand .info .nm { font-size: 16px; font-weight: 600; }
-  .iv-cand.absent .nm { text-decoration: line-through; color: var(--muted); }
-  .iv-cand .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .iv-btn { border: 1px solid var(--navy); background: var(--navy); color: #fff; border-radius: 6px; padding: 9px 16px; font-size: 14px; cursor: pointer; font-family: inherit; }
-  .iv-btn.light { background: #fff; color: var(--navy-deep); border-color: var(--line); }
-  .iv-btn.danger { background: #fff; color: var(--warn); border-color: #e8c3b4; }
-  .iv-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .iv-crit { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; margin-bottom: 14px; }
-  .iv-crit h3 { margin: 0 0 4px; font-size: 16px; display: flex; justify-content: space-between; gap: 8px; }
-  .iv-crit h3 .max { font-size: 13px; color: var(--navy); background: #e6eef6; padding: 2px 10px; border-radius: 6px; white-space: nowrap; }
-  .iv-crit p.hint { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
-  .iv-levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-  .iv-level { border: 2px solid var(--line); border-radius: 8px; padding: 10px 6px; text-align: center; cursor: pointer; background: #fff; font-family: inherit; }
-  .iv-level b { display: block; font-size: 15px; }
-  .iv-level span { font-size: 12px; color: var(--muted); }
-  .iv-level.sel-excellent { border-color: #2f6b4f; background: #e5efe8; }
-  .iv-level.sel-good { border-color: #c79a2b; background: #f7efd9; }
-  .iv-level.sel-fair { border-color: #c23b2e; background: #fbeee7; }
-  .iv-scorebox { display: flex; align-items: center; gap: 12px; background: #f5f4ef; border-radius: 6px; padding: 10px 12px; }
-  .iv-scorebox label { font-size: 14px; font-weight: 600; margin: 0; width: auto; }
-  .iv-scorebox input { width: 110px; font-size: 22px; text-align: center; padding: 8px; border: 1px solid var(--line); border-radius: 6px; font-weight: 700; }
-  .iv-total { background: var(--navy-deep); color: #fff; border-radius: 8px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; margin: 14px 0; }
-  .iv-total b { font-size: 30px; }
-  .iv-total span { font-size: 14px; opacity: .8; }
-  textarea.iv-remark { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 10px; font-family: inherit; font-size: 14px; min-height: 80px; }
-  @media (max-width: 560px) { .iv-cand .actions { width: 100%; } .iv-cand .actions .iv-btn { flex: 1; } }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>ระบบให้คะแนนสอบสัมภาษณ์</title>
+  <link rel="icon" href="logo.png" type="image/png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
+    .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="root"></div>
 <script src="api.js"></script>
+<script src="interview-print.js"></script>
 <script>
-// หน้านี้ใช้โดยกรรมการสอบสัมภาษณ์ — ไม่มีบัญชีผู้ใช้ ไม่เข้าระบบเจ้าหน้าที่ ใช้ "รหัสเข้าใช้" ที่เจ้าหน้าที่ออกให้เท่านั้น
+// หน้านี้ใช้โดยกรรมการสอบสัมภาษณ์ — ไม่มีบัญชีผู้ใช้ ไม่เข้าระบบเจ้าหน้าที่
+// เลือกรอบสอบ → เลือกกลุ่มสอบ → เลือกกรรมการ 1/2 → ใส่รหัสผ่านกลุ่ม (ถ้ากลุ่มตั้งรหัสผ่านไว้)
 const TOKEN_KEY = 'swc_iv_token';
-const $app = document.getElementById('app');
-let state = { token: null, ctx: null, criteria: [], candidates: [], passScore: 60, view: 'login', editing: null, refreshing: false };
+const root = document.getElementById('root');
+const S = { loading: true, error: '', sessions: [], selSession: null, selGroup: null, loadingSlot: '', token: null, ctx: null, criteria: [], candidates: [], passScore: 60, view: 'login', editing: null, refreshing: false };
 
-function getTok() { try { return sessionStorage.getItem(TOKEN_KEY); } catch (e) { return null; } }
-function setTok(t) { try { if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY); } catch (e) {} }
+const esc = s => escapeHtml(String(s === undefined || s === null ? '' : s));
+const getTok = () => { try { return sessionStorage.getItem(TOKEN_KEY); } catch (e) { return null; } };
+const setTok = t => { try { t ? sessionStorage.setItem(TOKEN_KEY, t) : sessionStorage.removeItem(TOKEN_KEY); } catch (e) {} };
+
+const Icons = {
+  LogOut: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>',
+  Clock: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+  Check: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+  X: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+  Printer: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>',
+  Lock: '<svg class="w-4 h-4 opacity-50 absolute right-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>',
+  Refresh: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>',
+  EyeOff: '<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.29 3.29m0 0a10.05 10.05 0 015.71-1.583c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>'
+};
+
+const THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+const THAI_DAYS = ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'];
+function formatDateSafe(iso) {
+  if (!iso) return 'ยังไม่ได้ระบุวันที่';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  return `${THAI_DAYS[d.getDay()]}ที่ ${d.getDate()} ${THAI_MONTHS[d.getMonth()]} พ.ศ. ${d.getFullYear() + 543}`;
+}
+
+const RANGES_30 = { excellent: { min: 21, max: 30, label: 'ดีมาก', c: 'green' }, good: { min: 11, max: 20, label: 'ดี', c: 'amber' }, fair: { min: 0, max: 10, label: 'พอใช้', c: 'red' } };
+const RANGES_20 = { excellent: { min: 16, max: 20, label: 'ดีมาก', c: 'green' }, good: { min: 11, max: 15, label: 'ดี', c: 'amber' }, fair: { min: 0, max: 10, label: 'พอใช้', c: 'red' } };
+const rangesOf = max => (max === 30 ? RANGES_30 : RANGES_20);
+function levelOf(max, v) {
+  if (v === '' || v === null || v === undefined) return '';
+  const n = Number(v), R = rangesOf(max);
+  return Object.keys(R).find(k => n >= R[k].min && n <= R[k].max) || '';
+}
+function optionStyle(sel, type) {
+  if (!sel) return { container: 'border-slate-200 hover:border-slate-300', text: 'text-slate-800', desc: 'text-slate-500', score: 'text-blue-600', radio: '' };
+  if (type === 'green') return { container: 'border-green-500 bg-green-50 ring-2 ring-green-500', text: 'text-green-800', desc: 'text-green-600', score: 'text-green-700', radio: 'accent-green-600' };
+  if (type === 'amber') return { container: 'border-amber-500 bg-amber-50 ring-2 ring-amber-500', text: 'text-amber-800', desc: 'text-amber-600', score: 'text-amber-700', radio: 'accent-amber-500' };
+  return { container: 'border-red-500 bg-red-50 ring-2 ring-red-500', text: 'text-red-800', desc: 'text-red-600', score: 'text-red-700', radio: 'accent-red-600' };
+}
 
 async function ivCall(action, payload) {
   const res = await fetch(API_BASE_URL, {
     method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(Object.assign({ action: action, token: state.token }, payload || {}))
+    body: JSON.stringify(Object.assign({ action: action, token: S.token }, payload || {}))
   });
   const text = await res.text();
   let json;
   try { json = JSON.parse(text); } catch (e) { throw new Error('เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'); }
   if (!json.ok) {
-    if (/หมดอายุ/.test(String(json.error)) && state.token) { setTok(null); state.token = null; state.view = 'login'; render(); }
-    throw new Error(json.error || 'เกิดข้อผิดพลาด');
+    const err = new Error(json.error || 'เกิดข้อผิดพลาด');
+    err.expired = /เซสชันกรรมการหมดอายุ/.test(String(json.error));
+    throw err;
   }
   return json.data;
 }
 
-const LEVELS = {
-  30: { excellent: { min: 21, max: 30, label: 'ดีมาก', hint: '> 4 ด้าน' }, good: { min: 11, max: 20, label: 'ดี', hint: '3-4 ด้าน' }, fair: { min: 0, max: 10, label: 'พอใช้', hint: '1-2 ด้าน' } },
-  20: { excellent: { min: 16, max: 20, label: 'ดีมาก', hint: '' }, good: { min: 11, max: 15, label: 'ดี', hint: '' }, fair: { min: 0, max: 10, label: 'พอใช้', hint: '' } }
-};
-function levelOf(max, v) {
-  if (v === '' || v === null || v === undefined) return '';
-  const n = Number(v), L = LEVELS[max];
-  return Object.keys(L).find(k => n >= L[k].min && n <= L[k].max) || '';
-}
-const esc = s => escapeHtml(String(s === undefined || s === null ? '' : s));
-function fmtDate(iso) { if (!iso) return '-'; const d = new Date(iso); return isNaN(d) ? iso : d.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }); }
-
-// ---------- หน้าเข้าสู่ระบบ ----------
-function renderLogin() {
-  $app.innerHTML = `
-  <div class="iv-login"><div class="iv-login-card">
-    <img src="logo.png" alt="ตราสภาฯ">
-    <h1>ระบบให้คะแนนสอบสัมภาษณ์</h1>
-    <p>สภาวิชาชีพสังคมสงเคราะห์ · สำหรับกรรมการสอบ</p>
-    <form id="loginForm">
-      <input class="iv-code-input" id="code" maxlength="12" autocomplete="off" autocapitalize="characters" placeholder="รหัสเข้าใช้" required>
-      <button class="btn" id="loginBtn" type="submit">เข้าสู่ระบบ</button>
-    </form>
-    <div class="iv-note">กรอก "รหัสเข้าใช้" 6 ตัวอักษรที่เจ้าหน้าที่แจ้งให้ท่าน (แต่ละท่านมีรหัสของตนเอง) ไม่ต้องสมัครสมาชิกหรือใช้บัญชีเจ้าหน้าที่</div>
-  </div></div>`;
-  const input = document.getElementById('code');
-  const m = (location.hash || '').match(/code=([A-Za-z0-9]+)/);
-  if (m) { input.value = m[1].toUpperCase(); history.replaceState(null, '', location.pathname + location.search); }
-  input.focus();
-  document.getElementById('loginForm').onsubmit = async e => {
-    e.preventDefault();
-    const btn = document.getElementById('loginBtn');
-    btn.disabled = true; btn.textContent = 'กำลังตรวจสอบ...';
-    try {
-      const res = await ivCall('interviewerLogin', { code: input.value });
-      state.token = res.token; setTok(res.token);
-      state.ctx = res; state.criteria = res.criteria;
-      await loadData(false);
-    } catch (err) {
-      showToast(err.message, 'error');
-      btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
-    }
-  };
+function handleExpired(err) {
+  if (err && err.expired && S.token) {
+    Swal.fire({ icon: 'warning', title: 'เซสชันหมดอายุ', text: 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง' }).then(logout);
+    return true;
+  }
+  return false;
 }
 
-// ---------- รายชื่อผู้เข้าสอบ ----------
-async function loadData(silent) {
-  if (state.refreshing) return;
-  state.refreshing = true;
+function footer(dark) {
+  return `<footer class="py-6 text-center text-sm ${dark ? 'text-slate-400 bg-slate-900' : 'text-slate-500 bg-white border-t border-slate-200'} mt-auto"><div class="max-w-6xl mx-auto px-4">&copy; ${new Date().getFullYear()} สภาวิชาชีพสังคมสงเคราะห์. All rights reserved.</div></footer>`;
+}
+
+// ---------------- เริ่มต้น / โหลดรอบสอบ ----------------
+async function loadSessions() {
+  S.loading = true; S.error = ''; render();
   try {
-    const d = await ivCall('interviewerGetData', {});
-    state.ctx = d; state.criteria = d.criteria; state.candidates = d.candidates; state.passScore = d.pass_score;
-    if (!silent || state.view !== 'form') state.view = state.view === 'form' ? 'form' : 'list';
-    render();
-  } catch (err) {
-    if (!silent) showToast(err.message, 'error');
-  } finally { state.refreshing = false; }
+    S.sessions = await ivCall('interviewerSessions');
+    if (!S.sessions.find(s => s.round_id === S.selSession)) S.selSession = S.sessions.length ? S.sessions[0].round_id : null;
+    S.loading = false; render();
+  } catch (e) { S.loading = false; S.error = e.message; render(); }
 }
 
-function topBar() {
-  const c = state.ctx;
-  return `<div class="iv-top"><div class="iv-top-inner">
-    <img src="logo.png" alt="">
-    <div class="who"><b>${esc(c.name)}</b><span>${c.slot === 'inv1' ? 'กรรมการท่านที่ 1' : 'กรรมการท่านที่ 2'} · กลุ่มที่ ${esc(c.group_no)}</span></div>
-    <button onclick="loadData(false)" title="รีเฟรช">↻ รีเฟรช</button>
-    <button onclick="logout()">ออก</button>
-  </div></div>`;
+async function loadData(silent) {
+  if (S.refreshing) return;
+  S.refreshing = true; if (silent) render();
+  try {
+    const d = await ivCall('interviewerGetData');
+    S.ctx = d; S.criteria = d.criteria; S.candidates = d.candidates; S.passScore = d.pass_score;
+    if (S.view === 'login') S.view = 'list';
+    S.refreshing = false; render();
+  } catch (e) {
+    S.refreshing = false; render();
+    if (!handleExpired(e) && !silent) Swal.fire({ icon: 'error', title: 'โหลดข้อมูลไม่สำเร็จ', text: e.message, confirmButtonColor: '#3085d6' });
+  }
 }
 
+function logout() { setTok(null); S.token = null; S.ctx = null; S.view = 'login'; S.editing = null; S.loadingSlot = ''; loadSessions(); }
+
+// ---------------- หน้าเข้าสู่ระบบ ----------------
+async function doLogin(slot, password) {
+  S.loadingSlot = slot; render();
+  try {
+    const res = await ivCall('interviewerLogin', { group_id: S.selGroup, slot: slot, password: password || '' });
+    S.token = res.token; setTok(res.token); S.ctx = res; S.criteria = res.criteria; S.view = 'list';
+    S.loadingSlot = '';
+    await loadData(false);
+    return true;
+  } catch (e) {
+    S.loadingSlot = ''; render();
+    Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบไม่สำเร็จ', text: e.message, confirmButtonColor: '#3085d6' });
+    return false;
+  }
+}
+
+function loginClick(slot) {
+  const sess = S.sessions.find(s => s.round_id === S.selSession);
+  const g = sess && sess.groups.find(x => x.group_id === S.selGroup);
+  if (g && g.has_password) {
+    Swal.fire({
+      title: `เข้าสู่ระบบ ${slot === 'inv1' ? 'กรรมการ 1' : 'กรรมการ 2'}`, input: 'password',
+      inputLabel: `กรุณากรอกรหัสผ่านของกลุ่มที่ ${g.group_no}`, inputPlaceholder: 'รหัสผ่าน',
+      showCancelButton: true, confirmButtonText: 'เข้าสู่ระบบ', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#2563eb', showLoaderOnConfirm: true,
+      preConfirm: async value => {
+        if (!value) { Swal.showValidationMessage('กรุณากรอกรหัสผ่าน!'); return false; }
+        S.loadingSlot = slot;
+        try {
+          const res = await ivCall('interviewerLogin', { group_id: S.selGroup, slot: slot, password: value });
+          return res;
+        } catch (e) { Swal.showValidationMessage(e.message); return false; }
+      }
+    }).then(async r => {
+      S.loadingSlot = '';
+      if (r.isConfirmed && r.value) {
+        S.token = r.value.token; setTok(r.value.token); S.ctx = r.value; S.criteria = r.value.criteria; S.view = 'list';
+        await loadData(false);
+      }
+    });
+  } else doLogin(slot, '');
+}
+
+function renderLogin() {
+  const sess = S.sessions.find(s => s.round_id === S.selSession);
+  const groups = sess ? sess.groups : [];
+  if (sess && !groups.find(g => g.group_id === S.selGroup)) S.selGroup = groups.length ? groups[0].group_id : null;
+  const g = groups.find(x => x.group_id === S.selGroup);
+  const btn = (slot, label) => `<button data-slot="${slot}" ${S.loadingSlot ? 'disabled' : ''} class="iv-login w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg text-sm font-medium transition-colors text-left flex items-center shadow-sm relative">
+      <span class="w-20 opacity-80">${label}</span><span class="flex-1 truncate">${esc((slot === 'inv1' ? g.inv1_name : g.inv2_name) || 'ยังไม่ระบุชื่อ')}</span>
+      ${S.loadingSlot === slot ? '<span class="loader !w-4 !h-4 !border-2 !border-t-white"></span>' : (g.has_password ? Icons.Lock : '')}</button>`;
+  root.innerHTML = `<div class="min-h-screen flex flex-col bg-slate-900"><div class="flex-grow flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center">
+      <img src="logo.png" alt="โลโก้" class="w-24 h-auto mx-auto mb-4 object-contain" />
+      <h1 class="text-2xl font-bold text-slate-800 mb-2">ระบบให้คะแนนสอบสัมภาษณ์</h1>
+      <p class="text-sm text-slate-500 mb-6">สภาวิชาชีพสังคมสงเคราะห์</p>
+      <div class="text-left bg-slate-50 p-5 rounded-xl border border-slate-200">
+        <label class="block text-sm font-bold text-slate-800 mb-2 border-b border-slate-200 pb-2">สำหรับกรรมการสอบ</label>
+        ${S.error ? `<div class="text-center py-4"><p class="text-sm text-red-500 bg-red-50 rounded-lg p-3">${esc(S.error)}</p><button id="retry" class="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">ลองใหม่อีกครั้ง</button></div>`
+        : sess ? `
+          <label class="block text-xs font-semibold text-slate-500 mb-1 mt-3">1. เลือกรอบสอบ</label>
+          <select id="selSession" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 bg-white mb-4 text-sm font-medium text-slate-700">
+            ${S.sessions.map(s => `<option value="${esc(s.round_id)}" ${s.round_id === S.selSession ? 'selected' : ''}>ครั้งที่ ${esc(s.round_label)} - ${esc(formatDateSafe(s.exam_date))}</option>`).join('')}
+          </select>
+          ${g ? `<label class="block text-xs font-semibold text-slate-500 mb-1">2. เลือกกลุ่มสอบ</label>
+            <select id="selGroup" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 bg-white mb-4 text-sm">
+              ${groups.map(x => `<option value="${esc(x.group_id)}" ${x.group_id === S.selGroup ? 'selected' : ''}>กลุ่มที่ ${x.group_no}</option>`).join('')}
+            </select>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">3. เข้าสู่ระบบในฐานะ</label>
+            <div class="grid grid-cols-1 gap-2">${btn('inv1', 'กรรมการ 1')}${btn('inv2', 'กรรมการ 2')}</div>`
+          : '<p class="text-sm text-red-500 text-center py-4 bg-red-50 rounded-lg">รอบสอบนี้ยังไม่ได้ตั้งค่ากลุ่มสอบ</p>'}`
+        : `<div class="text-center py-6"><div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">${Icons.EyeOff}</div>
+            <p class="text-sm font-bold text-slate-600">ไม่มีรอบสอบที่เปิดให้ประเมิน</p><p class="text-xs text-slate-400 mt-1">ส่วนกลางยังไม่เปิดรอบสอบ หรือปิดรับคะแนนรอบสอบทั้งหมดแล้ว</p></div>`}
+      </div>
+    </div></div>${footer(true)}</div>`;
+  const r = document.getElementById('retry'); if (r) r.onclick = loadSessions;
+  const s1 = document.getElementById('selSession'); if (s1) s1.onchange = e => { S.selSession = e.target.value; S.selGroup = null; render(); };
+  const s2 = document.getElementById('selGroup'); if (s2) s2.onchange = e => { S.selGroup = e.target.value; render(); };
+  root.querySelectorAll('.iv-login').forEach(b => { b.onclick = () => loginClick(b.dataset.slot); });
+}
+
+// ---------------- แถบบน ----------------
+function navBar() {
+  const c = S.ctx;
+  return `<nav class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10"><div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3"><img src="logo.png" alt="โลโก้" class="h-10 w-auto object-contain" /><span class="font-bold text-slate-800 hidden sm:inline">ระบบสอบสัมภาษณ์</span></div>
+    <div class="flex items-center gap-3">
+      <button id="btnRefresh" ${S.refreshing ? 'disabled' : ''} class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50" title="รีเฟรชข้อมูลล่าสุด"><span class="${S.refreshing ? 'animate-spin inline-block' : 'inline-block'}">${Icons.Refresh}</span></button>
+      <div class="text-sm text-right"><div class="font-medium text-slate-800">${esc(c.name)}</div><div class="text-slate-500 text-xs">กรรมการสอบ กลุ่ม ${esc(c.group_no)}</div></div>
+      <button id="btnLogout" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="ออกจากระบบ">${Icons.LogOut}</button>
+    </div></div></nav>`;
+}
+function bindNav() {
+  const r = document.getElementById('btnRefresh'); if (r) r.onclick = () => loadData(true);
+  const l = document.getElementById('btnLogout'); if (l) l.onclick = logout;
+}
+
+// ---------------- รายชื่อผู้เข้าสอบ ----------------
 function renderList() {
-  const c = state.ctx;
-  const cands = state.candidates;
-  const active = cands.filter(x => !x.absent);
-  const done = active.filter(x => x.my_score).length;
-  const pct = active.length ? Math.round(done * 100 / active.length) : 0;
-  $app.innerHTML = topBar() + `<div class="iv-wrap">
-    <div class="iv-info">
-      <span class="iv-chip dark">รอบสอบสัมภาษณ์ ${esc(c.round_label)}</span>
-      <span class="iv-chip">วันที่ ${esc(fmtDate(c.exam_date))}</span>
-      ${c.group_time_range || c.time_text ? `<span class="iv-chip">เวลา ${esc(c.group_time_range || c.time_text)}</span>` : ''}
-      ${c.location_note ? `<span class="iv-chip">${esc(c.location_note)}</span>` : ''}
-      ${c.partner_name ? `<span class="iv-chip">กรรมการร่วมกลุ่ม: ${esc(c.partner_name)}</span>` : ''}
+  const c = S.ctx, closed = c.scoring_closed;
+  root.innerHTML = `<div class="min-h-screen flex flex-col bg-slate-50">${navBar()}<div class="max-w-6xl w-full mx-auto p-4 sm:p-6 flex-grow"><div class="space-y-6 mt-2">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div><h2 class="text-2xl font-bold text-slate-800">รายชื่อผู้เข้าสอบสัมภาษณ์ กลุ่ม ${esc(c.group_no)}</h2>
+        <div class="flex flex-wrap items-center gap-2 mt-2">
+          <span class="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded-md">ครั้งที่ ${esc(c.round_label)}</span>
+          <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">${esc(formatDateSafe(c.exam_date))}</span>
+          ${c.partner_name ? `<span class="bg-slate-100 text-slate-600 text-sm px-3 py-1 rounded-full">กรรมการร่วมกลุ่ม: ${esc(c.partner_name)}</span>` : ''}
+        </div></div>
+      <button id="btnPrint" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg font-medium text-sm shadow-sm transition-colors">${Icons.Printer} พิมพ์ตารางให้คะแนน</button>
     </div>
-    ${c.scoring_closed ? '<div class="iv-banner"><b>ปิดรับคะแนนแล้ว</b> — เจ้าหน้าที่ปิดการบันทึกคะแนนของรอบนี้ ท่านดูคะแนนที่บันทึกไว้ได้ แต่แก้ไขไม่ได้</div>' : ''}
-    <div style="font-size:14px; color:var(--muted)">ให้คะแนนแล้ว <b style="color:var(--ink)">${done}</b> จาก <b style="color:var(--ink)">${active.length}</b> คน${cands.length - active.length ? ` (ไม่เข้าสอบ ${cands.length - active.length} คน)` : ''}</div>
-    <div class="iv-progress"><div style="width:${pct}%"></div></div>
-    <div style="font-size:12px; color:var(--muted); margin-bottom:14px">คะแนนที่ท่านบันทึกเห็นได้เฉพาะท่านและเจ้าหน้าที่ — กรรมการอีกท่านไม่เห็นคะแนนของท่าน · ผ่านเมื่อคะแนนเฉลี่ยของกรรมการ 2 ท่านไม่น้อยกว่า ${esc(state.passScore)} จาก 100</div>
-    ${cands.length ? cands.map(candCard).join('') : '<div class="empty-state">ยังไม่มีผู้เข้าสอบในกลุ่มนี้ — กรุณาติดต่อเจ้าหน้าที่</div>'}
-  </div>`;
+    ${closed ? '<div class="bg-rose-50 border border-rose-200 text-rose-700 rounded-lg p-3 text-sm"><b>ปิดรับคะแนนแล้ว</b> — ส่วนกลางปิดการบันทึกคะแนนของรอบนี้ ท่านดูคะแนนที่บันทึกไว้ได้แต่แก้ไขไม่ได้</div>' : ''}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left border-collapse">
+      <thead><tr class="bg-slate-50 border-b border-slate-200"><th class="p-4 font-semibold text-slate-600 text-sm">เวลาสอบ</th><th class="p-4 font-semibold text-slate-600 text-sm">ชื่อ-สกุล</th><th class="p-4 font-semibold text-slate-600 text-sm text-center">สถานะ</th><th class="p-4 font-semibold text-slate-600 text-sm text-center">จัดการ</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">${S.candidates.map(rowHtml).join('') || '<tr><td colspan="4" class="text-center p-8 text-slate-500">ไม่มีรายชื่อผู้เข้าสอบในกลุ่มนี้</td></tr>'}</tbody>
+    </table></div></div></div></div>${footer(false)}</div>`;
+  bindNav();
+  document.getElementById('btnPrint').onclick = printSheet;
+  root.querySelectorAll('[data-act]').forEach(b => {
+    b.onclick = () => {
+      const id = b.dataset.id;
+      if (b.dataset.act === 'score') openForm(id);
+      else toggleAbsent(id, b.dataset.act === 'absent');
+    };
+  });
 }
 
-function candCard(x) {
-  const closed = state.ctx.scoring_closed;
+function rowHtml(x) {
+  const closed = S.ctx.scoring_closed, my = x.my_score;
   let status;
-  if (x.absent) status = '<span class="badge warn">ไม่เข้าสอบ</span>';
-  else if (x.my_score) status = `<span class="badge ok">ให้คะแนนแล้ว ${esc(x.my_score.total)}/100</span>`;
-  else status = '<span class="badge pending">รอให้คะแนน</span>';
+  if (x.absent) status = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700">${Icons.X} ไม่เข้าสอบ</span>`;
+  else if (my) status = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">${Icons.Check} ประเมินแล้ว (${esc(my.total)})</span>`;
+  else status = '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">รอการประเมิน</span>';
   let actions = '';
-  if (x.absent) actions = closed ? '' : `<button class="iv-btn light" onclick="toggleAbsent('${esc(x.application_id)}', false)">ยกเลิกสถานะไม่เข้าสอบ</button>`;
-  else actions = `<button class="iv-btn ${x.my_score ? 'light' : ''}" onclick="openForm('${esc(x.application_id)}')">${closed ? 'ดูคะแนน' : (x.my_score ? 'ดู/แก้ไขคะแนน' : 'ให้คะแนน')}</button>` +
-    (closed || x.my_score ? '' : `<button class="iv-btn danger" onclick="toggleAbsent('${esc(x.application_id)}', true)">ไม่เข้าสอบ</button>`);
-  return `<div class="iv-cand ${x.absent ? 'absent' : ''}">
-    <div class="time">${esc(x.time_slot || '-')}</div>
-    <div class="info"><div class="no">รหัสสอบ ${esc(x.candidate_no || '-')}</div><div class="nm">${esc(x.name)}</div><div style="margin-top:4px">${status}</div></div>
-    <div class="actions">${actions}</div>
-  </div>`;
+  const id = esc(x.application_id);
+  if (x.absent) actions = closed ? '' : `<button data-act="present" data-id="${id}" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm bg-white border border-slate-300 text-slate-600 hover:bg-slate-100">ยกเลิกสถานะไม่เข้าสอบ</button>`;
+  else actions = `<button data-act="score" data-id="${id}" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm ${my ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-blue-600 text-white hover:bg-blue-700'}">${closed ? 'ดูคะแนน' : (my ? 'ดู/แก้ไขคะแนน' : 'ให้คะแนน')}</button>` +
+    (closed ? '' : `<button data-act="absent" data-id="${id}" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors border border-rose-200 text-rose-600 hover:bg-rose-50" title="ระบุว่าผู้เข้าสอบรายนี้ไม่เข้าสอบ">ไม่เข้าสอบ</button>`);
+  return `<tr class="transition-colors ${x.absent ? 'bg-rose-50/50 hover:bg-rose-50' : 'hover:bg-slate-50'}">
+    <td class="p-4 text-sm font-medium text-slate-700"><div class="flex items-center gap-2 text-slate-500">${Icons.Clock}${esc(x.time_slot)}</div></td>
+    <td class="p-4 text-sm font-medium ${x.absent ? 'text-slate-400 line-through' : 'text-slate-800'}">${esc(x.name)}</td>
+    <td class="p-4 text-center">${status}</td>
+    <td class="p-4 text-center"><div class="flex flex-wrap items-center justify-center gap-2">${actions}</div></td></tr>`;
 }
 
 async function toggleAbsent(appId, absent) {
-  const x = state.candidates.find(c => c.application_id === appId);
-  const ok = await showConfirm(absent
-    ? 'ระบุว่า "' + x.name + '" ไม่เข้าสอบ?\nผู้เข้าสอบจะไม่ถูกนับผ่าน/ไม่ผ่าน และให้คะแนนไม่ได้จนกว่าจะยกเลิกสถานะนี้'
-    : 'ยกเลิกสถานะ "ไม่เข้าสอบ" ของ "' + x.name + '" ?', 'ยืนยัน');
-  if (!ok) return;
-  try {
-    await ivCall('interviewerSetAbsent', { application_id: appId, absent: absent });
-    showToast(absent ? 'บันทึกว่าไม่เข้าสอบแล้ว' : 'ยกเลิกสถานะแล้ว', 'success');
-    await loadData(true);
-  } catch (err) { showToast(err.message, 'error'); }
+  const x = S.candidates.find(c => c.application_id === appId);
+  const hasScore = !!x.my_score;
+  const html = absent
+    ? `ระบุว่า <b>${esc(x.name)}</b> ไม่เข้าสอบ<br/><span style="font-size:0.9em;color:#64748b">จะไม่ถูกนับเป็นผ่าน/ไม่ผ่าน และไม่สามารถให้คะแนนได้จนกว่าจะยกเลิกสถานะนี้` + (hasScore ? '<br/>คะแนนที่เคยบันทึกไว้จะไม่ถูกลบ และกลับมาใช้ได้เมื่อยกเลิกสถานะ' : '') + '</span>'
+    : `ยกเลิกสถานะ "ไม่เข้าสอบ" ของ <b>${esc(x.name)}</b> ?<br/><span style="font-size:0.9em;color:#64748b">กลับไปอยู่ในสถานะรอประเมินตามปกติ</span>`;
+  const r = await Swal.fire({
+    icon: absent ? 'warning' : 'question', title: absent ? 'ยืนยัน "ไม่เข้าสอบ"?' : 'ยกเลิกสถานะไม่เข้าสอบ?', html: html,
+    showCancelButton: true, confirmButtonText: absent ? 'ยืนยัน ไม่เข้าสอบ' : 'ยกเลิกสถานะ', cancelButtonText: 'ปิด', confirmButtonColor: absent ? '#e11d48' : '#2563eb', showLoaderOnConfirm: true,
+    allowOutsideClick: () => !Swal.isLoading(),
+    preConfirm: async () => {
+      try { return await ivCall('interviewerSetAbsent', { application_id: appId, absent: absent }); }
+      catch (e) { Swal.showValidationMessage(e.message || 'บันทึกสถานะไม่สำเร็จ'); return false; }
+    }
+  });
+  if (!r.isConfirmed) return;
+  x.absent = absent; render();
+  Swal.fire({ icon: 'success', title: absent ? 'บันทึก "ไม่เข้าสอบ" แล้ว' : 'ยกเลิกสถานะแล้ว', timer: 1400, showConfirmButton: false });
 }
 
-// ---------- ฟอร์มให้คะแนน ----------
+function printSheet() {
+  const c = S.ctx;
+  ivPrint.scoreSheet({
+    round_label: c.round_label, exam_date: c.exam_date, time_text: c.time_text, group_no: c.group_no, interviewerName: c.name, slot: c.slot,
+    candidates: S.candidates.map(x => ({ name: x.name, absent: x.absent, score: x.my_score, remark: x.my_remark }))
+  });
+}
+
+// ---------------- ฟอร์มให้คะแนน ----------------
 function openForm(appId) {
-  const x = state.candidates.find(c => c.application_id === appId);
+  const x = S.candidates.find(c => c.application_id === appId);
   const s = x.my_score || {};
-  state.editing = { appId: appId, cand: x, scores: {}, remark: x.my_remark || '' };
-  state.criteria.forEach(c => { state.editing.scores[c.key] = s[c.key] === undefined ? '' : s[c.key]; });
-  state.view = 'form';
-  renderForm();
-  window.scrollTo(0, 0);
+  S.editing = { appId: appId, cand: x, scores: {}, levels: {}, remark: x.my_remark || '', submitting: false };
+  S.criteria.forEach(c => { const v = s[c.key] === undefined ? '' : s[c.key]; S.editing.scores[c.key] = v; S.editing.levels[c.key] = levelOf(c.max, v); });
+  S.view = 'form'; render(); window.scrollTo(0, 0);
+}
+
+function isValidForm() {
+  const ed = S.editing;
+  return S.criteria.every(c => {
+    const v = ed.scores[c.key], lv = ed.levels[c.key];
+    if (v === '' || !lv) return false;
+    const R = rangesOf(c.max)[lv], n = Number(v);
+    return Number.isInteger(n) && n >= R.min && n <= R.max;
+  });
+}
+const totalOf = () => S.criteria.reduce((sum, c) => sum + (Number(S.editing.scores[c.key]) || 0), 0);
+
+function critHtml(c, i) {
+  const ed = S.editing, closed = S.ctx.scoring_closed, R = rangesOf(c.max), lv = ed.levels[c.key];
+  return `<div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 w-full">
+    <div class="flex justify-between items-start mb-2"><h3 class="font-semibold text-lg text-slate-800">${i + 1}. ${esc(c.label)}</h3><span class="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg whitespace-nowrap">เต็ม ${c.max}</span></div>
+    <p class="text-sm text-slate-500 mb-4 leading-relaxed">${esc(c.hint)}</p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">${Object.keys(R).map(k => {
+      const info = R[k], st = optionStyle(lv === k, info.c);
+      const desc = c.max === 30 ? ({ excellent: '> 4 ด้าน', good: '3-4 ด้าน', fair: '1-2 ด้าน' })[k] : '';
+      return `<label class="border rounded-lg p-4 cursor-pointer transition-all ${st.container}"><div class="flex justify-between mb-1"><span class="font-semibold ${st.text}">${info.label}</span>
+        <input type="radio" name="lv_${c.key}" data-lv="${c.key}:${k}" ${lv === k ? 'checked' : ''} ${closed ? 'disabled' : ''} class="w-4 h-4 ${st.radio}" /></div>
+        ${desc ? `<div class="text-xs mb-2 ${st.desc}">${desc}</div>` : ''}<div class="text-lg font-bold ${st.score}">${info.min}-${info.max} คะแนน</div></label>`;
+    }).join('')}</div>
+    ${lv ? `<div class="bg-slate-50 p-4 rounded-lg border border-slate-100 flex flex-col sm:flex-row sm:items-center gap-4"><label class="text-sm font-bold text-slate-700 whitespace-nowrap">ระบุคะแนน (${R[lv].min}-${R[lv].max}):</label>
+      <input type="number" inputmode="numeric" id="sc_${c.key}" data-sc="${c.key}" min="${R[lv].min}" max="${R[lv].max}" step="1" value="${ed.scores[c.key] === '' ? '' : esc(ed.scores[c.key])}" ${closed ? 'disabled' : ''} class="w-full sm:w-32 border border-slate-300 rounded-lg p-2 text-lg text-center font-bold focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0" /></div>` : ''}
+  </div>`;
 }
 
 function renderForm() {
-  const ed = state.editing, closed = state.ctx.scoring_closed;
-  const total = state.criteria.reduce((sum, c) => sum + (Number(ed.scores[c.key]) || 0), 0);
-  $app.innerHTML = topBar() + `<div class="iv-wrap">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap">
-      <div><div style="font-size:12px; color:var(--muted)">ผู้เข้าสอบ · รหัสสอบ ${esc(ed.cand.candidate_no)}</div><div style="font-size:20px; font-weight:700">${esc(ed.cand.name)}</div></div>
-      <button class="iv-btn light" onclick="backToList()">← กลับหน้ารายชื่อ</button>
-    </div>
-    ${closed ? '<div class="iv-banner">ปิดรับคะแนนแล้ว — ดูได้อย่างเดียว</div>' : ''}
-    ${state.criteria.map((c, i) => critBlock(c, i)).join('')}
-    <div class="iv-crit">
-      <h3>ข้อเสนอแนะเพิ่มเติม</h3>
-      <textarea class="iv-remark" id="remark" maxlength="1000" placeholder="พิมพ์ข้อสังเกต (ถ้ามี)" ${closed ? 'disabled' : ''}>${esc(ed.remark)}</textarea>
-    </div>
-    <div class="iv-total"><span>รวมคะแนนทั้งหมด</span><div><b id="totalNum">${total}</b> <span>/ 100</span></div></div>
-    ${closed ? '' : '<button class="btn" id="saveBtn" onclick="saveScore()" style="width:100%; padding:14px; font-size:16px">บันทึกคะแนน</button>'}
-  </div>`;
-  document.getElementById('remark').oninput = e => { ed.remark = e.target.value; };
+  const ed = S.editing, closed = S.ctx.scoring_closed;
+  root.innerHTML = `<div class="min-h-screen flex flex-col bg-slate-50">${navBar()}<div class="max-w-6xl w-full mx-auto p-4 sm:p-6 flex-grow">
+    <div class="max-w-3xl mx-auto pb-12 mt-2">
+      <div class="flex items-center justify-between mb-6 gap-3"><div><h2 class="text-2xl font-bold text-slate-800">ฟอร์มประเมินคะแนน</h2>
+        <p class="text-slate-500 mt-1">ผู้เข้าสอบ: <span class="font-semibold text-slate-700">${esc(ed.cand.name)}</span></p></div>
+        <button id="btnBack" class="text-slate-500 hover:text-slate-800 bg-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">กลับหน้าตาราง</button></div>
+      <div class="space-y-6">${S.criteria.map(critHtml).join('')}
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h3 class="font-semibold text-lg text-slate-800 mb-3">ข้อเสนอแนะเพิ่มเติม</h3>
+          <textarea id="remark" rows="3" maxlength="1000" ${closed ? 'disabled' : ''} class="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none mb-6" placeholder="พิมพ์ข้อสังเกต...">${esc(ed.remark)}</textarea>
+          <div class="flex items-center justify-between p-4 bg-slate-800 rounded-xl text-white mb-6"><span class="text-lg">รวมคะแนนทั้งหมด</span><div class="text-3xl font-bold"><span id="totalNum">${totalOf()}</span> <span class="text-lg font-normal text-slate-300">/ 100</span></div></div>
+          ${closed ? '' : `<button id="btnSave" ${isValidForm() ? '' : 'disabled'} class="w-full py-4 bg-emerald-600 text-white rounded-xl font-bold text-lg hover:bg-emerald-700 disabled:bg-slate-300 transition-colors shadow-sm flex justify-center items-center gap-2">บันทึกคะแนน</button>`}
+        </div></div></div></div>${footer(false)}</div>`;
+  bindNav();
+  document.getElementById('btnBack').onclick = () => { S.editing = null; S.view = 'list'; render(); };
+  const rm = document.getElementById('remark'); rm.oninput = e => { ed.remark = e.target.value; };
+  root.querySelectorAll('[data-lv]').forEach(r => {
+    r.onchange = () => {
+      const [key, lv] = r.dataset.lv.split(':');
+      ed.levels[key] = lv; ed.scores[key] = ''; ed.remark = rm.value; renderForm();
+      const inp = document.getElementById('sc_' + key); if (inp) inp.focus();
+    };
+  });
+  root.querySelectorAll('[data-sc]').forEach(inp => {
+    inp.oninput = () => {
+      ed.scores[inp.dataset.sc] = inp.value === '' ? '' : Number(inp.value);
+      document.getElementById('totalNum').textContent = totalOf();
+      const b = document.getElementById('btnSave'); if (b) b.disabled = !isValidForm();
+    };
+  });
+  const save = document.getElementById('btnSave'); if (save) save.onclick = submitScore;
 }
 
-function critBlock(c, i) {
-  const ed = state.editing, closed = state.ctx.scoring_closed;
-  const v = ed.scores[c.key];
-  const lvl = ed.levels && ed.levels[c.key] !== undefined ? ed.levels[c.key] : levelOf(c.max, v);
-  const L = LEVELS[c.max];
-  return `<div class="iv-crit">
-    <h3><span>${i + 1}. ${esc(c.label)}</span><span class="max">เต็ม ${c.max}</span></h3>
-    <p class="hint">${esc(c.hint)}</p>
-    <div class="iv-levels">${Object.keys(L).map(k => `
-      <button type="button" class="iv-level ${lvl === k ? 'sel-' + k : ''}" ${closed ? 'disabled' : ''} onclick="pickLevel('${c.key}', '${k}')">
-        <b>${L[k].label}</b>${L[k].hint ? `<span>${L[k].hint}</span><br>` : ''}<span>${L[k].min}-${L[k].max} คะแนน</span>
-      </button>`).join('')}</div>
-    ${lvl ? `<div class="iv-scorebox"><label for="sc_${c.key}">ระบุคะแนน (${L[lvl].min}-${L[lvl].max}):</label>
-      <input id="sc_${c.key}" type="number" inputmode="numeric" min="${L[lvl].min}" max="${L[lvl].max}" step="1" value="${v === '' ? '' : esc(v)}" ${closed ? 'disabled' : ''} oninput="setScore('${c.key}', this.value)"></div>` : '<div style="font-size:13px; color:var(--muted)">เลือกระดับคะแนนก่อน แล้วระบุคะแนนในช่วงนั้น</div>'}
-  </div>`;
-}
-
-function pickLevel(key, lvl) {
-  const ed = state.editing;
-  ed.levels = ed.levels || {};
-  if (levelOf(state.criteria.find(c => c.key === key).max, ed.scores[key]) !== lvl) ed.scores[key] = '';
-  ed.levels[key] = lvl;
-  const remark = document.getElementById('remark'); if (remark) ed.remark = remark.value;
-  renderForm();
-  const inp = document.getElementById('sc_' + key); if (inp) inp.focus();
-}
-
-function setScore(key, val) {
-  state.editing.scores[key] = val === '' ? '' : Number(val);
-  const total = state.criteria.reduce((sum, c) => sum + (Number(state.editing.scores[c.key]) || 0), 0);
-  document.getElementById('totalNum').textContent = total;
-}
-
-function validateForm() {
-  const ed = state.editing;
-  for (const c of state.criteria) {
-    const v = ed.scores[c.key];
-    const lvl = ed.levels && ed.levels[c.key] !== undefined ? ed.levels[c.key] : levelOf(c.max, v);
-    if (v === '' || v === undefined || !lvl) return 'กรุณาเลือกระดับและระบุคะแนนหัวข้อ "' + c.label + '"';
-    const L = LEVELS[c.max][lvl];
-    if (!Number.isInteger(Number(v)) || v < L.min || v > L.max) return 'คะแนนหัวข้อ "' + c.label + '" ต้องเป็นจำนวนเต็มในช่วง ' + L.min + '-' + L.max + ' (ระดับ' + L.label + ')';
-  }
-  return '';
-}
-
-async function saveScore() {
-  const err = validateForm();
-  if (err) { showToast(err, 'error'); return; }
-  const ed = state.editing;
-  const total = state.criteria.reduce((sum, c) => sum + Number(ed.scores[c.key]), 0);
-  if (!(await showConfirm('ยืนยันบันทึกคะแนนของ "' + ed.cand.name + '"\nรวม ' + total + ' / 100 คะแนน', 'บันทึกคะแนน'))) return;
-  const btn = document.getElementById('saveBtn'); btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+async function submitScore() {
+  const ed = S.editing;
+  if (!isValidForm() || ed.submitting) return;
+  ed.submitting = true;
+  const b = document.getElementById('btnSave'); b.disabled = true; b.innerHTML = '<span class="loader"></span>';
   try {
     await ivCall('interviewerSaveScore', { application_id: ed.appId, scores: ed.scores, remark: ed.remark });
-    showToast('บันทึกคะแนนเรียบร้อยแล้ว', 'success');
-    state.editing = null; state.view = 'list';
+    S.editing = null; S.view = 'list';
     await loadData(true);
+    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: 'บันทึกคะแนนเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
     window.scrollTo(0, 0);
   } catch (e) {
-    showToast(e.message, 'error');
-    if (document.getElementById('saveBtn')) { btn.disabled = false; btn.textContent = 'บันทึกคะแนน'; }
+    ed.submitting = false;
+    if (!handleExpired(e)) Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: e.message, confirmButtonColor: '#3085d6' });
+    const nb = document.getElementById('btnSave'); if (nb) { nb.disabled = !isValidForm(); nb.textContent = 'บันทึกคะแนน'; }
   }
 }
 
-function backToList() { state.editing = null; state.view = 'list'; render(); }
-
-function logout() { setTok(null); state.token = null; state.view = 'login'; state.ctx = null; render(); }
-
+// ---------------- render ----------------
 function render() {
-  if (state.view === 'login' || !state.token || !state.ctx) return renderLogin();
-  if (state.view === 'form' && state.editing) return renderForm();
+  if (S.loading) {
+    root.innerHTML = '<div class="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white"><div class="loader mb-4 !border-t-blue-400 !w-12 !h-12 !border-4"></div><h2 class="text-xl font-bold">กำลังเชื่อมต่อฐานข้อมูล...</h2><p class="text-slate-400 text-sm mt-2">กรุณารอสักครู่ ระบบกำลังดึงข้อมูลล่าสุด</p></div>';
+    return;
+  }
+  if (S.view === 'login' || !S.token || !S.ctx) return renderLogin();
+  if (S.view === 'form' && S.editing) return renderForm();
   renderList();
 }
 
-// รีเฟรชรายชื่อเงียบๆ ทุก 90 วินาที (ขณะอยู่หน้ารายชื่อ) เพื่อให้เห็นการเปลี่ยนแปลงล่าสุดจากเจ้าหน้าที่
-setInterval(() => { if (state.token && state.view === 'list') loadData(true); }, 90000);
+// รีเฟรชรายชื่อเงียบๆ ทุก 60 วินาที (ขณะอยู่หน้ารายชื่อ)
+setInterval(() => { if (S.token && S.view === 'list') loadData(true); }, 60000);
 
-// เริ่มต้น: ถ้ามี token เดิมในเซสชันเบราว์เซอร์ ให้เข้าต่อได้เลย
 (async function init() {
   const t = getTok();
   if (t) {
-    state.token = t;
-    try { await loadData(true); if (state.ctx) return; } catch (e) {}
-    state.token = null; setTok(null);
+    S.token = t;
+    try {
+      const d = await ivCall('interviewerGetData');
+      S.ctx = d; S.criteria = d.criteria; S.candidates = d.candidates; S.passScore = d.pass_score; S.view = 'list'; S.loading = false; render(); return;
+    } catch (e) { S.token = null; setTok(null); }
   }
-  state.view = 'login'; render();
+  loadSessions();
 })();
 </script>
 </body>
