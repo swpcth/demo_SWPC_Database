@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>หน้าหลักสมาชิก</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
+    <nav>
+      <a href="member-home.html" class="active">หน้าหลัก</a>
+      <a href="member-dashboard.html">ข้อมูลของฉัน</a>
+      <a href="member-apply.html" id="navApply">สมัครสมาชิก</a>
+      <a href="member-name-change.html" id="navNameChange">ขอเปลี่ยนชื่อ-นามสกุล</a>
+      <a href="member-type-change.html" id="navTypeChange">เปลี่ยนประเภทสมาชิก</a>
+      <a href="member-license.html" id="navLicense">ใบอนุญาตของฉัน</a>
+      <a href="member-exam-apply.html" id="navExamApply">สมัครสอบข้อเขียน/สัมภาษณ์</a>
+      <a href="member-card.html" id="navCard">บัตรสมาชิก</a>
+      <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
+      <a href="member-welfare.html">สวัสดิการสมาชิก</a>
+      <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>หน้าหลัก</h1></header>
+    <div id="content">กำลังโหลด...</div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(['member'], 'index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ms = n => `<span class="ms">${n}</span>`;
+const svc = (href, icon, label, tone, cnt) =>
+  `<a class="svc" href="${href}"><span class="tile t-${tone}">${ms(icon)}</span>${esc(label)}${cnt ? `<span class="cnt">${cnt}</span>` : ''}</a>`;
+
+// สถานะที่ถือว่า "ต้องดำเนินการ" / "กำลังรอ" / "จบแล้ว"
+const ACTION = ['รอชำระเงิน', 'รอชำระ'];
+const WAITING = ['รอตรวจสอบ', 'รอผลสอบ', 'รอตรวจสอบการชำระเงิน', 'รอตรวจสอบสลิป'];
+
+async function load() {
+  const el = document.getElementById('content');
+  const profile = await applyMemberNavVisibility();
+  let apps = [], exams = [];
+  try { apps = await apiCall('myApplications'); } catch (e) {}
+  try { exams = await apiCall('myExamApplications'); } catch (e) {}
+  const all = apps.concat(exams.filter(x => !apps.some(a => a.application_id === x.application_id)));
+
+  const isOrg = profile && profile.profile_kind === 'organization';
+  const name = profile
+    ? (isOrg ? profile.org_name_th : [profile.prefix_th, profile.first_name_th, profile.last_name_th].filter(Boolean).join(' '))
+    : Auth.getUsername();
+
+  // ----- hero -----
+  let pills = '';
+  if (profile) {
+    pills += `<span class="pill">${ms('badge')} ${isOrg ? 'วิสามัญ' : 'สมาชิก' + esc(profile.member_type || '')}</span>`;
+    if (profile.member_no) pills += `<span class="pill">เลขที่ ${esc(profile.member_no)}</span>`;
+    pills += `<span class="pill ${profile.status === 'ปกติ' ? 'ok' : 'pending'}">${esc(profile.status || '-')}</span>`;
+  } else {
+    pills = `<span class="pill pending">ยังไม่เป็นสมาชิก</span>`;
+  }
+  const hero = `
+    <section class="hero-card">
+      <div>
+        <div class="hi">ยินดีต้อนรับ</div>
+        <div class="who">${esc(name)}</div>
+        <div>${pills}</div>
+      </div>
+      ${profile && !isOrg ? `<a class="btn" style="background:#fff;color:#15306a;width:auto" href="member-card.html">${ms('badge')} บัตรสมาชิกของฉัน</a>` : ''}
+      ${!profile ? `<a class="btn" style="background:#fff;color:#15306a;width:auto" href="member-apply.html">สมัครสมาชิก</a>` : ''}
+    </section>`;
+
+  // ----- บริการ -----
+  const pendingCount = all.filter(a => ACTION.indexOf(a.status) !== -1).length;
+  let tiles = '';
+  tiles += svc('member-dashboard.html', 'person', 'ข้อมูลของฉัน', 'blue');
+  if (!profile) tiles += svc('member-apply.html', 'person_add', 'สมัครสมาชิก', 'teal');
+  if (profile) {
+    tiles += svc('member-name-change.html', 'edit', 'เปลี่ยนชื่อ-นามสกุล', 'teal');
+    if (!isOrg && profile.member_type !== 'สามัญ') tiles += svc('member-type-change.html', 'swap_horiz', 'เปลี่ยนประเภทสมาชิก', 'blue');
+    if (!isOrg && profile.member_type !== 'สมทบ') tiles += svc('member-license.html', 'workspace_premium', 'ใบอนุญาตของฉัน', 'rose');
+    if (!isOrg) tiles += svc('member-exam-apply.html', 'edit_document', 'สมัครสอบ', 'teal', pendingCount);
+    if (!isOrg) tiles += svc('member-card.html', 'badge', 'บัตรสมาชิก', 'blue');
+    if (isOrg) tiles += svc('member-certificate.html', 'verified', 'ใบรับรองสมาชิก', 'rose');
+  }
+  tiles += svc('member-welfare.html', 'volunteer_activism', 'สวัสดิการ', 'rose');
+  tiles += svc('member-receipts.html', 'receipt_long', 'ใบเสร็จของฉัน', 'teal');
+
+  // ----- สิ่งที่ต้องดำเนินการ -----
+  const todos = all.slice(0, 8).map(a => {
+    let d = {}; try { d = JSON.parse(a.ref_data_json || '{}'); } catch (e) {}
+    const isExam = /สอบ/.test(a.applicant_type || '');
+    const cls = ACTION.indexOf(a.status) !== -1 ? 'warn' : (/ผ่าน|อนุมัติ|ชำระแล้ว|ปกติ/.test(a.status || '') && !/ไม่ผ่าน/.test(a.status) ? 'ok' : (/ไม่|ปฏิเสธ/.test(a.status || '') ? 'warn' : 'muted'));
+    const icon = cls === 'ok' ? 'check_circle' : cls === 'warn' ? 'error' : 'schedule';
+    const href = isExam ? 'member-exam-apply.html' : 'member-dashboard.html';
+    const sub = [isExam && d.round_label ? 'รอบ ' + d.round_label : '', a.submitted_at ? new Date(a.submitted_at).toLocaleDateString('th-TH') : ''].filter(Boolean).join(' · ');
+    const badge = cls === 'ok' ? 'ok' : cls === 'warn' ? 'warn' : 'pending';
+    return `<a class="todo ${cls}" href="${href}">${ms(icon)}<div class="grow"><div class="t1">${esc(a.applicant_type || 'คำขอ')}</div><div class="t2">${esc(sub)}</div></div><span class="badge ${badge}">${esc(a.status || '-')}</span></a>`;
+  }).join('');
+
+  el.innerHTML = hero + `
+    <div class="panel"><h2>บริการสมาชิก</h2><div class="svc-grid">${tiles}</div></div>
+    <div class="panel"><h2>คำขอและความคืบหน้า</h2>
+      ${todos ? `<div class="todo-list">${todos}</div>` : '<div class="empty-state">ยังไม่มีรายการคำขอ</div>'}
+    </div>`;
+}
+load();
+</script>
+</body>
+</html>

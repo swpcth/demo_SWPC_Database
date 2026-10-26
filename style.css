@@ -1,19 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
 
 :root {
-  --ink: #1b2a2e;
-  --paper: #f5f4ef;
+  --ink: #13202f;
+  --paper: #f3f5f8;
   --panel: #ffffff;
-  --navy: #1d5589;
-  --navy-deep: #122c4d;
-  --red: #c23b2e;
-  --line: #dcd6c8;
-  --muted: #6b7278;
-  --ok: #2f6b4f;
-  --warn: #a83228;
-  --radius: 4px;
-  --font-body: 'Noto Sans Thai', sans-serif;
-  --font-display: 'Noto Serif Thai', serif;
+  --navy: #1f6fa8;
+  --navy-deep: #15306a;
+  --accent: #1f7fb8;
+  --red: #d42a3c;
+  --line: #e1e6ed;
+  --line-strong: #cfd8e3;
+  --muted: #5b6878;
+  --ok: #1b6a41;
+  --warn: #a31d2b;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(16,32,60,.06);
+  --shadow-md: 0 8px 24px -10px rgba(16,32,60,.18);
+  --font-body: 'IBM Plex Sans Thai', 'Noto Sans Thai', sans-serif;
+  --font-display: 'IBM Plex Sans Thai', 'Noto Sans Thai', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 * { box-sizing: border-box; }
@@ -43,7 +50,7 @@ a { color: var(--navy); }
 
 .auth-side {
   background: var(--navy-deep);
-  color: #eae7dc;
+  color: #dfe7f5;
   padding: 64px 56px;
   display: flex;
   flex-direction: column;
@@ -80,7 +87,7 @@ a { color: var(--navy); }
   border-top: 1px solid rgba(234,231,220,0.25);
   padding-top: 20px;
   font-size: 14px;
-  color: #c7c2b0;
+  color: #b9c8e6;
 }
 
 .auth-main {
@@ -258,7 +265,7 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 
 .sidebar {
   background: var(--navy-deep);
-  color: #d8d4c4;
+  color: #c9d5ec;
   padding: 24px 0;
   display: flex;
   flex-direction: column;
@@ -288,7 +295,7 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 
 .sidebar nav a {
   display: block;
-  color: #c7c2b0;
+  color: #b9c8e6;
   text-decoration: none;
   padding: 11px 24px;
   font-size: 14px;
@@ -384,7 +391,7 @@ th { color: var(--muted); font-weight: 500; font-size: 13px; }
 }
 .badge.ok { background: #e5efe8; color: var(--ok); }
 .badge.warn { background: #fbeee7; color: var(--warn); }
-.badge.pending { background: #f1efe3; color: #8a6d1f; }
+.badge.pending { background: #fdf1d6; color: #8a6d1f; }
 
 .empty-state {
   text-align: center;
@@ -477,7 +484,7 @@ th { color: var(--muted); font-weight: 500; font-size: 13px; }
   justify-content: center;
   gap: 8px;
 }
-.thaid-btn:hover { background: #f2f0e8; }
+.thaid-btn:hover { background: #f3f6fa; }
 
 /* ---------- ThaID auth callback screen ---------- */
 
@@ -628,7 +635,7 @@ fieldset legend {
 
 .pay-box {
   width: 100%;
-  background: #f8f6ee;
+  background: #f6f8fb;
   border: 1px dashed var(--red);
   border-radius: var(--radius);
   padding: 12px;
@@ -706,7 +713,7 @@ fieldset legend {
 .list-toolbar .btn { width: auto; white-space: nowrap; }
 
 .filter-panel {
-  background: #f8f6ee;
+  background: #f6f8fb;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 16px;
@@ -850,7 +857,7 @@ fieldset legend {
   margin: 0 auto 20px;
   position: relative;
   overflow: hidden;
-  background: var(--card-base-bg, #fffdf6);
+  background: var(--card-base-bg, #fbfcfe);
   color: var(--card-text, #2b2205);
   box-shadow: 0 10px 32px rgba(0,0,0,0.16);
   display: flex;
@@ -859,7 +866,7 @@ fieldset legend {
   /* ค่าสีเริ่มต้น (fallback) — แต่ละธีม (.card-gold/.card-red/.card-license) จะ override ตัวแปรเหล่านี้เท่านั้น
      ส่วนโครงสร้าง/ตำแหน่ง/ฟอนต์ทั้งหมดใช้กฎเดียวกันหมดทุกประเภทบัตร ตามที่กำหนดไว้ */
   --card-c1: #fcefb8; --card-c2: #e8c158; --card-c3: #cf9a24; --card-c4: #a97914;
-  --card-base-bg: #fffdf6; --card-text: #2b2205;
+  --card-base-bg: #fbfcfe; --card-text: #2b2205;
 }
 
 /* คลื่นสีทแยงมุมด้านหลังบัตร — ใช้เทคนิค blob หมุนเอียงเพื่อให้ได้เส้นโค้งแบบธรรมชาติ ใกล้เคียงบัตรตัวอย่างจริง */
@@ -882,7 +889,7 @@ fieldset legend {
 /* สมาชิกสามัญ — สีเหลือง/ทอง */
 .card-gold {
   --card-c1: #fcefb8; --card-c2: #e8c158; --card-c3: #cf9a24; --card-c4: #a97914;
-  --card-base-bg: #fffdf6; --card-text: #2b2205;
+  --card-base-bg: #fbfcfe; --card-text: #2b2205;
 }
 
 /* สมาชิกสมทบ — สีแดง */
@@ -1291,7 +1298,7 @@ fieldset legend {
 .signature-pad-wrap {
   border: 1px dashed var(--line);
   border-radius: var(--radius);
-  background: #fdfdfb;
+  background: #fbfcfe;
   padding: 8px;
   display: inline-block;
 }
@@ -1491,3 +1498,278 @@ fieldset legend {
 .status-chip.ok .n { color: var(--ok); }
 .status-chip.warn .n { color: var(--warn); }
 .status-chip.neutral .n { color: var(--muted); }
+
+
+/* =====================================================================
+   MODERN THEME v2 — ปรับดีไซน์ทั้งระบบให้เป็นแนวเดียวกับ "Member Platform"
+   (กรมท่า #15306a · ฟอนต์ IBM Plex Sans Thai · ไอคอน Material Symbols Rounded ·
+   การ์ดมุมมน · ป้ายสถานะแบบ pill) — ชั้นนี้ override ค่าเดิม ไม่เปลี่ยนโครงสร้าง HTML
+   ===================================================================== */
+
+html { -webkit-font-smoothing: antialiased; }
+body { font-size: 15px; letter-spacing: 0; background: var(--paper); }
+h1, h2, h3, h4 { font-family: var(--font-display); color: var(--ink); letter-spacing: -0.005em; }
+a { color: var(--accent); }
+::selection { background: #cfe3f3; }
+
+/* ---------- ฟอร์ม ---------- */
+label { color: var(--muted); font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+input[type=text], input[type=password], input[type=email], input[type=tel], input[type=date], input[type=number], input[type=search], select, textarea {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 10px 14px;
+  font-size: 15px;
+  transition: border-color .15s, box-shadow .15s;
+}
+input:hover, select:hover, textarea:hover { border-color: #b5c3d4; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31,127,184,.18); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type=checkbox], input[type=radio] { accent-color: var(--navy-deep); }
+input[type=file] { font-family: var(--font-body); }
+
+.btn {
+  background: var(--navy-deep);
+  border-radius: var(--radius);
+  padding: 11px 20px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(21,48,106,.25);
+  transition: background .15s, box-shadow .15s, transform .05s;
+}
+.btn:hover { background: #1c3f88; box-shadow: 0 4px 12px -4px rgba(21,48,106,.45); }
+.btn:active { transform: translateY(1px); }
+.btn.secondary { background: #fff; color: var(--navy-deep); border: 1px solid var(--line-strong); box-shadow: none; }
+.btn.secondary:hover { background: #f3f6fa; border-color: #b5c3d4; box-shadow: none; }
+.btn.small { padding: 7px 14px; font-size: 13px; border-radius: 9px; }
+.btn:disabled, .btn:disabled:hover, .btn.disabled { background: #dfe5ec; color: #8592a1; box-shadow: none; }
+
+.error-box { background: #fbe5e7; border: 1px solid #f0b8be; color: var(--warn); border-radius: var(--radius); }
+
+/* ---------- หน้าล็อกอิน/สมัคร ---------- */
+.auth-side {
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(31,127,184,.35), transparent 55%),
+    radial-gradient(80% 60% at 0% 100%, rgba(212,42,60,.22), transparent 60%),
+    var(--navy-deep);
+  color: #dfe7f5;
+}
+.auth-side .mark { font-weight: 700; letter-spacing: 0; }
+.auth-side .logo-mark { box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+.auth-side h1 { font-weight: 700; font-size: 34px; letter-spacing: -0.01em; }
+.auth-side .modules { border-top: 1px solid rgba(255,255,255,.2); color: #b9c8e6; }
+.admin-auth-shell .auth-side { background: radial-gradient(120% 90% at 100% 0%, rgba(31,127,184,.3), transparent 55%), #0f2250; }
+.auth-main { background: #fff; }
+.auth-card h2 { font-weight: 700; font-size: 26px; }
+.tabs { border-bottom: 1px solid var(--line); }
+.tabs button { color: var(--muted); font-weight: 500; }
+.tabs button.active { color: var(--navy-deep); border-bottom-color: var(--navy-deep); font-weight: 600; }
+.portal-tag { color: var(--accent); letter-spacing: .08em; }
+.admin-auth-shell .portal-tag.admin-tag { color: var(--red); }
+.thaid-btn { border-radius: var(--radius); border: 1px solid var(--line-strong); }
+.thaid-btn:hover { background: #f3f6fa; }
+.existing-member-callout { border-radius: 12px; }
+
+/* ---------- โครงหน้า: เมนูข้าง + แถบหัวหน้า ---------- */
+.app-shell { grid-template-columns: 264px 1fr; background: var(--paper); }
+.sidebar {
+  background: var(--navy-deep);
+  color: #c9d5ec;
+  padding: 0 0 14px;
+  position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent;
+}
+.sidebar .brand {
+  padding: 22px 20px 18px;
+  margin: 0 0 8px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  font-family: var(--font-display);
+  font-size: 15px; font-weight: 700; line-height: 1.35; color: #fff;
+  gap: 12px;
+}
+.sidebar .brand img { width: 42px; height: 42px; padding: 2px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.sidebar nav { padding: 0 12px; }
+.sidebar nav a {
+  display: flex; align-items: center; gap: 12px;
+  color: #c9d5ec; padding: 9px 12px; margin: 2px 0;
+  border-radius: 10px; border-left: 0;
+  font-size: 14px; font-weight: 400; line-height: 1.35;
+  transition: background .12s, color .12s;
+}
+.sidebar nav a::before {
+  font-family: 'Material Symbols Rounded'; font-weight: 400; font-size: 21px; line-height: 1;
+  content: 'chevron_right'; opacity: .8; flex-shrink: 0; width: 22px; text-align: center;
+  font-feature-settings: 'liga'; -webkit-font-feature-settings: 'liga';
+}
+.sidebar nav a:hover { background: rgba(255,255,255,.08); color: #fff; }
+.sidebar nav a.active { background: rgba(255,255,255,.16); color: #fff; font-weight: 600; }
+.sidebar nav a.active::before { opacity: 1; font-variation-settings: 'FILL' 1; }
+.nav-group-label { padding: 18px 12px 6px; font-size: 11px; font-weight: 600; letter-spacing: .08em; color: rgba(201,213,236,.55); }
+.nav-group-label:first-child { padding-top: 10px; }
+.nav-group a { padding-left: 12px; }
+.sidebar .footer { margin: auto 12px 0; padding: 14px 4px 0; font-size: 12.5px; color: rgba(201,213,236,.75); word-break: break-all; }
+
+/* ไอคอนตามลิงก์เมนู */
+.sidebar nav a[href="admin-dashboard.html"]::before { content: 'dashboard'; }
+.sidebar nav a[href="admin-members.html"]::before { content: 'groups'; }
+.sidebar nav a[href="admin-honorary.html"]::before { content: 'military_tech'; }
+.sidebar nav a[href="admin-name-change.html"]::before { content: 'edit_note'; }
+.sidebar nav a[href="admin-type-change.html"]::before { content: 'swap_horiz'; }
+.sidebar nav a[href="admin-applications.html"]::before { content: 'how_to_reg'; }
+.sidebar nav a[href="admin-license-applications.html"]::before { content: 'description'; }
+.sidebar nav a[href="admin-license-tools.html"]::before { content: 'build'; }
+.sidebar nav a[href="admin-licenses.html"]::before { content: 'workspace_premium'; }
+.sidebar nav a[href="admin-exam-rounds.html"]::before { content: 'event'; }
+.sidebar nav a[href="admin-exam-applications.html"]::before { content: 'assignment_ind'; }
+.sidebar nav a[href="admin-exam-results.html"]::before { content: 'fact_check'; }
+.sidebar nav a[href="admin-interviews.html"]::before { content: 'record_voice_over'; }
+.sidebar nav a[href="admin-payments.html"]::before { content: 'payments'; }
+.sidebar nav a[href="admin-refunds.html"]::before { content: 'currency_exchange'; }
+.sidebar nav a[href="admin-reconciliation.html"]::before { content: 'account_balance'; }
+.sidebar nav a[href="admin-welfare.html"]::before { content: 'volunteer_activism'; }
+.sidebar nav a[href="admin-reports.html"]::before { content: 'bar_chart'; }
+.sidebar nav a[href="admin-users.html"]::before { content: 'manage_accounts'; }
+.sidebar nav a[href="admin-audit-log.html"]::before { content: 'history'; }
+.sidebar nav a[href="admin-council-officers.html"]::before { content: 'stars'; }
+.sidebar nav a[href="admin-notifications.html"]::before { content: 'notifications'; }
+.sidebar nav a[href="member-home.html"]::before { content: 'home'; }
+.sidebar nav a[href="member-dashboard.html"]::before { content: 'person'; }
+.sidebar nav a[href="member-apply.html"]::before { content: 'person_add'; }
+.sidebar nav a[href="member-name-change.html"]::before { content: 'edit'; }
+.sidebar nav a[href="member-type-change.html"]::before { content: 'swap_horiz'; }
+.sidebar nav a[href="member-license.html"]::before { content: 'workspace_premium'; }
+.sidebar nav a[href="member-exam-apply.html"]::before { content: 'edit_document'; }
+.sidebar nav a[href="member-card.html"]::before { content: 'badge'; }
+.sidebar nav a[href="member-certificate.html"]::before { content: 'verified'; }
+.sidebar nav a[href="member-welfare.html"]::before { content: 'volunteer_activism'; }
+.sidebar nav a[href="member-receipts.html"]::before { content: 'receipt_long'; }
+.sidebar nav a[onclick*="changeMyPassword"]::before { content: 'lock'; }
+.sidebar nav a[onclick*="Auth.clear"]::before { content: 'logout'; }
+.sidebar nav a[href="#"]:not([onclick])::before { content: 'link'; }
+
+.main { padding: 0 40px 48px; min-width: 0; }
+.main header {
+  position: sticky; top: 0; z-index: 20;
+  margin: 0 -40px 28px; padding: 18px 40px;
+  background: rgba(255,255,255,.92); backdrop-filter: saturate(1.4) blur(8px);
+  border-bottom: 1px solid var(--line);
+  align-items: center;
+}
+.main h1 { font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+.main header .btn, .main header button { width: auto; }
+
+.mobile-nav-toggle { background: var(--navy-deep); border-radius: 12px; box-shadow: 0 6px 16px rgba(21,48,106,.35); }
+.mobile-nav-toggle { font-family: inherit; }
+
+@media (max-width: 780px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar { position: fixed; height: auto; align-self: auto; }
+  .mobile-nav-toggle { display: flex; top: 10px; left: 12px; width: 42px; height: 42px; }
+  .hero-card { padding: 22px 20px; }
+  .hero-card .who { font-size: 21px; }
+  .svc-grid { grid-template-columns: repeat(3, 1fr); }
+  .panel { padding: 18px; }
+  .main { padding: 0 16px 32px; }
+  .main header { margin: 0 -16px 18px; padding: 14px 16px 14px 72px; }
+  .main h1 { font-size: 18px; }
+}
+
+/* ---------- การ์ด / ตาราง / ป้ายสถานะ ---------- */
+.panel, .stat-card, .app-status-card, .verify-result-card, .public-card, .result-card {
+  background: #fff; border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+}
+.panel { padding: 24px; margin-bottom: 20px; }
+.panel h2 { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 14px; }
+.stat-grid { gap: 14px; }
+.stat-card { padding: 18px 20px; position: relative; overflow: hidden; transition: box-shadow .15s, transform .15s, border-color .15s; }
+.stat-card[onclick], .stat-card[style*="cursor"] { cursor: pointer; }
+.stat-card[onclick]:hover, .stat-card[style*="cursor"]:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); border-color: var(--line-strong); }
+.stat-card::before { content: ''; position: absolute; left: 0; top: 16px; bottom: 16px; width: 4px; border-radius: 0 4px 4px 0; background: var(--accent); opacity: .75; }
+.stat-card .num { font-family: var(--font-display); font-weight: 700; font-size: 30px; color: var(--navy-deep); line-height: 1.15; }
+.stat-card .label { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+table { font-size: 14px; }
+th, td { padding: 12px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { background: #f6f8fb; color: var(--muted); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+th:first-child { border-top-left-radius: 10px; } th:last-child { border-top-right-radius: 10px; }
+tbody tr { transition: background .1s; }
+tbody tr:hover { background: #f9fbfd; }
+tr:last-child td { border-bottom: 0; }
+.scroll-x { overflow-x: auto; }
+
+.badge { padding: 3px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.5; white-space: nowrap; }
+.badge.ok { background: #e3f3e9; color: var(--ok); }
+.badge.warn { background: #fbe5e7; color: var(--warn); }
+.badge.pending { background: #fdf1d6; color: #875800; }
+.empty-state { color: #8592a1; }
+.module-stub { border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); background: #fafbfd; }
+
+/* ---------- แท็บ/ชิป/ตัวกรอง ---------- */
+.type-tabs, .search-mode-tabs { gap: 8px; flex-wrap: wrap; }
+.tab-chip { background: #fff; border: 1px solid var(--line-strong); color: var(--muted); border-radius: 999px; padding: 7px 16px; font-weight: 500; transition: all .12s; }
+.tab-chip:hover { border-color: var(--navy-deep); color: var(--navy-deep); }
+.tab-chip.active { background: var(--navy-deep); color: #fff; border-color: var(--navy-deep); }
+.type-btn { border: 1px solid var(--line-strong); border-radius: var(--radius-lg); font-weight: 600; transition: all .12s; }
+.type-btn:hover { border-color: var(--navy-deep); box-shadow: var(--shadow-md); }
+.type-btn.active { background: var(--navy-deep); border-color: var(--navy-deep); }
+.form-type-tag { background: #e5eefa; color: var(--navy-deep); }
+.filter-panel { background: #f6f8fb; border: 1px solid var(--line); border-radius: var(--radius-lg); }
+.filter-panel select { border-radius: var(--radius); border: 1px solid var(--line-strong); }
+.list-toolbar { gap: 10px; }
+fieldset { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px 22px 8px; background: #fff; }
+fieldset legend { color: var(--navy-deep); font-weight: 700; padding: 0 10px; }
+.step-dot { background: #e6ebf1; color: var(--muted); }
+.step-dot.active { background: var(--navy-deep); color: #fff; }
+.pay-box { background: #f6f8fb; border: 1px dashed var(--line-strong); border-radius: var(--radius); }
+.doc-item { border-radius: 10px; border-color: var(--line); }
+.detail-row { border-bottom-color: var(--line); }
+
+/* ---------- Overlay / Modal / Toast ---------- */
+.overlay, .modal-overlay { background: rgba(14,28,60,.55); backdrop-filter: blur(3px); }
+.overlay-card, .modal-box { border-radius: 20px; box-shadow: 0 30px 60px -24px rgba(16,32,60,.5); }
+.overlay-card h2 { font-weight: 700; }
+.overlay-card h3 { color: var(--navy-deep); }
+.overlay-close { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background .12s; }
+.overlay-close:hover { background: #f0f3f7; }
+.modal-input { border-radius: var(--radius); border: 1px solid var(--line-strong); }
+.toast-item { border-radius: 12px; box-shadow: 0 12px 28px -8px rgba(16,32,60,.28); border-left-width: 0; border: 1px solid var(--line); }
+.toast-success .toast-icon { background: var(--ok); } .toast-error .toast-icon { background: var(--warn); } .toast-info .toast-icon { background: var(--navy-deep); }
+
+/* ---------- หน้าสาธารณะ / ตรวจสอบ ---------- */
+.public-header .mark-text { font-weight: 700; color: var(--navy-deep); }
+.verify-banner { background: linear-gradient(135deg, #15306a, #1c4d8c); }
+.verify-result-photo { border-radius: 12px; border: 1px solid var(--line); box-shadow: none; }
+
+/* ---------- ชิ้นส่วนที่ใช้ซ้ำ (member-home / การ์ดบริการ) ---------- */
+.ms { font-family: 'Material Symbols Rounded'; font-weight: 400; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; font-feature-settings: 'liga'; -webkit-font-feature-settings: 'liga'; vertical-align: middle; }
+.hero-card { position: relative; overflow: hidden; background: var(--navy-deep); color: #fff; border-radius: 20px; padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 20px; }
+.hero-card::after { content: ''; position: absolute; right: -60px; top: -80px; width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle, rgba(31,127,184,.45), transparent 65%); pointer-events: none; }
+.hero-card > * { position: relative; z-index: 1; }
+.hero-card .hi { font-size: 14px; color: #b9c8e6; }
+.hero-card .who { font-size: 26px; font-weight: 700; margin: 4px 0 12px; line-height: 1.25; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 500; background: rgba(255,255,255,.14); color: #fff; margin: 0 6px 6px 0; }
+.pill.ok { background: #e3f3e9; color: var(--ok); font-weight: 600; }
+.pill.warn { background: #fbe5e7; color: var(--warn); font-weight: 600; }
+.pill.pending { background: #fdf1d6; color: #875800; font-weight: 600; }
+.svc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 14px 10px; }
+.svc { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 14px 6px; border-radius: 14px; color: var(--ink); text-decoration: none; font-size: 13px; line-height: 1.35; position: relative; transition: background .12s, transform .12s; }
+.svc:hover { background: #f3f6fa; transform: translateY(-1px); }
+.svc .tile { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+.svc .tile .ms { font-size: 28px; }
+.tile.t-blue { background: #e5eefa; color: #15306a; } .tile.t-teal { background: #dff1f6; color: #0e6a7e; } .tile.t-rose { background: #fbe5e7; color: #a31d2b; }
+.svc .cnt { position: absolute; top: 8px; right: calc(50% - 38px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #d42a3c; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+.todo-list { display: grid; gap: 10px; }
+.todo { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #fff; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); text-decoration: none; transition: box-shadow .12s, border-color .12s; }
+a.todo:hover { box-shadow: var(--shadow-md); border-color: var(--line-strong); }
+.todo .ms { font-size: 26px; flex-shrink: 0; }
+.todo .grow { flex: 1; min-width: 0; } .todo .t1 { font-weight: 600; } .todo .t2 { font-size: 13px; color: var(--muted); }
+.todo.ok .ms { color: var(--ok); } .todo.warn .ms { color: #b26a00; } .todo.muted { color: var(--muted); }
+
+a.btn, a.btn:hover { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+@media (max-width: 780px) {
+  .list-toolbar { flex-wrap: wrap; }
+  .list-toolbar input[type=text], .list-toolbar input[type=search] { flex: 1 1 100%; min-width: 0; }
+}
+.btn.thaid-btn { background: #fff; color: var(--navy-deep); border: 1px solid var(--line-strong); box-shadow: none; }
+.btn.thaid-btn:hover { background: #f3f6fa; }
+.auth-side h1, .auth-side h2, .auth-side h3 { color: #fff; }
+.hero-card .who { color: #fff; }

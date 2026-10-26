@@ -7,7 +7,7 @@
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="stylesheet" href="style.css">
 <style>
-  .code-pill { display:inline-flex; align-items:center; gap:6px; font-family:monospace; font-size:15px; letter-spacing:.12em; background:#f1efe3; border:1px solid var(--line); border-radius:4px; padding:2px 8px; }
+  .code-pill { display:inline-flex; align-items:center; gap:6px; font-family:monospace; font-size:15px; letter-spacing:.12em; background:#fdf1d6; border:1px solid var(--line); border-radius:4px; padding:2px 8px; }
   .code-pill button { border:0; background:none; cursor:pointer; padding:0 2px; font-size:14px; color:var(--navy); }
   .url-box { display:flex; gap:8px; align-items:center; flex-wrap:wrap; background:#eef3f8; border:1px solid #c9d8e8; border-radius:4px; padding:10px 14px; font-size:13px; margin-bottom:20px; }
   .url-box code { background:#fff; border:1px solid var(--line); border-radius:3px; padding:2px 8px; word-break:break-all; }
@@ -129,7 +129,7 @@
           <h2 style="margin:0">กลุ่มสอบ</h2>
           <button class="btn small" style="width:auto" onclick="openGroupForm()">+ เพิ่มกลุ่มสอบ</button>
         </div>
-        <div id="groupForm" style="display:none; background:#f7f5ec; border:1px solid var(--line); border-radius:4px; padding:14px; margin:12px 0">
+        <div id="groupForm" style="display:none; background:#f6f8fb; border:1px solid var(--line); border-radius:4px; padding:14px; margin:12px 0">
           <input type="hidden" id="gf_id">
           <div class="grid-2">
             <div><label>ชื่อกรรมการท่านที่ 1</label><input type="text" id="gf_inv1" placeholder="เช่น ผศ.ดร.สมศรี เมตตาธรรม"></div>
@@ -151,7 +151,7 @@
       <!-- 2. ผู้เข้าสอบ -->
       <div id="pane_cands" style="display:none; margin-top:14px">
         <h2 style="margin-top:0">จัดผู้เข้าสอบเข้ากลุ่ม/เวลา</h2>
-        <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; background:#f7f5ec; border:1px solid var(--line); border-radius:4px; padding:12px 14px; margin-bottom:14px">
+        <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; background:#f6f8fb; border:1px solid var(--line); border-radius:4px; padding:12px 14px; margin-bottom:14px">
           <div><label>เวลาเริ่มของแต่ละกลุ่ม</label><input type="text" id="autoStart" value="09:30" style="width:100px"></div>
           <div><label>นาทีต่อคน</label><input type="number" id="autoMin" value="30" min="5" max="240" style="width:100px"></div>
           <label style="display:flex; align-items:center; gap:6px; width:auto; margin:0 8px 8px"><input type="checkbox" id="autoReset" style="width:auto"> จัดใหม่ทั้งหมด (เฉพาะที่ยังไม่มีคะแนน)</label>
@@ -188,7 +188,7 @@
       <!-- 4. พิมพ์ -->
       <div id="pane_print" style="display:none; margin-top:14px">
         <h2 style="margin-top:0">พิมพ์/ส่งออก</h2>
-        <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; background:#f7f5ec; border:1px solid var(--line); border-radius:4px; padding:12px 14px; margin-bottom:14px">
+        <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; background:#f6f8fb; border:1px solid var(--line); border-radius:4px; padding:12px 14px; margin-bottom:14px">
           <div><label>เลือกกลุ่ม</label><select id="prGroup" onchange="renderPrint()"></select></div>
           <div style="flex:1; min-width:180px"><label>ค้นหาชื่อ</label><input type="text" id="prSearch" oninput="renderPrint()" placeholder="ค้นหาชื่อ-สกุล"></div>
           <button class="btn small" style="width:auto" id="prBtn1" onclick="printSheet('inv1')">พิมพ์ ก.1</button>

@@ -135,7 +135,7 @@ async function doLogin(e) {
       return false;
     }
     Auth.setSession(data);
-    window.location.href = 'member-dashboard.html';
+    window.location.href = 'member-home.html';
   } catch (err) {
     showError(err.message);
   }
@@ -175,7 +175,7 @@ if (hashParams.get('error')) {
 }
 
 if (Auth.isLoggedIn() && !Auth.getRole().startsWith('admin')) {
-  window.location.href = 'member-dashboard.html';
+  window.location.href = 'member-home.html';
 }
 
 // TOR ข้อ 8.8 — ตัวอย่างการเชื่อมโยงสถิติสมาชิกแบบเรียลไทม์ผ่าน public action (ไม่ต้อง login)
