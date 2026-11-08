@@ -94,6 +94,7 @@ async function applyMemberNavVisibility() {
     if (navTypeChange && (isOrg || profile.member_type === 'สามัญ')) navTypeChange.style.display = 'none';
     // สมาชิกสมทบไม่มีสิทธิ์ยื่นขอใบอนุญาต (ผู้ขอขึ้นทะเบียนต้องเป็นสมาชิกสามัญ) — ซ่อนเมนูใบอนุญาต
     if (navLicense && profile.member_type === 'สมทบ') navLicense.style.display = 'none';
+    if (profile.profile_kind === 'honorary') hideHonoraryNav_();
     if (isOrg) {
       // สมาชิกวิสามัญไม่มีใบอนุญาต/บัตรสมาชิกแบบบุคคล — ใช้ใบรับรององค์กรแทน (member-certificate.html)
       if (navLicense) navLicense.style.display = 'none';
@@ -426,7 +427,7 @@ function createSignaturePad(canvasId) {
 // ---------- ตรวจสอบว่า Deploy เวอร์ชันล่าสุดของ backend แล้วหรือยัง ----------
 // ต้องตรงกับ BACKEND_VERSION ใน Code.gs — อัปเดตทุกครั้งที่ส่งมอบไฟล์ Code.gs ชุดใหม่
 // ป้องกันปัญหา "อัปโหลดไฟล์เว็บแล้วแต่ลืม Deploy Apps Script ใหม่" ซึ่งทำให้ฟีเจอร์ใหม่ไม่ทำงานโดยไม่รู้ตัว
-const EXPECTED_BACKEND_VERSION = '2026-10-26-exam-demo-v17';
+const EXPECTED_BACKEND_VERSION = '2026-11-05-exam-edu-doc-v19';
 
 async function checkBackendVersionAndWarn() {
   try {
@@ -653,6 +654,14 @@ function buildYearOptionsBE(yearsBack) {
 /** ปรับการแสดงเมนูด้านข้างให้ตรงกับประเภทสมาชิก (บุคคล/องค์กร) — ใช้ร่วมกันทุกหน้าฝั่งสมาชิก เรียกหลังโหลดโปรไฟล์สำเร็จเสมอ
  * ถ้าไม่มีเมนูรายการไหนอยู่ในหน้านั้น (เช่นบาง id ไม่ได้ใส่ไว้) จะข้ามไปเงียบๆ ไม่ error
  */
+/** สมาชิกกิตติมศักดิ์: ไม่มีใบอนุญาต/สอบ/ค่าบำรุง/สวัสดิการ — เหลือเมนูหน้าหลัก ข้อมูลของฉัน บัตรสมาชิก เปลี่ยนรหัสผ่าน */
+function hideHonoraryNav_() {
+  ['navApply', 'navNameChange', 'navTypeChange', 'navLicense', 'navExamApply', 'navCertificate'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.style.display = 'none';
+  });
+  document.querySelectorAll('.sidebar nav a[href="member-welfare.html"], .sidebar nav a[href="member-receipts.html"]').forEach(e => { e.style.display = 'none'; });
+}
+
 function updateNavVisibility(profile) {
   const navApply = document.getElementById('navApply');
   const navTypeChange = document.getElementById('navTypeChange');
@@ -664,6 +673,7 @@ function updateNavVisibility(profile) {
   const isOrg = profile.profile_kind === 'organization';
   if (navTypeChange && (isOrg || profile.member_type === 'สามัญ')) navTypeChange.style.display = 'none';
   if (navLicense && profile.member_type === 'สมทบ') navLicense.style.display = 'none';
+  if (profile.profile_kind === 'honorary') hideHonoraryNav_();
   if (isOrg) {
     if (navNameChange) navNameChange.style.display = 'none'; // ขอเปลี่ยนชื่อ-นามสกุล ใช้กับสมาชิกบุคคลเท่านั้น องค์กรแก้ชื่อหน่วยงานคนละหน้า
     if (navLicense) navLicense.style.display = 'none';

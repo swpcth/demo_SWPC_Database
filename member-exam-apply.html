@@ -92,7 +92,7 @@
             <p id="feePreview" style="color:var(--muted); font-size:13px; margin-top:6px"></p>
             <div class="doc-row"><label>สำเนาบัตรประชาชน *</label><input type="file" id="doc_id" accept=".pdf,.jpg,.jpeg,.png"></div>
             <div class="doc-row"><label>รูปถ่าย *</label><input type="file" id="doc_photo" accept=".jpg,.jpeg,.png"></div>
-            <div class="doc-row" id="doc_degree_row"><label>สำเนาวุฒิการศึกษา *</label><input type="file" id="doc_degree" accept=".pdf,.jpg,.jpeg,.png"></div>
+            <div class="doc-row" id="doc_degree_row"><label id="doc_degree_label">สำเนาวุฒิการศึกษา *</label><input type="file" id="doc_degree" accept=".pdf,.jpg,.jpeg,.png"></div>
 
             <label style="display:flex; align-items:flex-start; gap:8px; width:auto; margin-top:10px">
               <input type="checkbox" id="f_consent" style="width:auto; margin-top:3px">
@@ -235,7 +235,8 @@ async function onRoundChange() {
         `<label style="display:flex; align-items:center; gap:6px; width:auto; margin-bottom:4px">
           <input type="checkbox" class="subject_cb" value="${s}" onchange="updateFeePreview()" ${selectedSubjects.indexOf(s) !== -1 ? 'checked' : ''}> ${s} (${eligibilityInfo.examSubjectFee} บาท)
         </label>`).join('');
-      document.getElementById('doc_degree_row').style.display = eligibilityInfo.degreeWaived ? 'none' : 'flex';
+      document.getElementById('doc_degree_row').style.display = 'flex';
+      document.getElementById('doc_degree_label').textContent = eligibilityInfo.educationDocType + ' *';
       renderProfileInfo();
       renderExamHistoryRadios(editingApp ? d.exam_history : null, editingApp ? d.exam_history_date : null);
       document.getElementById('f_consent').checked = !!(editingApp && d.consent_no_refund);
@@ -325,9 +326,9 @@ async function submitExam() {
       const dPhoto = await keepOrUpload(document.getElementById('doc_photo'), 'รูปถ่าย');
       if (!dId || !dPhoto) throw new Error('กรุณาแนบสำเนาบัตรประชาชนและรูปถ่ายให้ครบ');
       documents.push(dId, dPhoto);
-      if (!eligibilityInfo.degreeWaived) {
-        const dDegree = await keepOrUpload(document.getElementById('doc_degree'), 'สำเนาวุฒิการศึกษา');
-        if (!dDegree) throw new Error('กรุณาแนบสำเนาวุฒิการศึกษา');
+      {
+        const dDegree = await keepOrUpload(document.getElementById('doc_degree'), eligibilityInfo.educationDocType);
+        if (!dDegree) throw new Error('กรุณาแนบ' + eligibilityInfo.educationDocType);
         documents.push(dDegree);
       }
       payload.subjects = subjects;
