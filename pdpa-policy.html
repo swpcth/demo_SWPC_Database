@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ประกาศความเป็นส่วนตัว (PDPA) — สภาวิชาชีพสังคมสงเคราะห์</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+<style> .wrap { max-width:820px; margin:30px auto; padding:0 16px } .sec h3 { margin:18px 0 4px; color:#122c4d } .sec p { margin:0; line-height:1.8 } </style>
+</head>
+<body>
+<div class="wrap panel">
+  <p><a href="index.html">← กลับหน้าเข้าสู่ระบบ</a></p>
+  <h1 id="t">ประกาศความเป็นส่วนตัว</h1>
+  <p class="sub" id="sub"></p>
+  <div id="body">กำลังโหลด...</div>
+  <p class="sub" style="margin-top:20px">หลังเข้าสู่ระบบ สมาชิกใช้สิทธิและถอนความยินยอมได้ที่เมนู “ข้อมูลส่วนบุคคล (PDPA)”</p>
+</div>
+<script src="api.js"></script>
+<script>
+apiCall('getPdpaPolicy').then(p => {
+  document.getElementById('t').textContent = p.title;
+  document.getElementById('sub').textContent = 'ผู้ควบคุมข้อมูล: ' + p.controller + ' · ฉบับที่ ' + p.version;
+  document.getElementById('body').innerHTML = p.sections.map(s => `<div class="sec"><h3>${escapeHtml(s.heading)}</h3><p>${escapeHtml(s.body)}</p></div>`).join('');
+}).catch(e => { document.getElementById('body').textContent = e.message; });
+</script>
+</body>
+</html>

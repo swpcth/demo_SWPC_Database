@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ข้อมูลส่วนบุคคล (PDPA)</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+<style>
+  .policy-sec { margin:0 0 14px } .policy-sec h3 { margin:0 0 4px; font-size:15px; color:#122c4d } .policy-sec p { margin:0; line-height:1.7; font-size:14px }
+  .consent-box { border:2px solid #1f4fa3; border-radius:10px; padding:14px 16px; background:#f3f7fd; margin-top:14px }
+  .consent-box label { display:flex; gap:10px; align-items:flex-start; font-weight:500; line-height:1.6; cursor:pointer }
+  .consent-box input[type=checkbox] { width:20px; height:20px; margin-top:3px; flex:none }
+  .gate-banner { background:#fff4d6; border:1px solid #e6b800; border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:14px; line-height:1.6 }
+  .state-ok { color:#1d6b3b; font-weight:700 } .state-no { color:#a83228; font-weight:700 }
+  .req-row { border-bottom:1px solid #e3e8ef; padding:10px 0; font-size:14px } .req-row:last-child { border-bottom:none }
+  textarea { width:100%; min-height:90px }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>พื้นที่สมาชิก</div>
+    <nav>
+      <a href="member-home.html">หน้าหลัก</a>
+      <a href="member-dashboard.html">ข้อมูลของฉัน</a>
+      <a href="pdpa-consent.html" class="active">ข้อมูลส่วนบุคคล (PDPA)</a>
+      <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header><h1>ข้อมูลส่วนบุคคล (PDPA)</h1></header>
+    <div id="gate" class="gate-banner" style="display:none">ก่อนใช้บริการอื่นของระบบ กรุณาอ่านประกาศความเป็นส่วนตัวด้านล่างและให้ความยินยอม</div>
+
+    <div class="panel">
+      <h2 id="p-title">ประกาศความเป็นส่วนตัว</h2>
+      <p class="sub" id="p-sub"></p>
+      <div id="p-sections">กำลังโหลด...</div>
+      <div class="consent-box" id="consent-box">
+        <p>สถานะของท่าน: <span id="st"></span></p>
+        <label id="chk-wrap"><input type="checkbox" id="chk"><span id="stmt"></span></label>
+        <button class="btn" id="btn-accept" style="margin-top:12px;width:auto" onclick="accept()">ให้ความยินยอม</button>
+      </div>
+    </div>
+
+    <div class="panel" id="rights-panel">
+      <h2>ใช้สิทธิตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล</h2>
+      <label for="rq-type">ประเภทคำขอ</label>
+      <select id="rq-type"></select>
+      <label for="rq-detail">รายละเอียด</label>
+      <textarea id="rq-detail" placeholder="อธิบายสิ่งที่ต้องการให้สภาฯ ดำเนินการ"></textarea>
+      <button class="btn" style="width:auto;margin-top:10px" onclick="submitRequest()">ส่งคำขอ</button>
+      <button class="btn" style="width:auto;margin:10px 0 0 8px;background:#fff;color:#1f4fa3;border:1px solid #1f4fa3" onclick="exportData()">ดาวน์โหลดสำเนาข้อมูลของฉัน (JSON)</button>
+      <h3 style="margin:22px 0 6px">คำขอของฉัน</h3>
+      <div id="req-list">-</div>
+    </div>
+
+    <div class="panel" id="withdraw-panel">
+      <h2>ถอนความยินยอม</h2>
+      <p class="sub">การถอนความยินยอมอาจทำให้ท่านไม่สามารถยื่นคำขอหรือใช้บริการที่ต้องใช้ข้อมูลส่วนบุคคลได้ ท่านสามารถให้ความยินยอมใหม่ได้ทุกเมื่อ</p>
+      <label for="wd-reason">เหตุผล</label>
+      <input type="text" id="wd-reason">
+      <button class="btn" style="width:auto;margin-top:10px;background:#a83228" onclick="withdraw()">ถอนความยินยอม</button>
+      <h3 style="margin:22px 0 6px">ประวัติความยินยอม</h3>
+      <div id="hist">-</div>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(['member'], 'index.html');
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+const esc = escapeHtml;
+const next = new URLSearchParams(location.search).get('next') || 'member-home.html';
+let policy = null, accepted = false;
+const fmt = s => s ? new Date(s).toLocaleString('th-TH') : '-';
+
+async function load() {
+  try {
+    policy = await apiCall('getPdpaPolicy');
+    const st = await apiCall('getMyPdpaStatus');
+    accepted = !!st.accepted;
+    try { sessionStorage.setItem('swc_pdpa_ok', accepted ? '1' : ''); } catch (e) {}
+    document.getElementById('p-title').textContent = policy.title;
+    document.getElementById('p-sub').textContent = 'ผู้ควบคุมข้อมูล: ' + policy.controller + ' · ฉบับที่ ' + policy.version;
+    document.getElementById('p-sections').innerHTML = policy.sections.map(s => `<div class="policy-sec"><h3>${esc(s.heading)}</h3><p>${esc(s.body)}</p></div>`).join('');
+    document.getElementById('stmt').textContent = policy.consent_statement;
+    document.getElementById('rq-type').innerHTML = policy.request_types.map(t => `<option>${esc(t)}</option>`).join('');
+    renderState(st);
+    await loadHistory();
+  } catch (e) { document.getElementById('p-sections').textContent = e.message; }
+}
+
+function renderState(st) {
+  const stEl = document.getElementById('st');
+  if (accepted) stEl.innerHTML = `<span class="state-ok">✓ ให้ความยินยอมแล้ว (ฉบับที่ ${esc(st.policy_version)})</span>`;
+  else if (st.last_status === 'ถอนความยินยอม') stEl.innerHTML = '<span class="state-no">ถอนความยินยอมแล้ว</span>';
+  else if (st.last_status) stEl.innerHTML = '<span class="state-no">ประกาศมีการอัปเดต — กรุณาให้ความยินยอมใหม่</span>';
+  else stEl.innerHTML = '<span class="state-no">ยังไม่ได้ให้ความยินยอม</span>';
+  document.getElementById('chk-wrap').style.display = accepted ? 'none' : '';
+  document.getElementById('btn-accept').style.display = accepted ? 'none' : '';
+  document.getElementById('gate').style.display = accepted ? 'none' : '';
+  document.getElementById('withdraw-panel').style.opacity = accepted ? 1 : .6;
+}
+
+async function loadHistory() {
+  const h = await apiCall('listMyPdpaHistory');
+  document.getElementById('hist').innerHTML = h.consents.length
+    ? h.consents.map(c => `<div class="req-row"><b>${esc(c.status)}</b> · ฉบับที่ ${esc(c.policy_version)} · ${esc(fmt(c.created_at))}<br><span class="sub">${esc(c.channel)}${c.reason ? ' · เหตุผล: ' + esc(c.reason) : ''}</span></div>`).join('')
+    : '<span class="sub">ยังไม่มีประวัติ</span>';
+  document.getElementById('req-list').innerHTML = h.requests.length
+    ? h.requests.map(r => `<div class="req-row"><b>${esc(r.request_type)}</b> — <span class="${r.status === 'ดำเนินการแล้ว' ? 'state-ok' : ''}">${esc(r.status)}</span><br>${esc(r.detail)}${r.response_note ? `<br><span class="sub">คำตอบจากสภาฯ: ${esc(r.response_note)}</span>` : ''}<br><span class="sub">${esc(fmt(r.created_at))}</span></div>`).join('')
+    : '<span class="sub">ยังไม่มีคำขอ</span>';
+}
+
+async function accept() {
+  if (!document.getElementById('chk').checked) { showToast('กรุณาติ๊กช่องยืนยันการให้ความยินยอม', 'error'); return; }
+  try {
+    await apiCall('acceptPdpaConsent', { accept: true, policy_version: policy.version });
+    showToast('บันทึกความยินยอมเรียบร้อย', 'success');
+    try { sessionStorage.setItem('swc_pdpa_ok', '1'); } catch (e) {}
+    if (new URLSearchParams(location.search).get('next')) { location.href = next; return; }
+    await load();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function withdraw() {
+  const reason = document.getElementById('wd-reason').value.trim();
+  if (!reason) { showToast('กรุณาระบุเหตุผล', 'error'); return; }
+  if (!confirm('ยืนยันการถอนความยินยอม?')) return;
+  try {
+    await apiCall('withdrawPdpaConsent', { reason });
+    try { sessionStorage.removeItem('swc_pdpa_ok'); } catch (e) {}
+    showToast('ถอนความยินยอมแล้ว', 'success');
+    document.getElementById('wd-reason').value = '';
+    await load();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function submitRequest() {
+  try {
+    await apiCall('submitPdpaRequest', { request_type: document.getElementById('rq-type').value, detail: document.getElementById('rq-detail').value });
+    showToast('ส่งคำขอเรียบร้อย เจ้าหน้าที่จะตอบกลับในระบบนี้', 'success');
+    document.getElementById('rq-detail').value = '';
+    await loadHistory();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function exportData() {
+  try {
+    const d = await apiCall('exportMyPersonalData');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' }));
+    a.download = 'my-personal-data.json';
+    a.click();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+load();
+</script>
+</body>
+</html>

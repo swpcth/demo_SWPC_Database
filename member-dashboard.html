@@ -23,6 +23,7 @@
       <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="pdpa-consent.html">ข้อมูลส่วนบุคคล (PDPA)</a>
       <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -160,6 +161,61 @@ async function load() {
   // แยก try/catch การ "หาโปรไฟล์ไม่เจอ" ออกจาก "แสดงผลโปรไฟล์" — ถ้าโค้ดส่วนแสดงผลพัง จะได้เห็น error จริง
   // ไม่ใช่ข้อความ "ไม่พบข้อมูลสมาชิก" ที่ทำให้เข้าใจผิดว่าบัญชีนี้ไม่มีข้อมูลสมาชิกทั้งที่จริงๆ มีข้อมูลอยู่แล้ว
   try {
+    if (m.profile_kind === 'honorary') {
+      const hn = [m.prefix_th, m.first_name_th, m.last_name_th].filter(Boolean).join(' ');
+      el.innerHTML = `
+        <div class="panel profile-header-panel">
+          <div class="profile-header">
+            <div class="profile-photo" id="hPhotoPreview">${m.photo_url ? `<img src="${toEmbeddableImageUrl(m.photo_url)}">` : '👤'}</div>
+            <div class="profile-header-main">
+              <h2>${hn}</h2>
+              ${m.first_name_en ? `<div style="color:var(--muted)">${m.first_name_en} ${m.last_name_en || ''}</div>` : ''}
+              <div class="profile-badges">
+                <span class="badge pending">กิตติมศักดิ์</span>
+                <span class="badge ${m.status === 'ดำรงสถานะ' ? 'ok' : 'warn'}">${m.status || '-'}</span>
+              </div>
+            </div>
+          </div>
+          <div class="profile-info-section">
+            <div class="profile-info-grid">
+              <div><span>เลขทะเบียนสมาชิกกิตติมศักดิ์</span><b>${m.honorary_no || '-'}</b></div>
+              <div><span>คุณสมบัติ</span><b>${m.qualification_type || '-'}</b></div>
+              <div><span>วันที่ได้รับการแต่งตั้ง/รับรอง</span><b>${m.appointed_date ? new Date(m.appointed_date).toLocaleDateString('th-TH') : '-'}</b></div>
+              <div><span>วันที่สิ้นสุดสถานะ</span><b>${m.term_end ? new Date(m.term_end).toLocaleDateString('th-TH') : 'ไม่มีกำหนด'}</b></div>
+            </div>
+          </div>
+          <p style="color:var(--muted); font-size:13px; margin-top:10px">ชื่อ คุณสมบัติ และสถานะแก้ไขไม่ได้ในหน้านี้ — ติดต่อเจ้าหน้าที่หากต้องแก้ไข สมาชิกกิตติมศักดิ์ไม่มีค่าบำรุงสมาชิกและใบอนุญาต</p>
+        </div>
+
+        <div id="editError" class="error-box"></div>
+        <fieldset class="panel">
+          <legend>ข้อมูลติดต่อและผลงาน</legend>
+          <div class="grid-2">
+            ${fld('hn_phone', 'เบอร์โทรศัพท์', m.phone, 'tel')}
+            ${fld('hn_email', 'อีเมล', m.email, 'email')}
+            ${fld('hn_position', 'ตำแหน่ง', m.position)}
+            ${fld('hn_organization', 'หน่วยงาน / องค์กร', m.organization)}
+            <div style="grid-column:1/-1">${fld('hn_expertise', 'ความเชี่ยวชาญ / ผลงานเด่น', m.expertise)}</div>
+          </div>
+          <label>รูปถ่าย</label>
+          <input type="file" id="hn_photo" accept=".jpg,.jpeg,.png">
+          <p style="color:var(--muted); font-size:13px">อัปโหลดแล้วบันทึกอัตโนมัติ — รูปนี้จะแสดงบนบัตรสมาชิก</p>
+        </fieldset>
+        <button class="btn" style="width:auto" onclick="saveHonoraryProfile()">บันทึกข้อมูล</button>
+      `;
+      updateNavVisibility(m);
+      document.getElementById('hn_photo').addEventListener('change', async (ev) => {
+        const file = ev.target.files[0];
+        if (!file) return;
+        try {
+          document.getElementById('hPhotoPreview').innerHTML = `<img src="${URL.createObjectURL(file)}">`;
+          const up = await uploadDocument(file, 'รูปถ่ายสมาชิกกิตติมศักดิ์');
+          await apiCall('updateHonoraryProfile', { patch: { photo_url: up.url } });
+          showToast('อัปโหลดรูปสำเร็จ', 'success');
+        } catch (err) { showToast('อัปโหลดรูปไม่สำเร็จ: ' + err.message, 'error'); }
+      });
+      return;
+    }
     if (m.profile_kind === 'organization') {
       el.innerHTML = `
         <div class="panel profile-header-panel">
@@ -509,6 +565,17 @@ async function saveOrgProfile() {
     errBox.textContent = 'บันทึกไม่สำเร็จ: ' + err.message;
     errBox.style.display = 'block';
   }
+}
+
+async function saveHonoraryProfile() {
+  const errBox = document.getElementById('editError');
+  errBox.style.display = 'none';
+  const v = id => document.getElementById(id).value.trim();
+  try {
+    await apiCall('updateHonoraryProfile', { patch: { phone: v('hn_phone'), email: v('hn_email'), position: v('hn_position'), organization: v('hn_organization'), expertise: v('hn_expertise') } });
+    showToast('บันทึกข้อมูลสำเร็จ', 'success');
+    load();
+  } catch (err) { errBox.textContent = 'บันทึกไม่สำเร็จ: ' + err.message; errBox.style.display = 'block'; }
 }
 
 async function togglePhotoConsent() {

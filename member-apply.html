@@ -23,6 +23,7 @@
       <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="pdpa-consent.html">ข้อมูลส่วนบุคคล (PDPA)</a>
       <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -467,6 +468,11 @@ function updateFeeHint(form) {
 }
 
 function pickType(type) {
+  if (type === 'วิสามัญ' && Auth.getAcctType() === 'person') {
+    // บัญชีบุคคลใช้สมัครวิสามัญไม่ได้ — ให้สร้างบัญชีองค์กรแยก
+    document.getElementById('newApplicationPanel').innerHTML = orgAccountPanelHtml('บัญชีนี้เป็นบัญชีบุคคล จึงใช้สมัครสมาชิกวิสามัญ (องค์กร) ไม่ได้');
+    return;
+  }
   currentType = type;
   document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
   document.getElementById('typePicker').style.display = 'none';
@@ -883,12 +889,57 @@ async function checkAlreadyMemberAndAdjustPage() {
     // เป็นสมาชิกอยู่แล้ว (บุคคลหรือองค์กร) — ไม่ต้องยื่นใบสมัครซ้ำ ซ่อนแบบฟอร์มสมัครใหม่
     const newAppPanel = document.getElementById('newApplicationPanel');
     if (newAppPanel) {
-      newAppPanel.innerHTML = '<h2>ยื่นใบสมัครใหม่</h2><p class="empty-state">คุณเป็นสมาชิกอยู่แล้ว ไม่จำเป็นต้องยื่นใบสมัครสมาชิกอีก</p>';
+      if (profile.profile_kind === 'individual') {
+        // ตัวแทนหน่วยงานที่เป็นสมาชิกบุคคลอยู่แล้ว — สมัครวิสามัญ (องค์กร) ได้ แต่ต้องใช้บัญชีผู้ใช้งานแยกสำหรับองค์กร
+        newAppPanel.innerHTML = orgAccountPanelHtml('คุณเป็นสมาชิกบุคคลอยู่แล้ว (บัญชีนี้ผูกกับข้อมูลส่วนตัวของคุณ) จึงสมัครสมาชิกวิสามัญ (องค์กร) ด้วยบัญชีนี้ไม่ได้');
+      } else {
+        newAppPanel.innerHTML = '<h2>ยื่นใบสมัครใหม่</h2><p class="empty-state">คุณเป็นสมาชิกอยู่แล้ว ไม่จำเป็นต้องยื่นใบสมัครสมาชิกอีก</p>';
+      }
     }
   }
 }
 
+// ---- บัญชีองค์กรแยกจากบัญชีบุคคล ----
+function orgAccountPanelHtml(reason) {
+  return '<h2>สมัครสมาชิกวิสามัญ (องค์กร) — ต้องใช้บัญชีองค์กรแยก</h2>' +
+    '<p style="color:var(--muted)">' + reason + '</p>' +
+    '<p style="color:var(--muted)">กรุณาสร้างบัญชีผู้ใช้งานสำหรับองค์กรเพิ่ม (ตั้งชื่อผู้ใช้งานใหม่ ไม่ซ้ำกับบัญชีของคุณ) แล้วเข้าสู่ระบบด้วยบัญชีองค์กรเพื่อยื่นใบสมัคร บัญชีบุคคลเดิมของคุณจะไม่ถูกเปลี่ยนแปลง</p>' +
+    '<div id="orgAcctForm" style="max-width:420px">' +
+    '<label>ชื่อองค์กร/หน่วยงาน *</label><input type="text" id="oa_name">' +
+    '<label>ชื่อผู้ใช้งานของบัญชีองค์กร *</label><input type="text" id="oa_user" autocomplete="off">' +
+    '<label>รหัสผ่าน * (อย่างน้อย 8 ตัว มีตัวอักษรและตัวเลข)</label><input type="password" id="oa_pass" autocomplete="new-password">' +
+    '<label>ยืนยันรหัสผ่าน *</label><input type="password" id="oa_pass2" autocomplete="new-password">' +
+    '<div style="margin-top:12px"><button type="button" class="btn" onclick="createOrgAccount()">สร้างบัญชีองค์กร</button></div></div>' +
+    '<div id="orgAcctDone" style="display:none"></div>';
+}
+
+async function createOrgAccount() {
+  const name = document.getElementById('oa_name').value.trim();
+  const username = document.getElementById('oa_user').value.trim();
+  const pass = document.getElementById('oa_pass').value;
+  const pass2 = document.getElementById('oa_pass2').value;
+  if (!name || !username || !pass) { showToast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
+  if (pass !== pass2) { showToast('รหัสผ่านยืนยันไม่ตรงกัน', 'error'); return; }
+  if (username === Auth.getUsername()) { showToast('ต้องตั้งชื่อผู้ใช้งานใหม่ที่ไม่ซ้ำกับบัญชีปัจจุบัน', 'error'); return; }
+  try {
+    await apiCall('register', { username, password: pass, account_type: 'org', display_name: name });
+    document.getElementById('orgAcctForm').style.display = 'none';
+    const done = document.getElementById('orgAcctDone');
+    done.style.display = 'block';
+    done.innerHTML = '<p class="success-box" style="padding:12px;border-radius:8px;background:#dcfce7">สร้างบัญชีองค์กร <b></b> สำเร็จ</p>' +
+      '<p style="color:var(--muted)">ออกจากระบบ แล้วเข้าสู่ระบบด้วยบัญชีองค์กรใหม่ เพื่อยื่นใบสมัครสมาชิกวิสามัญ</p>' +
+      '<button type="button" class="btn" onclick="Auth.clear(); location.href=\'index.html\'">ออกจากระบบและเข้าด้วยบัญชีองค์กร</button>';
+    done.querySelector('b').textContent = username;
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
 loadMyApplications();
+if (Auth.getAcctType() === 'org') {
+  // บัญชีองค์กรสมัครได้เฉพาะสมาชิกวิสามัญ
+  document.querySelectorAll('.type-btn').forEach(b => { if (b.dataset.type !== 'วิสามัญ') b.style.display = 'none'; });
+}
 checkAlreadyMemberAndAdjustPage();
 if (typeof initThaiAddressCascade === 'function') {
   initThaiAddressCascade('i_cur');

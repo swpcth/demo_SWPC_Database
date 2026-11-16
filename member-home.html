@@ -23,6 +23,7 @@
       <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="pdpa-consent.html">ข้อมูลส่วนบุคคล (PDPA)</a>
       <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -58,6 +59,7 @@ async function load() {
   const all = apps.concat(exams.filter(x => !apps.some(a => a.application_id === x.application_id)));
 
   const isOrg = profile && profile.profile_kind === 'organization';
+  const isHon = profile && profile.profile_kind === 'honorary';
   const name = profile
     ? (isOrg ? profile.org_name_th : [profile.prefix_th, profile.first_name_th, profile.last_name_th].filter(Boolean).join(' '))
     : Auth.getUsername();
@@ -65,9 +67,9 @@ async function load() {
   // ----- hero -----
   let pills = '';
   if (profile) {
-    pills += `<span class="pill">${ms('badge')} ${isOrg ? 'วิสามัญ' : 'สมาชิก' + esc(profile.member_type || '')}</span>`;
-    if (profile.member_no) pills += `<span class="pill">เลขที่ ${esc(profile.member_no)}</span>`;
-    pills += `<span class="pill ${profile.status === 'ปกติ' ? 'ok' : 'pending'}">${esc(profile.status || '-')}</span>`;
+    pills += `<span class="pill">${ms('badge')} ${isOrg ? 'วิสามัญ' : isHon ? 'กิตติมศักดิ์' : 'สมาชิก' + esc(profile.member_type || '')}</span>`;
+    if (profile.member_no || profile.honorary_no) pills += `<span class="pill">เลขที่ ${esc(profile.member_no || profile.honorary_no)}</span>`;
+    pills += `<span class="pill ${(profile.status === 'ปกติ' || profile.status === 'ดำรงสถานะ') ? 'ok' : 'pending'}">${esc(profile.status || '-')}</span>`;
   } else {
     pills = `<span class="pill pending">ยังไม่เป็นสมาชิก</span>`;
   }
@@ -87,7 +89,9 @@ async function load() {
   let tiles = '';
   tiles += svc('member-dashboard.html', 'person', 'ข้อมูลของฉัน', 'blue');
   if (!profile) tiles += svc('member-apply.html', 'person_add', 'สมัครสมาชิก', 'teal');
-  if (profile) {
+  if (isHon) {
+    tiles += svc('member-card.html', 'badge', 'บัตรสมาชิก', 'blue');
+  } else if (profile) {
     tiles += svc('member-name-change.html', 'edit', 'เปลี่ยนชื่อ-นามสกุล', 'teal');
     if (!isOrg && profile.member_type !== 'สามัญ') tiles += svc('member-type-change.html', 'swap_horiz', 'เปลี่ยนประเภทสมาชิก', 'blue');
     if (!isOrg && profile.member_type !== 'สมทบ') tiles += svc('member-license.html', 'workspace_premium', 'ใบอนุญาตของฉัน', 'rose');
@@ -95,8 +99,10 @@ async function load() {
     if (!isOrg) tiles += svc('member-card.html', 'badge', 'บัตรสมาชิก', 'blue');
     if (isOrg) tiles += svc('member-certificate.html', 'verified', 'ใบรับรองสมาชิก', 'rose');
   }
-  tiles += svc('member-welfare.html', 'volunteer_activism', 'สวัสดิการ', 'rose');
-  tiles += svc('member-receipts.html', 'receipt_long', 'ใบเสร็จของฉัน', 'teal');
+  if (!isHon) {
+    tiles += svc('member-welfare.html', 'volunteer_activism', 'สวัสดิการ', 'rose');
+    tiles += svc('member-receipts.html', 'receipt_long', 'ใบเสร็จของฉัน', 'teal');
+  }
 
   // ----- สิ่งที่ต้องดำเนินการ -----
   const todos = all.slice(0, 8).map(a => {

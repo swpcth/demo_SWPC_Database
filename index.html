@@ -12,7 +12,7 @@
 <div class="auth-shell">
   <div class="auth-side">
     <div class="mark"><img src="logo.png" alt="ตราสภาวิชาชีพสังคมสงเคราะห์" class="logo-mark"> สภาวิชาชีพสังคมสงเคราะห์</div>
-    <h1>ระบบฐานข้อมูลสมาชิกและใบอนุญาตประกอบวิชาชีพ</h1>
+    <h1>แพลตฟอร์มบริการสมาชิกแบบเบ็ดเสร็จ สภาวิชาชีพสังคมสงเคราะห์</h1>
     <div class="modules">
       ข้อมูลสมาชิก · สมัครสมาชิก · ทะเบียน · ใบอนุญาต · บัตรสมาชิก · สวัสดิการ · รายงาน
       <div id="publicStatsWidget" class="public-stats-widget"></div>
@@ -56,6 +56,16 @@
         </a>
 
         <div id="register-fields-new">
+          <label>ประเภทบัญชีที่ต้องการสร้าง</label>
+          <div class="acct-type-choice" style="display:flex; gap:8px; margin:4px 0 10px; flex-wrap:wrap">
+            <label style="width:auto; display:inline-flex; align-items:center; gap:6px; font-weight:400"><input type="radio" name="r-acct" value="person" style="width:auto" checked onchange="onAcctTypeChange()"> บุคคล (สมัครสมาชิกสามัญ/สมทบ)</label>
+            <label style="width:auto; display:inline-flex; align-items:center; gap:6px; font-weight:400"><input type="radio" name="r-acct" value="org" style="width:auto" onchange="onAcctTypeChange()"> องค์กร (สมาชิกวิสามัญ)</label>
+          </div>
+          <div id="r-org-box" style="display:none">
+            <p class="sub" style="margin:0 0 8px">บัญชีองค์กรแยกจากบัญชีบุคคล — ตัวแทนหน่วยงานที่เป็นสมาชิกสภาฯ ประเภทอื่นอยู่แล้ว ต้องตั้งชื่อผู้ใช้งานใหม่ ไม่ใช้ซ้ำกับบัญชีส่วนตัว</p>
+            <label for="r-org-name">ชื่อองค์กร/หน่วยงาน</label>
+            <input type="text" id="r-org-name">
+          </div>
           <label for="r-username">ตั้งชื่อผู้ใช้งาน</label>
           <input type="text" id="r-username">
           <label for="r-password">ตั้งรหัสผ่าน</label>
@@ -73,6 +83,10 @@
           <input type="password" id="r-password2" minlength="8">
         </div>
 
+        <label class="pdpa-row" style="display:flex; gap:8px; align-items:flex-start; font-weight:400; margin:12px 0 14px; line-height:1.5; font-size:14px">
+          <input type="checkbox" id="r-pdpa" style="width:auto; margin-top:4px">
+          <span>ข้าพเจ้าได้อ่านและยินยอมให้สภาวิชาชีพฯ เก็บ ใช้ และเปิดเผยข้อมูลส่วนบุคคลตาม <a href="pdpa-policy.html" target="_blank" rel="noopener">ประกาศความเป็นส่วนตัว (PDPA)</a> รวมถึงข้อมูลอ่อนไหว (ศาสนา เชื้อชาติ เลขประจำตัวประชาชน)</span>
+        </label>
         <button class="btn" type="submit">สร้างบัญชี</button>
 
         <div class="or-divider"><span>หรือ</span></div>
@@ -98,6 +112,15 @@ function showTab(which) {
 
 let registerMode = 'new'; // 'new' = สมาชิกใหม่ (username+password ตรงๆ) | 'existing' = สมาชิกเดิม (ยืนยันด้วยเลขบัตร+เบอร์โทร)
 
+function onAcctTypeChange() {
+  const isOrg = document.querySelector('input[name="r-acct"]:checked').value === 'org';
+  document.getElementById('r-org-box').style.display = isOrg ? 'block' : 'none';
+  document.getElementById('register-mode-toggle').style.display = isOrg ? 'none' : '';
+  document.getElementById('register-sub').textContent = isOrg
+    ? 'สร้างบัญชีสำหรับองค์กรก่อน แล้วยื่นใบสมัครสมาชิกวิสามัญในขั้นถัดไป — บัญชีจะผูกกับข้อมูลองค์กรเมื่อใบสมัครได้รับอนุมัติ'
+    : 'สร้างบัญชีก่อน แล้วยื่นใบสมัครสมาชิกในขั้นถัดไป — บัญชีจะผูกกับข้อมูลสมาชิกอัตโนมัติเมื่อใบสมัครได้รับอนุมัติ';
+}
+
 function toggleRegisterMode() {
   registerMode = registerMode === 'new' ? 'existing' : 'new';
   const isExisting = registerMode === 'existing';
@@ -111,6 +134,7 @@ function toggleRegisterMode() {
     ? 'สำหรับสมาชิกสามัญ/สมทบที่มีข้อมูลอยู่ในระบบแล้ว แต่ยังไม่เคยสร้างบัญชีเข้าใช้งาน — ยืนยันตัวตนด้วยเลขประจำตัวประชาชนและเบอร์โทรศัพท์ที่ตรงกับข้อมูลที่แจ้งไว้กับสภาวิชาชีพฯ'
     : 'สร้างบัญชีก่อน แล้วยื่นใบสมัครสมาชิกในขั้นถัดไป — บัญชีจะผูกกับข้อมูลสมาชิกอัตโนมัติเมื่อใบสมัครได้รับอนุมัติ';
   document.getElementById('error').style.display = 'none';
+  if (!isExisting) onAcctTypeChange();
 }
 
 function showError(msg) {
@@ -142,22 +166,30 @@ async function doLogin(e) {
   return false;
 }
 
+let pdpaVersion = '';
+apiCall('getPdpaPolicy').then(p => { pdpaVersion = p.version; }).catch(() => {});
+
 async function doRegister(e) {
   e.preventDefault();
   try {
+    if (!document.getElementById('r-pdpa').checked) { showError('กรุณาอ่านและติ๊กยินยอมประกาศความเป็นส่วนตัว (PDPA) ก่อนสร้างบัญชี'); return false; }
+    if (!pdpaVersion) { try { pdpaVersion = (await apiCall('getPdpaPolicy')).version; } catch (err) { showError('ไม่สามารถโหลดประกาศ PDPA ได้ กรุณาลองใหม่'); return false; } }
     if (registerMode === 'existing') {
       const nationalId = document.getElementById('r-national-id').value.trim();
       const phone = document.getElementById('r-phone').value.trim();
       const username = document.getElementById('r-username2').value.trim();
       const password = document.getElementById('r-password2').value;
       if (!nationalId || !phone || !username || !password) { showError('กรุณากรอกข้อมูลให้ครบทุกช่อง'); return false; }
-      await apiCall('claimExistingMemberAccount', { national_id: nationalId, phone, username, password });
+      await apiCall('claimExistingMemberAccount', { national_id: nationalId, phone, username, password, pdpa_accept: true, pdpa_version: pdpaVersion });
       showToast('สร้างบัญชีสำเร็จ ผูกกับข้อมูลสมาชิกของท่านเรียบร้อยแล้ว กรุณาเข้าสู่ระบบ', 'success');
     } else {
       const username = document.getElementById('r-username').value.trim();
       const password = document.getElementById('r-password').value;
       if (!username || !password) { showError('กรุณากรอกข้อมูลให้ครบทุกช่อง'); return false; }
-      await apiCall('register', { username, password });
+      const acctType = document.querySelector('input[name="r-acct"]:checked').value;
+      const displayName = document.getElementById('r-org-name').value.trim();
+      if (acctType === 'org' && !displayName) { showError('กรุณาระบุชื่อองค์กร/หน่วยงาน'); return false; }
+      await apiCall('register', { username, password, account_type: acctType, display_name: displayName, pdpa_accept: true, pdpa_version: pdpaVersion });
       showToast('สร้างบัญชีสำเร็จ กรุณาเข้าสู่ระบบ แล้วยื่นใบสมัครสมาชิกในขั้นตอนถัดไป', 'success');
     }
     showTab('login');

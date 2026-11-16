@@ -25,6 +25,7 @@
       <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="pdpa-consent.html">ข้อมูลส่วนบุคคล (PDPA)</a>
       <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -39,6 +40,7 @@
       <a class="btn" style="width:auto; display:inline-block" href="member-card.html">ไปที่หน้าบัตรสมาชิกเพื่อต่ออายุ</a>
     </div>
 
+    <div id="sanctionBanner" class="panel" style="display:none; border-left:4px solid #dc2626; background:#fef2f2"></div>
     <div id="cardSection" style="display:none">
       <div class="card-tabs lic-only">
         <button class="tab-chip active" onclick="showSide('front')">หน้าบัตร</button>
@@ -73,7 +75,7 @@
         <p class="card-back-footer">บัตรนี้เป็นกรรมสิทธิ์ของสภาวิชาชีพสังคมสงเคราะห์</p>
       </div>
 
-      <div class="card-alert lic-only">โปรดต่ออายุใบอนุญาตล่วงหน้า 180 วัน (6 เดือน) ก่อนบัตรหมดอายุ</div>
+      <div class="card-alert lic-only" id="renewNotice">โปรดต่ออายุใบอนุญาตล่วงหน้า 180 วัน (6 เดือน) ก่อนบัตรหมดอายุ</div>
 
       <div class="card-status-bar lic-only" id="statusBar"></div>
 
@@ -194,6 +196,13 @@ function renderCard(data) {
   const st = statusInfo(days);
   document.getElementById('statusBar').className = 'card-status-bar ' + st.cls;
   document.getElementById('statusBar').textContent = st.label + (days !== null && days >= 0 ? ' (' + days + ' วัน)' : '');
+  // มีคำสั่งพักใช้/เพิกถอน: แถบสถานะต้องแสดงตามคำสั่ง ไม่ใช่ตามวันหมดอายุ (v20)
+  const rn = document.getElementById('renewNotice');
+  if (data.sanction) {
+    document.getElementById('statusBar').className = 'card-status-bar card-status-red';
+    document.getElementById('statusBar').textContent = data.sanction.action_type === 'พักใช้' ? 'ใบอนุญาตอยู่ระหว่างพักใช้' : 'ใบอนุญาตถูกเพิกถอน';
+    if (rn) rn.style.display = 'none';
+  } else if (rn) { rn.style.display = ''; }
 
   document.getElementById('summaryBar').innerHTML = `
     <div><span>เลขที่ใบอนุญาต</span><b>${lic ? lic.license_no : '-'}</b></div>
@@ -503,6 +512,17 @@ async function loadAll() {
     document.getElementById('blockedPanel').style.display = 'none';
     document.getElementById('cardSection').style.display = 'block';
     updateNavVisibility(data.member);
+    const sb = document.getElementById('sanctionBanner');
+    if (data.sanction) {
+      const fmtYmd = v => { const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('th-TH') : '-'; };
+      sb.style.display = 'block';
+      sb.innerHTML = '<h3 style="margin:0 0 4px; color:#b91c1c"></h3><p style="margin:0"></p>';
+      sb.querySelector('h3').textContent = 'ใบอนุญาตของท่านอยู่ในสถานะ' + data.sanction.action_type;
+      sb.querySelector('p').textContent = 'ตามมติ/หนังสือคณะกรรมการจรรยาบรรณ เลขที่ ' + data.sanction.ethics_case_no +
+        ' มีผลตั้งแต่วันที่ ' + fmtYmd(data.sanction.effective_date) +
+        (data.sanction.action_type === 'พักใช้' ? ' ถึงวันที่ ' + fmtYmd(data.sanction.suspend_until) : '') +
+        (data.sanction.action_type === 'พักใช้' ? ' — ระหว่างพักใช้' : ' — เมื่อถูกเพิกถอน') + ' ไม่สามารถยื่นต่ออายุใบอนุญาตได้ หากมีข้อสงสัยกรุณาติดต่อสำนักงานสภาวิชาชีพสังคมสงเคราะห์';
+    } else { sb.style.display = 'none'; }
     // สมาชิกสมทบไม่มีสิทธิ์ยื่นขอใบอนุญาต (ต้องเป็นสมาชิกสามัญ) — ไม่แสดงหน้านี้
     if (data.member && data.member.member_type === 'สมทบ') { location.replace('member-dashboard.html'); return; }
     // ยังไม่มีใบอนุญาตจริง (ยังไม่เคยได้เลขที่ใบอนุญาต): ซ่อนบัตร/CE/ดาวน์โหลด/สถานะ แสดงเฉพาะส่วนขึ้นทะเบียน (และส่วนติดตามคำขอเมื่อเคยยื่นแล้ว)

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>พักใช้/เพิกถอนใบอนุญาต — ระบบแอดมิน</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="logo.png" alt="ตราสภาฯ">สภาวิชาชีพฯ<br>ระบบแอดมิน</div>
+    <nav>
+      <a href="admin-dashboard.html">แดชบอร์ด</a>
+
+      <div class="nav-group-label">สมาชิก</div>
+      <div class="nav-group">
+        <a href="admin-members.html">ข้อมูลสมาชิก</a>
+        <a href="admin-honorary.html">สมาชิกกิตติมศักดิ์</a>
+        <a href="admin-name-change.html">คำขอเปลี่ยนชื่อ-นามสกุล</a>
+        <a href="admin-type-change.html">เปลี่ยนประเภทสมาชิก</a>
+        <a href="admin-applications.html">คำขอสมัครสมาชิก</a>
+      </div>
+
+      <div class="nav-group-label">ใบอนุญาต</div>
+      <div class="nav-group">
+        <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
+        <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
+        <a href="admin-licenses.html">ข้อมูลใบอนุญาต</a>
+        <a href="admin-license-sanctions.html" class="active">พักใช้/เพิกถอนใบอนุญาต</a>
+      </div>
+
+      <div class="nav-group-label">สอบ</div>
+      <div class="nav-group">
+        <a href="admin-exam-rounds.html">จัดการรอบสอบ</a>
+        <a href="admin-exam-applications.html">คำขอสมัครสอบ</a>
+        <a href="admin-exam-results.html">นำเข้า/ดูผลสอบ</a>
+        <a href="admin-interviews.html">จัดการสอบสัมภาษณ์</a>
+      </div>
+
+      <div class="nav-group-label">การเงิน</div>
+      <div class="nav-group">
+        <a href="admin-payments.html">การชำระเงิน</a>
+        <a href="admin-refunds.html">คืนเงิน</a>
+        <a href="admin-reconciliation.html">กระทบยอดรายรับ</a>
+      </div>
+
+      <div class="nav-group-label">สวัสดิการและรายงาน</div>
+      <div class="nav-group">
+        <a href="admin-welfare.html">สวัสดิการสมาชิก</a>
+        <a href="admin-reports.html">รายงาน</a>
+      </div>
+
+      <div class="nav-group-label">ระบบ</div>
+      <div class="nav-group">
+        <a href="admin-users.html">ผู้ใช้งานระบบ</a>
+        <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
+        <a href="admin-pdpa.html">PDPA: ความยินยอม/คำขอ</a>
+        <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
+        <a href="admin-notifications.html">ประวัติการแจ้งเตือน</a>
+      </div>
+<a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
+      <a href="#" onclick="Auth.clear(); location.href='admin-login.html'; return false;">ออกจากระบบ</a>
+    </nav>
+    <div class="footer" id="who"></div>
+  </aside>
+
+  <main class="main">
+    <header>
+      <h1>พักใช้/เพิกถอนใบอนุญาต</h1>
+    </header>
+
+    <div class="panel" style="background:#f8fafc">
+      <p style="margin:0; color:var(--muted); font-size:14px">
+        บันทึกคำสั่งพักใช้/เพิกถอนใบอนุญาตตามมติหรือหนังสือของคณะกรรมการจรรยาบรรณ พร้อมแนบหลักฐาน —
+        เจ้าหน้าที่ทุกฝ่ายที่เกี่ยวข้องเปิดดูข้อมูลและหลักฐานได้จากหน้านี้ (บันทึก/แก้ไขได้เฉพาะเจ้าหน้าที่ทะเบียนและผู้ดูแลระบบ)
+      </p>
+    </div>
+
+    <div class="stat-grid" id="stats"></div>
+
+    <div class="panel">
+      <div class="list-toolbar">
+        <input type="text" id="q" style="flex:1; min-width:240px" placeholder="ค้นหาจากชื่อสมาชิก เลขใบอนุญาต หรือเลขที่หนังสือ/มติ" oninput="renderList()">
+        <select id="f_status" onchange="renderList()">
+          <option value="">ทุกสถานะคำสั่ง</option>
+          <option value="มีผลบังคับใช้" selected>มีผลบังคับใช้</option>
+          <option value="สิ้นสุดแล้ว">สิ้นสุดแล้ว</option>
+          <option value="ยกเลิกคำสั่ง">ยกเลิกคำสั่ง</option>
+        </select>
+        <select id="f_type" onchange="renderList()">
+          <option value="">พักใช้ + เพิกถอน</option>
+          <option value="พักใช้">พักใช้</option>
+          <option value="เพิกถอน">เพิกถอน</option>
+        </select>
+        <button class="btn" id="btnNew" style="display:none" onclick="openCreate()">+ บันทึกคำสั่งใหม่</button>
+      </div>
+      <p class="count-line" id="countLine">ทั้งหมด 0 รายการ</p>
+      <table>
+        <thead>
+          <tr><th>ประเภท</th><th>สมาชิก</th><th>เลขใบอนุญาต</th><th>เลขที่หนังสือ/มติ กก.จรรยาบรรณ</th><th>มีผลตั้งแต่</th><th>สิ้นสุด</th><th>สถานะ</th><th>หลักฐาน</th><th></th></tr>
+        </thead>
+        <tbody id="rows"><tr><td colspan="9" class="empty-state">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div id="detailOverlay" class="overlay" style="display:none" onclick="if(event.target===this) closeOverlay()">
+  <div class="overlay-card" style="max-width:760px">
+    <button class="overlay-close" onclick="closeOverlay()">✕</button>
+    <div id="overlayBody"></div>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+Auth.requireRole(["admin_super", "admin_staff", "admin_welfare"], "admin-login.html");
+document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
+const ROLE = Auth.getRole();
+const CAN_EDIT = ROLE === 'admin_super' || ROLE === 'admin_staff';
+if (CAN_EDIT) document.getElementById('btnNew').style.display = '';
+
+let rowsData = [];
+const esc = s => escapeHtml(String(s == null ? '' : s));
+const fmt = v => {
+  if (!v) return '-';
+  const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString('th-TH') : esc(v);
+};
+const typeBadge = t => `<span class="badge ${t === 'เพิกถอน' ? 'warn' : 'pending'}">${esc(t)}</span>`;
+const statusBadge = s => `<span class="badge ${s === 'มีผลบังคับใช้' ? 'warn' : 'ok'}">${esc(s)}</span>`;
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+function closeOverlay() { document.getElementById('detailOverlay').style.display = 'none'; }
+function openOverlay(html) { document.getElementById('overlayBody').innerHTML = html; document.getElementById('detailOverlay').style.display = 'flex'; }
+
+async function load() {
+  try {
+    rowsData = await apiCall('listLicenseSanctions', {});
+    renderStats();
+    renderList();
+  } catch (err) {
+    document.getElementById('rows').innerHTML = `<tr><td colspan="9" class="empty-state">${esc(err.message)}</td></tr>`;
+  }
+}
+
+function renderStats() {
+  const active = rowsData.filter(r => r.status === 'มีผลบังคับใช้');
+  const cards = [
+    ['พักใช้ (มีผลอยู่)', active.filter(r => r.action_type === 'พักใช้').length],
+    ['เพิกถอน (มีผลอยู่)', active.filter(r => r.action_type === 'เพิกถอน').length],
+    ['สิ้นสุดแล้ว/ยกเลิก', rowsData.length - active.length],
+    ['พักใช้ครบกำหนดภายใน 30 วัน', active.filter(r => r.action_type === 'พักใช้' && r.suspend_until && (new Date(r.suspend_until) - new Date()) / 864e5 <= 30).length]
+  ];
+  document.getElementById('stats').innerHTML = cards.map(c => `<div class="stat-card"><div class="num">${c[1]}</div><div class="label">${c[0]}</div></div>`).join('');
+}
+
+function renderList() {
+  const q = document.getElementById('q').value.toLowerCase();
+  const fs = document.getElementById('f_status').value, ft = document.getElementById('f_type').value;
+  const list = rowsData.filter(r =>
+    (!fs || r.status === fs) && (!ft || r.action_type === ft) &&
+    (!q || [r.member_name, r.license_no, r.ethics_case_no].some(v => String(v || '').toLowerCase().includes(q)))
+  );
+  document.getElementById('countLine').textContent = 'ทั้งหมด ' + list.length + ' รายการ';
+  document.getElementById('rows').innerHTML = list.length ? list.map(r => `
+    <tr>
+      <td>${typeBadge(r.action_type)}</td>
+      <td>${esc(r.member_name)}</td>
+      <td>${esc(r.license_no)}</td>
+      <td>${esc(r.ethics_case_no)}</td>
+      <td>${fmt(r.effective_date)}</td>
+      <td>${r.action_type === 'พักใช้' ? fmt(r.suspend_until) : '-'}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td>${r.evidence_count} ไฟล์</td>
+      <td><button class="btn small secondary" onclick="openDetail('${esc(r.sanction_id)}')">ดูรายละเอียด/หลักฐาน</button></td>
+    </tr>`).join('') : '<tr><td colspan="9" class="empty-state">ไม่พบรายการ</td></tr>';
+}
+
+function evidenceList(list) {
+  if (!list || !list.length) return '<p class="empty-state" style="margin:4px 0">ยังไม่มีหลักฐานแนบ</p>';
+  return '<ul style="margin:4px 0; padding-left:18px">' + list.map(d => `
+    <li>${d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a>` : esc(d.name)}
+      <span style="color:var(--muted); font-size:13px"> — ${esc(d.doc_type)}${d.note ? ' · ' + esc(d.note) : ''} · แนบโดย ${esc(d.uploaded_by)} ${fmt(d.uploaded_at)}</span></li>`).join('') + '</ul>';
+}
+
+async function openDetail(id) {
+  try {
+    const res = await apiCall('getLicenseSanction', { sanction_id: id });
+    const s = res.sanction;
+    const active = s.status === 'มีผลบังคับใช้';
+    const canEdit = res.can_edit;
+    const hist = res.history.length ? '<h3 style="margin-top:16px">ประวัติคำสั่งอื่นของสมาชิกรายนี้</h3>' + res.history.map(h =>
+      `<p style="margin:2px 0">${typeBadge(h.action_type)} ${statusBadge(h.status)} มีผล ${fmt(h.effective_date)} · เลขที่ ${esc(h.ethics_case_no)}</p>`).join('') : '';
+    openOverlay(`
+      <h2 style="margin-top:0">${typeBadge(s.action_type)} ${esc(s.member_name)}</h2>
+      <table class="kv"><tbody>
+        <tr><th>เลขใบอนุญาต</th><td>${esc(s.license_no)}</td><th>สถานะคำสั่ง</th><td>${statusBadge(s.status)}</td></tr>
+        <tr><th>เลขที่หนังสือ/มติ กก.จรรยาบรรณ</th><td>${esc(s.ethics_case_no)}</td><th>การประชุม</th><td>${esc(s.ethics_meeting_no) || '-'}</td></tr>
+        <tr><th>วันที่มติ/คำสั่ง</th><td>${fmt(s.decision_date)}</td><th>มีผลตั้งแต่</th><td>${fmt(s.effective_date)}</td></tr>
+        ${s.action_type === 'พักใช้' ? `<tr><th>พักใช้ถึงวันที่</th><td colspan="3">${fmt(s.suspend_until)}</td></tr>` : ''}
+        <tr><th>เหตุผล/ฐานความผิด</th><td colspan="3">${esc(s.reason)}</td></tr>
+        ${s.remarks ? `<tr><th>หมายเหตุ</th><td colspan="3">${esc(s.remarks)}</td></tr>` : ''}
+        <tr><th>บันทึกโดย</th><td colspan="3">${esc(s.created_by)} · ${fmt(s.created_at)}</td></tr>
+        ${!active ? `<tr><th>การสิ้นสุด</th><td colspan="3">${esc(s.lift_type)} · ${fmt(s.lifted_at)} · โดย ${esc(s.lifted_by)}${s.lift_reason ? '<br>เหตุผล: ' + esc(s.lift_reason) : ''}</td></tr>` : ''}
+      </tbody></table>
+      <h3 style="margin-top:14px">หลักฐานจากคณะกรรมการจรรยาบรรณ</h3>
+      ${evidenceList(s.evidence)}
+      ${s.lift_evidence && s.lift_evidence.length ? '<h3>หลักฐานการสิ้นสุดคำสั่ง</h3>' + evidenceList(s.lift_evidence) : ''}
+      ${canEdit ? `
+        <div class="panel" style="margin-top:12px">
+          <label>แนบหลักฐานเพิ่มเติม</label>
+          <input type="file" id="addFiles" multiple accept=".pdf,.jpg,.jpeg,.png">
+          <input type="text" id="addNote" placeholder="หมายเหตุประกอบไฟล์ (ไม่บังคับ)" style="margin-top:6px">
+          <button class="btn small" style="margin-top:6px" onclick="addEvidence('${esc(s.sanction_id)}')">แนบหลักฐาน</button>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px">
+          <button class="btn secondary" onclick="openEdit('${esc(s.sanction_id)}')">แก้ไขข้อมูลคำสั่ง</button>
+          ${active ? `<button class="btn" onclick="openLift('${esc(s.sanction_id)}','${esc(s.action_type)}','${esc(s.suspend_until)}')">สิ้นสุด/ยกเลิกคำสั่ง</button>` : ''}
+        </div>` : '<p style="color:var(--muted); font-size:13px; margin-top:12px">สิทธิ์ของคุณดูข้อมูลและหลักฐานได้อย่างเดียว</p>'}
+      ${hist}`);
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+async function uploadFiles(inputId, docType, note) {
+  const files = Array.from(document.getElementById(inputId).files || []);
+  const out = [];
+  for (const f of files) {
+    const up = await uploadDocument(f, docType);
+    out.push({ name: up.name, url: up.url, doc_type: docType, note: note || '' });
+  }
+  return out;
+}
+
+async function addEvidence(id) {
+  try {
+    const docs = await uploadFiles('addFiles', 'หลักฐานเพิ่มเติม', document.getElementById('addNote').value.trim());
+    if (!docs.length) { showToast('กรุณาเลือกไฟล์', 'error'); return; }
+    await apiCall('addLicenseSanctionEvidence', { sanction_id: id, documents: docs });
+    showToast('แนบหลักฐานสำเร็จ', 'success');
+    await load(); openDetail(id);
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+// ---------- บันทึกคำสั่งใหม่ ----------
+let memberCache = null;
+async function openCreate() {
+  openOverlay(`
+    <h2 style="margin-top:0">บันทึกคำสั่งพักใช้/เพิกถอนใบอนุญาต</h2>
+    <label>ค้นหาสมาชิก (ชื่อ / เลขสมาชิก / เลขใบอนุญาต / เลขบัตร) *</label>
+    <input type="text" id="mq" placeholder="พิมพ์แล้วเลือกจากรายการ" oninput="searchMember()">
+    <div id="mresults" style="max-height:160px; overflow:auto; border:1px solid var(--line,#e2e8f0); border-radius:8px; margin-top:4px; display:none"></div>
+    <p id="mpicked" style="margin:6px 0; font-weight:600"></p>
+    <input type="hidden" id="c_member">
+    <div class="form-grid">
+      <div><label>ประเภทคำสั่ง *</label>
+        <select id="c_type" onchange="document.getElementById('c_until_box').style.display = this.value === 'พักใช้' ? 'block' : 'none'">
+          <option value="พักใช้">พักใช้</option><option value="เพิกถอน">เพิกถอน</option></select></div>
+      <div><label>เลขที่หนังสือ/มติ กก.จรรยาบรรณ *</label><input type="text" id="c_case"></div>
+      <div><label>การประชุมครั้งที่</label><input type="text" id="c_meeting" placeholder="เช่น 8/2569"></div>
+      <div><label>วันที่มติ/คำสั่ง *</label><input type="date" id="c_decision"></div>
+      <div><label>มีผลบังคับใช้ตั้งแต่ * (ไม่เกินวันนี้)</label><input type="date" id="c_eff" value="${today()}"></div>
+      <div id="c_until_box"><label>พักใช้ถึงวันที่ *</label><input type="date" id="c_until"></div>
+    </div>
+    <label>เหตุผล/ฐานความผิดโดยสรุป *</label><textarea id="c_reason" rows="3"></textarea>
+    <label>หมายเหตุ</label><input type="text" id="c_remarks">
+    <label>แนบหลักฐานจากคณะกรรมการจรรยาบรรณ * (มติ / หนังสือ / รายงานการประชุม — เลือกได้หลายไฟล์)</label>
+    <input type="file" id="c_files" multiple accept=".pdf,.jpg,.jpeg,.png">
+    <p style="color:var(--muted); font-size:13px">เมื่อบันทึก สถานะใบอนุญาตจะเปลี่ยนทันที และระบบส่งอีเมลแจ้งสมาชิก</p>
+    <button class="btn" onclick="submitCreate()">บันทึกคำสั่ง</button>`);
+}
+
+async function searchMember() {
+  const q = document.getElementById('mq').value.trim();
+  const box = document.getElementById('mresults');
+  if (q.length < 2) { box.style.display = 'none'; return; }
+  try {
+    const list = (await apiCall('listMembers', { q })).filter(m => m.license_no);
+    box.style.display = 'block';
+    box.innerHTML = list.length ? list.slice(0, 30).map(m => `
+      <div style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #eef2f6" data-id="${esc(m.member_id)}" data-name="${esc([m.prefix_th, m.first_name_th, m.last_name_th].filter(Boolean).join(' '))}" data-lic="${esc(m.license_no)}"
+        onclick="pickMember(this)">${esc(m.first_name_th)} ${esc(m.last_name_th)} · เลขสมาชิก ${esc(m.member_no)} · ใบอนุญาต ${esc(m.license_no)} (${esc(m.license_status || '-')})</div>`).join('')
+      : '<div style="padding:8px" class="empty-state">ไม่พบสมาชิกที่มีใบอนุญาต</div>';
+  } catch (err) { box.style.display = 'block'; box.textContent = err.message; }
+}
+function pickMember(el) {
+  document.getElementById('c_member').value = el.dataset.id;
+  document.getElementById('mpicked').textContent = 'เลือกแล้ว: ' + el.dataset.name + ' (ใบอนุญาต ' + el.dataset.lic + ')';
+  document.getElementById('mresults').style.display = 'none';
+}
+
+async function submitCreate() {
+  try {
+    const v = id => document.getElementById(id).value.trim();
+    const docs = await uploadFiles('c_files', 'มติ/หนังสือคณะกรรมการจรรยาบรรณ', '');
+    if (!v('c_member')) throw new Error('กรุณาเลือกสมาชิก');
+    const type = v('c_type');
+    if (!(await showConfirm('ยืนยันบันทึกคำสั่ง' + type + 'ใบอนุญาต? สถานะใบอนุญาตจะเปลี่ยนทันทีและแจ้งสมาชิกทางอีเมล', 'ยืนยัน', 'กลับไปแก้ไข'))) return;
+    await apiCall('createLicenseSanction', {
+      member_id: v('c_member'), action_type: type, ethics_case_no: v('c_case'), ethics_meeting_no: v('c_meeting'),
+      decision_date: v('c_decision'), effective_date: v('c_eff'), suspend_until: v('c_until'),
+      reason: v('c_reason'), remarks: v('c_remarks'), documents: docs
+    });
+    showToast('บันทึกคำสั่งสำเร็จ', 'success');
+    closeOverlay(); load();
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+// ---------- แก้ไข / สิ้นสุดคำสั่ง ----------
+async function openEdit(id) {
+  const res = await apiCall('getLicenseSanction', { sanction_id: id });
+  const s = res.sanction;
+  openOverlay(`
+    <h2 style="margin-top:0">แก้ไขข้อมูลคำสั่ง — ${esc(s.member_name)}</h2>
+    <div class="form-grid">
+      <div><label>เลขที่หนังสือ/มติ กก.จรรยาบรรณ</label><input type="text" id="e_case" value="${esc(s.ethics_case_no)}"></div>
+      <div><label>การประชุมครั้งที่</label><input type="text" id="e_meeting" value="${esc(s.ethics_meeting_no)}"></div>
+      <div><label>วันที่มติ/คำสั่ง</label><input type="date" id="e_decision" value="${esc(s.decision_date)}"></div>
+      <div><label>มีผลตั้งแต่</label><input type="date" id="e_eff" value="${esc(s.effective_date)}"></div>
+      ${s.action_type === 'พักใช้' ? `<div><label>พักใช้ถึงวันที่</label><input type="date" id="e_until" value="${esc(s.suspend_until)}"></div>` : ''}
+    </div>
+    <label>เหตุผล</label><textarea id="e_reason" rows="3">${esc(s.reason)}</textarea>
+    <label>หมายเหตุ</label><input type="text" id="e_remarks" value="${esc(s.remarks)}">
+    <div style="display:flex; gap:8px; margin-top:10px"><button class="btn" onclick="saveEdit('${esc(id)}','${esc(s.action_type)}')">บันทึก</button>
+    <button class="btn secondary" onclick="openDetail('${esc(id)}')">ยกเลิก</button></div>`);
+}
+async function saveEdit(id, type) {
+  try {
+    const v = k => document.getElementById(k).value.trim();
+    const patch = { ethics_case_no: v('e_case'), ethics_meeting_no: v('e_meeting'), decision_date: v('e_decision'), effective_date: v('e_eff'), reason: v('e_reason'), remarks: v('e_remarks') };
+    if (type === 'พักใช้') patch.suspend_until = v('e_until');
+    await apiCall('updateLicenseSanction', { sanction_id: id, patch });
+    showToast('บันทึกสำเร็จ', 'success'); await load(); openDetail(id);
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+function openLift(id, type, until) {
+  const due = type === 'พักใช้' && until && until <= today();
+  openOverlay(`
+    <h2 style="margin-top:0">สิ้นสุด/ยกเลิกคำสั่ง${esc(type)}</h2>
+    <label>ประเภทการสิ้นสุด *</label>
+    <select id="l_type">
+      ${type === 'พักใช้' ? `<option value="ครบกำหนด" ${due ? '' : 'disabled'}>ครบกำหนดพักใช้${due ? '' : ' (ยังไม่ถึงวันสิ้นสุด)'}</option>` : ''}
+      <option value="ยกเลิกคำสั่ง">ยกเลิกคำสั่ง (ต้องมีเหตุผลและหนังสือ/มติ กก.จรรยาบรรณ${type === 'เพิกถอน' ? ' — ผู้ดูแลระบบเท่านั้น' : ''})</option>
+    </select>
+    <label>เหตุผล</label><textarea id="l_reason" rows="3"></textarea>
+    <label>แนบหนังสือ/มติ (จำเป็นเมื่อยกเลิกคำสั่ง)</label><input type="file" id="l_files" multiple accept=".pdf,.jpg,.jpeg,.png">
+    <p style="color:var(--muted); font-size:13px">ระบบจะคืนสถานะใบอนุญาตตามวันหมดอายุ (ปกติ / ใกล้หมดอายุ / หมดอายุ) และแจ้งสมาชิกทางอีเมล</p>
+    <div style="display:flex; gap:8px"><button class="btn" onclick="submitLift('${esc(id)}')">ยืนยัน</button>
+    <button class="btn secondary" onclick="openDetail('${esc(id)}')">ยกเลิก</button></div>`);
+}
+async function submitLift(id) {
+  try {
+    const docs = await uploadFiles('l_files', 'หลักฐานการสิ้นสุดคำสั่ง', '');
+    const res = await apiCall('liftLicenseSanction', { sanction_id: id, lift_type: document.getElementById('l_type').value, lift_reason: document.getElementById('l_reason').value.trim(), documents: docs });
+    showToast('สิ้นสุดคำสั่งแล้ว สถานะใบอนุญาต: ' + res.restored_status, 'success');
+    await load(); openDetail(id);
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+load();
+</script>
+</body>
+</html>

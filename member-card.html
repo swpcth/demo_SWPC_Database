@@ -25,6 +25,7 @@
       <a href="member-certificate.html" id="navCertificate" style="display:none">ใบรับรองสมาชิกวิสามัญ</a>
       <a href="member-welfare.html">สวัสดิการสมาชิก</a>
       <a href="member-receipts.html">ใบเสร็จของฉัน</a>
+      <a href="pdpa-consent.html">ข้อมูลส่วนบุคคล (PDPA)</a>
       <a href="#" onclick="changeMyPasswordFlow(); return false;">เปลี่ยนรหัสผ่าน</a>
       <a href="#" onclick="Auth.clear(); location.href='index.html'; return false;">ออกจากระบบ</a>
     </nav>
@@ -43,6 +44,7 @@
 Auth.requireRole(['member'], 'index.html');
 document.getElementById('who').textContent = 'ผู้ใช้งาน: ' + Auth.getUsername();
 
+const esc = x => String(x == null ? '' : x).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('th-TH') : '-'; }
 
 function statusInfo(days) {
@@ -68,6 +70,11 @@ async function load() {
 
     if (data.isOrg) {
       el.innerHTML = '<div class="panel"><p>สมาชิกวิสามัญ (องค์กร) ใช้ใบรับรองแทนบัตรสมาชิก — ไปที่หน้า <a href="member-certificate.html">ใบรับรองสมาชิกวิสามัญ</a></p></div>';
+      return;
+    }
+
+    if (data.isHonorary) {
+      renderHonoraryCard(data);
       return;
     }
 
@@ -168,6 +175,83 @@ async function load() {
       el.innerHTML = '<div class="panel"><p class="empty-state">โหลดข้อมูลบัตรสมาชิกไม่สำเร็จ: ' + err.message + '</p></div>';
     }
   }
+}
+
+
+// บัตรสมาชิกกิตติมศักดิ์ — ธีมสีน้ำเงินกรมท่า ไม่มีเลขบัตรประชาชน/ต่ออายุ แสดงเลขทะเบียนกิตติมศักดิ์และคุณสมบัติ
+function renderHonoraryCard(data) {
+  const el = document.getElementById('content');
+  const m = data.profile;
+  updateNavVisibility(m);
+  const active = m.status === 'ดำรงสถานะ';
+  const verifyUrl = location.origin + location.pathname.replace('member-card.html', '') + 'verify-card.html?token=' + data.card.qr_token;
+  const nameTh = [m.prefix_th, m.first_name_th, m.last_name_th].filter(Boolean).join(' ');
+  const nameEn = [m.first_name_en, m.last_name_en].filter(Boolean).join(' ');
+  const expiry = m.term_end ? fmtDate(m.term_end) : 'ไม่มีกำหนด';
+  el.innerHTML = `
+    <div class="card-tabs">
+      <button class="tab-chip active" onclick="showSide('front')">หน้าบัตร</button>
+      <button class="tab-chip" onclick="showSide('back')">หลังบัตร</button>
+    </div>
+    <div class="member-card card-honor" id="cardFront">
+      <div class="card-top">
+        <img src="logo.png" class="card-logo">
+        <div class="card-title">
+          <div class="card-title-th">สมาชิกกิตติมศักดิ์สภาวิชาชีพสังคมสงเคราะห์</div>
+          <div class="card-title-en">Social Work Professions Council Honorary Member</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-photo">${m.photo_url ? `<img src="${toEmbeddableImageUrl(m.photo_url)}">` : '👤'}</div>
+        <div class="card-info">
+          <div class="card-name-th">${esc(nameTh)}</div>
+          <div class="card-name-en">${esc(nameEn)}</div>
+          <div class="card-row"><span>คุณสมบัติ / Qualification</span><b style="font-size:10.5px; line-height:1.25; display:block; margin-bottom:6px">${esc(m.qualification_type || "-")}</b></div>
+          <div class="card-dates-row">
+            <div><span>วันออกบัตร / Issue Date</span><b>${fmtDate(data.card.issued_at)}</b></div>
+            <div><span>วันหมดอายุ / Expiry Date</span><b>${expiry}</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-bottom">
+        <div class="card-no-box">
+          <div class="card-no-label">เลขทะเบียน<br><b>${esc(m.honorary_no || '-')}</b><br>Honorary No.</div>
+        </div>
+        <div class="card-signature">
+          ${data.signatory.signature_url ? `<img class="sig-image" src="${toEmbeddableImageUrl(data.signatory.signature_url)}">` : '<div class="sig-line"></div>'}
+          <div class="sig-name">(${esc(data.signatory.name)})</div>
+          <div class="sig-position">${esc(data.signatory.position)}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="member-card card-honor" id="cardBack" style="display:none">
+      <div class="card-back-layout">
+        <div class="card-back-text">
+          <p><b>ที่อยู่</b></p>
+          <p style="font-size:11px">สภาวิชาชีพสังคมสงเคราะห์<br>เลขที่ 255 ตึกกรมกิจการสตรีและสถาบันครอบครัว ชั้น 1<br>ถนนราชวิถี แขวงทุ่งพญาไท เขตราชเทวี กรุงเทพมหานคร 10400</p>
+          <p style="font-size:11px">Address<br>Social Work Professions Council<br>255 Ratchawithi Rd., Ratchathewi, Bangkok 10400 Thailand</p>
+          <p style="font-size:11px">Tel. 02 050 9427, 098 380 1351<br>Email: thaisocialworkcouncil@gmail.com</p>
+        </div>
+        <div class="card-back-qr">
+          <div id="qrcodeBack" class="card-qr"></div>
+          <p style="font-size:10px; text-align:center">สแกนเพื่อตรวจสอบ<br>ความถูกต้อง</p>
+        </div>
+      </div>
+      <p class="card-back-footer">บัตรนี้เป็นกรรมสิทธิ์ของสภาวิชาชีพสังคมสงเคราะห์</p>
+    </div>
+
+    <div class="card-status-bar ${active ? 'card-status-green' : 'card-status-gray'}">${active ? 'ดำรงสถานะสมาชิกกิตติมศักดิ์' : 'สิ้นสุดสถานะ'}</div>
+    <div class="card-summary-bar">
+      <div><span>เลขทะเบียน</span><b>${esc(m.honorary_no || '-')}</b></div>
+      <div><span>วันออกบัตร</span><b>${fmtDate(data.card.issued_at)}</b></div>
+      <div><span>วันหมดอายุ</span><b>${expiry}</b></div>
+    </div>
+    <div class="panel">
+      <button class="btn small secondary" onclick="downloadCard()">ดาวน์โหลดบัตรเป็นรูปภาพ</button>
+      <p style="color:var(--muted); font-size:13px; margin-top:10px">สมาชิกกิตติมศักดิ์ไม่มีค่าบำรุงสมาชิก จึงไม่มีการต่ออายุบัตร</p>
+    </div>`;
+  renderQr(verifyUrl);
 }
 
 function renderQr(url) {

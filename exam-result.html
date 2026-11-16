@@ -6,6 +6,16 @@
 <title>ดูคะแนนการสอบข้อเขียน — สภาวิชาชีพสังคมสงเคราะห์</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="stylesheet" href="style.css">
+<style>
+/* ตารางผลสอบต้องอยู่ในกรอบการ์ด: เลื่อนแนวนอนได้ถ้าจอแคบ และปุ่มพิมพ์ไม่ตัดบรรทัด */
+.er-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.er-wrap table { display: table; width: 100%; white-space: normal; }
+.er-wrap table { font-size: 13px; }
+.er-wrap th, .er-wrap td { padding: 8px 4px; white-space: normal; }
+.er-wrap td:nth-child(1), .er-wrap td:nth-child(2) { white-space: nowrap; }
+.er-wrap th:last-child, .er-wrap td:last-child { text-align: right; }
+.er-wrap .btn { white-space: nowrap; padding: 6px 10px; font-size: 13px; }
+</style>
 </head>
 <body>
 <div class="public-shell public-shell-wide">
@@ -46,7 +56,7 @@ async function doSearch() {
     box.innerHTML = '<h3 style="text-align:center">ผลการค้นหา</h3>' + lastResults.map((r, i) => `
       <div class="panel" style="margin-bottom:12px">
         <div style="font-weight:700; margin-bottom:8px">การสอบข้อเขียน ${escapeHtml(r.name)}</div>
-        <table>
+        <div class="er-wrap"><table>
           <thead><tr><th>วันที่สอบ</th><th>เลขที่นั่งสอบ</th><th>ผลสอบทฤษฎี (TP)</th><th>ผลสอบปฏิบัติ (PP)</th><th>สรุปผล</th><th></th></tr></thead>
           <tbody><tr>
             <td>${fmtDate(r.exam_date)}</td><td>${escapeHtml(r.seat_no || '-')}</td>
@@ -54,7 +64,7 @@ async function doSearch() {
             <td><span class="badge ${r.result === 'ผ่าน' ? 'ok' : 'warn'}">${escapeHtml(r.result)}</span></td>
             <td><button class="btn small secondary" onclick="printOne(${i})">พิมพ์ผลสอบ</button></td>
           </tr></tbody>
-        </table>
+        </table></div>
       </div>`).join('');
   } catch (err) { box.innerHTML = '<div class="error-box" style="display:block">' + escapeHtml(err.message) + '</div>'; }
 }

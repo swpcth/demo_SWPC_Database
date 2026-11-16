@@ -28,6 +28,7 @@
         <a href="admin-license-applications.html">คำขอใบอนุญาต</a>
         <a href="admin-license-tools.html">เครื่องมือใบอนุญาต (กลุ่ม)</a>
         <a href="admin-licenses.html" class="active">ข้อมูลใบอนุญาต</a>
+        <a href="admin-license-sanctions.html">พักใช้/เพิกถอนใบอนุญาต</a>
       </div>
 
       <div class="nav-group-label">สอบ</div>
@@ -55,6 +56,7 @@
       <div class="nav-group">
         <a href="admin-users.html">ผู้ใช้งานระบบ</a>
         <a href="admin-audit-log.html">ประวัติการใช้งาน</a>
+        <a href="admin-pdpa.html">PDPA: ความยินยอม/คำขอ</a>
         <a href="admin-council-officers.html">นายกสภาฯ/เลขาธิการฯ</a>
         <a href="admin-notifications.html">ประวัติการแจ้งเตือน</a>
       </div>
@@ -192,6 +194,16 @@ async function viewRegistry(memberId) {
     const paymentsHtml = data.payments.length
       ? data.payments.map(p => `<div class="detail-row"><p><b>${p.amount} บาท</b> — ${p.status} ${p.paid_at ? '(' + fmtDate(p.paid_at) + ')' : ''}</p></div>`).join('')
       : '<p class="empty-state">ไม่มีประวัติการชำระเงิน</p>';
+    let sanctions = [];
+    try { sanctions = await apiCall('listLicenseSanctions', { member_id: memberId, with_evidence: true }); } catch (e) { /* ไม่มีสิทธิ์/โหลดไม่ได้ — ข้ามส่วนนี้ */ }
+    const sanctionHtml = sanctions.length
+      ? sanctions.map(sn => `<div class="detail-row"><p><span class="badge ${sn.action_type === 'เพิกถอน' ? 'warn' : 'pending'}">${escapeHtml(sn.action_type)}</span>
+          <span class="badge ${sn.status === 'มีผลบังคับใช้' ? 'warn' : 'ok'}">${escapeHtml(sn.status)}</span>
+          มีผล ${fmtDate(sn.effective_date)}${sn.suspend_until ? ' ถึง ' + fmtDate(sn.suspend_until) : ''} · เลขที่ ${escapeHtml(sn.ethics_case_no)}<br>
+          เหตุผล: ${escapeHtml(sn.reason)}<br>
+          หลักฐาน: ${(sn.evidence || []).map(d => d.url ? `<a href="${escapeHtml(d.url)}" target="_blank" rel="noopener">${escapeHtml(d.name)}</a>` : escapeHtml(d.name)).join(' · ') || '-'}</p></div>`).join('')
+      : '<p class="empty-state">ไม่มีคำสั่งพักใช้/เพิกถอน</p>';
+    const sanctioned = lic && ['พักใช้', 'เพิกถอน'].indexOf(lic.status) !== -1;
     const notifHtml = data.notifications.length
       ? data.notifications.slice(0, 5).map(n => `<div class="detail-row"><p>${fmtDate(n.sent_at)} — ${n.subject}</p></div>`).join('')
       : '<p class="empty-state">ยังไม่เคยส่งแจ้งเตือน</p>';
@@ -215,8 +227,8 @@ async function viewRegistry(memberId) {
         <div><label>วันที่ออกใบอนุญาต</label><input type="date" id="lic_issue" value="${lic ? (lic.issue_date || '').slice(0,10) : ''}"></div>
         <div><label>วันหมดอายุ</label><input type="date" id="lic_expire" value="${lic ? (lic.expire_date || '').slice(0,10) : ''}"></div>
         <div><label>สถานะใบอนุญาต</label>
-          <select id="lic_status">
-            ${['ปกติ', 'ใกล้หมดอายุ', 'หมดอายุ', 'อยู่ระหว่างต่ออายุ', 'พักใช้', 'เพิกถอน'].map(s => `<option value="${s}" ${lic && lic.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+          <select id="lic_status" ${sanctioned ? 'disabled' : ''}>
+            ${['ปกติ', 'ใกล้หมดอายุ', 'หมดอายุ', 'อยู่ระหว่างต่ออายุ'].concat(sanctioned ? [lic.status] : []).map(s => `<option value="${s}" ${lic && lic.status === s ? 'selected' : ''}>${s}</option>`).join('')}
           </select>
         </div>
         <div><label>คะแนน CE หมวด 1 (เกณฑ์ 40)</label><input type="number" id="lic_ce1" value="${m.ce_score_cat1 || ''}"></div>
@@ -224,6 +236,11 @@ async function viewRegistry(memberId) {
       </div>
       <p style="color:var(--muted); font-size:12px">รอบสะสม 5 ปี ต้องผ่านเกณฑ์ทั้ง 2 หมวดจึงจะต่ออายุด้วยวิธี CE ได้ — กรอกด้วยมือชั่วคราว เพราะยังไม่ได้เชื่อมต่อ API ระบบการศึกษาต่อเนื่องจริง (ดู LICENSE_SYSTEM.md)</p>
       <button class="btn small" onclick="saveLicenseInfo('${m.member_id}')">บันทึกข้อมูลใบอนุญาต</button>
+
+      <p style="color:var(--muted); font-size:12px">การพักใช้/เพิกถอนใบอนุญาตทำที่เมนู <a href="admin-license-sanctions.html">พักใช้/เพิกถอนใบอนุญาต</a> (ต้องมีเลขที่มติ กก.จรรยาบรรณและหลักฐาน)${sanctioned ? ' — ใบอนุญาตนี้มีคำสั่งอยู่ จึงแก้สถานะตรงนี้ไม่ได้' : ''}</p>
+
+      <h3>คำสั่งพักใช้/เพิกถอนใบอนุญาต</h3>
+      ${sanctionHtml}
 
       <h3>ประวัติการต่ออายุ</h3>
       ${renewalsHtml}
