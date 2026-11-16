@@ -5,7 +5,9 @@ const Auth = {
   getToken() { return localStorage.getItem('swc_token'); },
   getRole() { return localStorage.getItem('swc_role'); },
   getUsername() { return localStorage.getItem('swc_username'); },
-  setSession({ token, role, username }) {
+  getAcctType() { return localStorage.getItem('swc_acct') || ''; }, // 'org' = บัญชีองค์กร | 'person' = บัญชีบุคคล
+  setSession({ token, role, username, account_type }) {
+    localStorage.setItem('swc_acct', account_type || '');
     localStorage.setItem('swc_token', token);
     localStorage.setItem('swc_role', role);
     localStorage.setItem('swc_username', username);
@@ -14,6 +16,8 @@ const Auth = {
     localStorage.removeItem('swc_token');
     localStorage.removeItem('swc_role');
     localStorage.removeItem('swc_username');
+    localStorage.removeItem('swc_acct');
+    try { sessionStorage.removeItem('swc_pdpa_ok'); } catch (e) {}
   },
   isLoggedIn() { return !!this.getToken(); },
   requireLogin(redirectTo = '/index.html') {
@@ -89,7 +93,11 @@ async function applyMemberNavVisibility() {
   const navExamApply = document.getElementById('navExamApply');
   try {
     const profile = await apiCall('getMyProfile');
-    if (navApply) navApply.style.display = 'none';
+    // สมาชิกบุคคลที่จะสมัครวิสามัญ (องค์กร) ต้องสร้างบัญชีองค์กรแยก — คงเมนูไว้แต่เปลี่ยนชื่อให้ตรงกับหน้าที่
+    if (navApply) {
+      if (profile.profile_kind === 'individual') navApply.textContent = 'สมัครสมาชิกวิสามัญ (องค์กร)';
+      else navApply.style.display = 'none';
+    }
     const isOrg = profile.profile_kind === 'organization';
     if (navTypeChange && (isOrg || profile.member_type === 'สามัญ')) navTypeChange.style.display = 'none';
     // สมาชิกสมทบไม่มีสิทธิ์ยื่นขอใบอนุญาต (ผู้ขอขึ้นทะเบียนต้องเป็นสมาชิกสามัญ) — ซ่อนเมนูใบอนุญาต
@@ -427,7 +435,7 @@ function createSignaturePad(canvasId) {
 // ---------- ตรวจสอบว่า Deploy เวอร์ชันล่าสุดของ backend แล้วหรือยัง ----------
 // ต้องตรงกับ BACKEND_VERSION ใน Code.gs — อัปเดตทุกครั้งที่ส่งมอบไฟล์ Code.gs ชุดใหม่
 // ป้องกันปัญหา "อัปโหลดไฟล์เว็บแล้วแต่ลืม Deploy Apps Script ใหม่" ซึ่งทำให้ฟีเจอร์ใหม่ไม่ทำงานโดยไม่รู้ตัว
-const EXPECTED_BACKEND_VERSION = '2026-11-05-exam-edu-doc-v19';
+const EXPECTED_BACKEND_VERSION = '2026-11-15-pdpa-v21';
 
 async function checkBackendVersionAndWarn() {
   try {
@@ -773,9 +781,27 @@ function openExamCertificate(c) {
     <div class="result">ผลการสอบ: ${escapeHtml(er.result || '-')}</div>
     ${er.basis ? `<div class="basis">${escapeHtml(er.basis)}</div>` : ''}
     ${sig}
-    <div class="foot">ออกโดยระบบสมาชิกและใบอนุญาต สภาวิชาชีพสังคมสงเคราะห์ · พิมพ์เมื่อ ${fmt(new Date().toISOString())}</div>
+    <div class="foot">ออกโดยแพลตฟอร์มบริการสมาชิกแบบเบ็ดเสร็จ สภาวิชาชีพสังคมสงเคราะห์ · พิมพ์เมื่อ ${fmt(new Date().toISOString())}</div>
   </div></body></html>`;
   const w = window.open('', '_blank');
   if (!w) { showToast('เบราว์เซอร์บล็อกหน้าต่างใหม่ กรุณาอนุญาต pop-up แล้วลองอีกครั้ง', 'error'); return; }
   w.document.open(); w.document.write(html); w.document.close();
 }
+
+
+/**
+ * PDPA gate: สมาชิก (role=member) ที่ยังไม่ได้ให้ความยินยอมฉบับปัจจุบัน ถูกพาไปหน้า pdpa-consent.html ก่อนใช้งานหน้าอื่น
+ * (ผลตรวจเก็บใน sessionStorage ต่อเวอร์ชัน เพื่อไม่เรียก API ซ้ำทุกหน้า — การบังคับจริงอยู่ที่ backend: requirePdpaConsent_)
+ */
+(function pdpaGate() {
+  try {
+    if (!Auth.isLoggedIn() || Auth.getRole() !== 'member') return;
+    const page = location.pathname.split('/').pop();
+    if (/^(index|pdpa-consent|pdpa-policy|auth-callback)(\.html)?$/.test(page) || page === '') return;
+    if (sessionStorage.getItem('swc_pdpa_ok') === '1') return;
+    apiCall('getMyPdpaStatus').then(st => {
+      if (st.accepted) { sessionStorage.setItem('swc_pdpa_ok', '1'); return; }
+      location.href = 'pdpa-consent.html?next=' + encodeURIComponent(page);
+    }).catch(() => {});
+  } catch (e) {}
+})();
